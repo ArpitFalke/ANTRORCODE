@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Sign in — ANTROR Code</title>
+<link rel="icon" href="assets/logo.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet" />
+<style>
+:root{--bg:#0a0a0a;--panel:#141414;--panel2:#181818;--line:rgba(255,255,255,.08);--line2:rgba(255,255,255,.16);
+--txt:#ececec;--dim:#9a9a9a;--faint:#5c5c5c;--err:#e08585;--mono:'JetBrains Mono',monospace}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--txt);display:flex;
+align-items:center;justify-content:center;padding:20px;-webkit-font-smoothing:antialiased}
+.card{width:min(400px,94vw);background:var(--panel2);border:1px solid var(--line2);border-radius:16px;
+padding:34px 30px;box-shadow:0 40px 120px rgba(0,0,0,.7);animation:up .3s cubic-bezier(.2,.9,.3,1.1)}
+@keyframes up{from{opacity:0;transform:translateY(16px)}}
+.card.ok{width:min(520px,94vw)}
+.brand{text-align:center;margin-bottom:22px}
+.brand img{width:60px;height:60px;border-radius:14px;margin-bottom:12px}
+.brand h1{font-size:21px;font-weight:800}
+.brand h1 span{color:var(--dim);font-weight:400}
+.brand .by{font-size:9.5px;letter-spacing:.3em;text-transform:uppercase;color:var(--faint);margin-top:5px}
+.tabs{display:flex;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:3px;margin-bottom:20px}
+.tabs button{flex:1;padding:8px;border-radius:7px;font-size:12.5px;font-weight:700;color:var(--dim)}
+.tabs button.on{background:#e8e8e8;color:#0a0a0a}
+.oauth{display:flex;flex-direction:column;gap:9px}
+.obtn{display:flex;align-items:center;justify-content:center;gap:10px;padding:12px;border-radius:10px;
+border:1px solid var(--line2);background:var(--panel);font-size:13px;font-weight:650;transition:.15s;color:var(--txt)}
+.obtn:hover{border-color:rgba(255,255,255,.4);background:rgba(255,255,255,.05)}
+.obtn svg{width:17px;height:17px;flex:none}
+.div{display:flex;align-items:center;gap:12px;margin:18px 0;color:var(--faint);font-size:10.5px;
+letter-spacing:.18em;text-transform:uppercase}
+.div::before,.div::after{content:"";flex:1;height:1px;background:var(--line)}
+label{display:block;font-size:11.5px;font-weight:650;color:var(--dim);margin-bottom:10px}
+input{display:block;width:100%;margin-top:5px;padding:11px 12px;border-radius:9px;font-size:13px;
+background:var(--panel);border:1px solid var(--line2);outline:none;color:var(--txt)}
+input:focus{border-color:rgba(255,255,255,.45)}
+.submit{width:100%;margin-top:16px;padding:12px;border-radius:10px;background:#e8e8e8;color:#0a0a0a;
+font-size:13.5px;font-weight:800;transition:.15s}
+.submit:hover{background:#fff}
+.msg{margin-top:12px;font-size:12px;line-height:1.6;color:var(--dim);text-align:center}
+.msg.err{color:var(--err)}
+.foot{margin-top:20px;text-align:center;font-size:11.5px;color:var(--faint)}
+.foot a{color:var(--dim);text-decoration:underline;text-underline-offset:3px}
+.back{position:fixed;top:16px;left:18px;font-size:12px;color:var(--dim);text-decoration:none;
+border:1px solid var(--line2);border-radius:8px;padding:7px 13px;background:var(--panel)}
+.back:hover{color:var(--txt)}
+/* setup panel */
+.sqlbox{font-family:var(--mono);font-size:11px;line-height:1.6;background:#0c0c0c;border:1px solid var(--line);
+border-radius:9px;padding:12px;color:#b5b5b5;white-space:pre-wrap;word-break:break-all;max-height:190px;overflow:auto;text-align:left;margin:10px 0 4px}
+.h2{font-size:13px;font-weight:750;margin:16px 0 6px}
+.note{font-size:12px;color:var(--dim);line-height:1.7;text-align:left}
+</style>
+</head>
+<body>
+<a class="back" href="index.html">← Back to app</a>
+
+<!-- ════ setup card (shown when Supabase isn't configured) ════ -->
+<div class="card ok" id="setupCard" hidden>
+  <div class="brand"><img src="assets/logo.png" alt="ANTROR" /><h1>ANTROR <span>Code</span></h1>
+  <div class="by">a product by ANTROR</div></div>
+  <p class="note">Accounts run on <b style="color:#ececec">your own Supabase</b> project — nothing touches an
+  ANTROR server. Paste your project URL and <b style="color:#ececec">anon</b> (public) key once; it is stored
+  only in this browser.</p>
+  <div class="h2">1 · Connect your Supabase</div>
+  <label>Project URL<input id="sbUrl" placeholder="https://xxxx.supabase.co" spellcheck="false" /></label>
+  <label>Anon public key<input id="sbAnon" placeholder="eyJhbGciOi…" spellcheck="false" /></label>
+  <button class="submit" id="sbSave">Save &amp; continue</button>
+  <div class="h2">2 · Then in Supabase → SQL Editor, run once</div>
+  <div class="sqlbox" id="sqlBox"></div>
+  <p class="msg" id="setupMsg"></p>
+  <p class="msg">Also enable GitHub / Google under Authentication → Providers.</p>
+</div>
+
+<!-- ════ auth card ════ -->
+<div class="card" id="authCard" hidden>
+  <div class="brand"><img src="assets/logo.png" alt="ANTROR" /><h1>ANTROR <span>Code</span></h1>
+  <div class="by">a product by ANTROR</div></div>
+
+  <div class="tabs">
+    <button id="tabIn" class="on">Sign in</button>
+    <button id="tabUp">Create account</button>
+  </div>
+
+  <div class="oauth">
+    <button class="obtn" id="ghBtn">
+      <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
+      Continue with GitHub
+    </button>
+    <button class="obtn" id="ggBtn">
+      <svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1Z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23Z"/><path fill="#FBBC05" d="M5.84 14.1a6.6 6.6 0 0 1 0-4.2V7.06H2.18a11 11 0 0 0 0 9.88l3.66-2.84Z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1A11 11 0 0 0 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52Z"/></svg>
+      Continue with Google
+    </button>
+  </div>
+
+  <div class="div">or with email</div>
+
+  <form id="authForm">
+    <label>Email<input id="email" type="email" placeholder="you@example.com" autocomplete="email" required /></label>
+    <label>Password<input id="pass" type="password" placeholder="at least 6 characters" autocomplete="current-password" required /></label>
+    <button class="submit" id="submitBtn" type="submit">Sign in</button>
+  </form>
+
+  <p class="msg" id="authMsg"></p>
+  <div class="foot">By continuing you agree to our <a href="legal.html" target="_blank">Terms &amp; Privacy</a> · © ANTROR</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase.js"></script>
+<script>
+'use strict';
+const $=(x)=>document.getElementById(x);
+const mode={up:false};
+function setMode(up){
+  mode.up=up;
+  $('tabIn').classList.toggle('on',!up);
+  $('tabUp').classList.toggle('on',up);
+  $('submitBtn').textContent=up?'Create account':'Sign in';
+  $('pass').autocomplete=up?'new-password':'current-password';
+  $('authMsg').textContent='';
+}
+$('tabIn').onclick=()=>setMode(false);
+$('tabUp').onclick=()=>setMode(true);
+
+function say(m,err){ const el=$('authMsg'); el.textContent=m; el.className='msg'+(err?' err':''); }
+
+async function alreadyIn(){
+  if(!VF.configured()) return false;
+  const u=await VF.getUser();
+  if(u){ say('Signed in as '+(u.email||'user')+' — taking you back…');
+    setTimeout(()=>location.href='index.html',700); return true; }
+  return false;
+}
+
+async function init(){
+  const ok=VF.configured();
+  $('setupCard').hidden=ok;
+  $('authCard').hidden=!ok;
+  if(ok){ if(!await alreadyIn()) $('email').focus(); return; }
+  $('sqlBox').textContent=VF.PROJECTS_SQL;
+  const c=VF.cfg()||{};
+  $('sbUrl').value=c.url||'';
+  $('sbAnon').value=c.anon||'';
+}
+$('sbSave').onclick=()=>{
+  const url=$('sbUrl').value.trim(), anon=$('sbAnon').value.trim();
+  if(!/^https:\/\/.+\.supabase\.co/.test(url)){ say('That doesn’t look like a Supabase URL (https://xxxx.supabase.co)',1); return; }
+  if(anon.length<20){ say('Paste the anon public key (Project Settings → API).',1); return; }
+  VF.saveCfg({url,anon});
+  if(!VF.client()){ VF.clearCfg(); say('Could not initialize the Supabase client — check the values.',1); return; }
+  $('setupMsg').textContent='Saved. Loading sign-in…';
+  setTimeout(()=>location.reload(),400);
+};
+
+$('ghBtn').onclick=async()=>{ try{ await VF.oauth('github'); }catch(e){ say(e.message||'GitHub sign-in failed',1); } };
+$('ggBtn').onclick=async()=>{ try{ await VF.oauth('google'); }catch(e){ say(e.message||'Google sign-in failed',1); } };
+
+$('authForm').onsubmit=async(ev)=>{
+  ev.preventDefault();
+  const email=$('email').value.trim(), pass=$('pass').value;
+  $('submitBtn').disabled=true;
+  try{
+    if(mode.up){
+      const data=await VF.signUp(email,pass);
+      if(data && data.session){ say('Account created — welcome!'); setTimeout(()=>location.href='index.html',600); }
+      else say('Account created. Check your inbox for a confirmation email, then sign in.');
+    }else{
+      await VF.signIn(email,pass);
+      say('Welcome back — taking you in…');
+      setTimeout(()=>location.href='index.html',600);
+    }
+  }catch(e){
+    say(e.message||'Authentication failed — check your email and password.',1);
+  }
+  $('submitBtn').disabled=false;
+};
+init();
+</script>
+</body>
+</html>

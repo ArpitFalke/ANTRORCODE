@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ANTROR Code</title>
+<link rel="icon" href="assets/logo.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ══════════ LEFT SIDEBAR : project + files ══════════ -->
+  <aside id="sidebar">
+    <div class="logo-row">
+      <img src="assets/logo.png" alt="ANTROR" />
+      <span class="logo-text">ANTROR<b> Code</b></span>
+    </div>
+    <div class="byline">a product by ANTROR</div>
+    <div class="proj-row">
+      <span class="proj-label">project</span>
+      <span id="projName" contenteditable="true" spellcheck="false">untitled</span>
+    </div>
+
+    <div class="side-actions">
+      <button id="btnProjects" class="sbtn" title="All projects — switch without losing anything"><span>🗂</span><span class="slbl">Projects</span></button>
+      <button id="btnNew" class="sbtn" title="Start a fresh project"><span>✦</span><span class="slbl">New</span></button>
+      <button id="btnZip" class="sbtn" title="Download the whole project as a .zip"><span>⬇</span><span class="slbl">Export ZIP</span></button>
+      <button id="btnHistory" class="sbtn" title="Restore an earlier snapshot"><span>⏱</span><span class="slbl">History</span></button>
+      <button id="btnSettings" class="sbtn accent" title="Settings — model, keys, data, legal"><span>⚙</span><span class="slbl">Settings</span></button>
+    </div>
+
+    <div class="tree-head">FILES</div>
+    <nav id="fileTree"></nav>
+
+    <div class="side-foot">
+      <button id="provChip" title="Open settings">
+        <span id="provDot" class="dot off"></span>
+        <span id="provChipText">no provider</span>
+      </button>
+      <div class="legal-link"><a href="legal.html" target="_blank" rel="noopener">Terms · Privacy</a> — © ANTROR</div>
+    </div>
+  </aside>
+
+  <!-- ══════════ CENTER STAGE : preview / code ══════════ -->
+  <main id="stage">
+    <div id="stagebar">
+      <div class="seg" role="tablist">
+        <button id="segPreview" class="segbtn active">▶ Preview</button>
+        <button id="segCode" class="segbtn">&lt;/&gt; Code</button>
+      </div>
+      <div class="bar-right">
+        <div class="seg" id="widthSeg" title="Preview width">
+          <button id="wFull" class="segbtn wbtn active" title="Full width">Full</button>
+          <button id="wPhone" class="segbtn wbtn" title="Phone width (390px)">390</button>
+        </div>
+        <button id="consBadgeBtn" hidden title="Runtime errors from your app">⚠ <b id="consCount">0</b></button>
+        <button id="btnRefresh" title="Re-run the preview">↻ Run</button>
+        <button id="btnPopOut" title="Open the preview in a real browser tab">↗ Open tab</button>
+      </div>
+    </div>
+
+    <section id="previewWrap">
+      <div id="frameHolder">
+        <iframe id="previewFrame" title="Live preview"
+          sandbox="allow-scripts allow-forms allow-modals allow-popups allow-pointer-lock"></iframe>
+      </div>
+      <div id="previewEmpty" class="empty-stage">
+        <img class="glyph" src="assets/logo.png" alt="" />
+        <h2>Nothing to preview yet</h2>
+        <p>Describe your app in the chat → ANTROR Code writes real files → they render here live.<br/>
+           Or start from a sample:</p>
+        <div class="sample-row">
+          <button data-sample="landing" class="chip-btn">Landing page</button>
+          <button data-sample="todo" class="chip-btn">Todo app</button>
+          <button data-sample="game" class="chip-btn">Snake game</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="editorWrap" hidden>
+      <div id="tabsRow"></div>
+      <div id="editorArea">
+        <div id="gutter">1</div>
+        <textarea id="codeEditor" spellcheck="false" autocomplete="off" wrap="off"
+          placeholder="Pick a file on the left, or let the AI create one…"></textarea>
+      </div>
+      <div id="edStatus"><span id="edPath">no file open</span><span id="edMeta"></span></div>
+    </section>
+  </main>
+
+  <!-- ══════════ RIGHT PANEL : chat ══════════ -->
+  <aside id="chatPanel">
+    <div class="chat-head">
+      <span class="chat-title">ANTROR Assistant</span>
+      <button id="btnClearChat" title="Clear conversation">🗑</button>
+    </div>
+    <div id="chatLogWrap">
+      <div id="chatLog"></div>
+      <button id="jumpLatest" hidden title="Jump to latest">↓ latest</button>
+    </div>
+    <div id="chipsRow">
+      <button class="chip" data-fill="Build me ">✦ Build…</button>
+      <button class="chip" data-fill="Add a feature: ">➕ Add feature…</button>
+      <button class="chip" data-fill="Something is broken: ">🐛 Fix…</button>
+      <button class="chip" data-fill="Make it prettier — better colors, spacing and animations.">🎨 Polish</button>
+      <button class="chip" data-fill="Explain how this project works in simple words.">🧠 Explain</button>
+    </div>
+    <form id="composerForm">
+      <textarea id="promptBox" rows="2"
+        placeholder="Describe what you want to build…  (Enter to send, Shift+Enter for a new line)"></textarea>
+      <button type="submit" id="sendBtn" title="Send">➤</button>
+      <button type="button" id="stopBtn" title="Stop generating" hidden>■</button>
+    </form>
+  </aside>
+</div>
+
+<!-- ══════════ SETTINGS MODAL ══════════ -->
+<div id="settingsModal" class="overlay" hidden>
+  <div class="modal">
+    <div class="modal-head">
+      <h3><img src="assets/logo.png" alt="" /> Settings</h3>
+      <button class="x" id="setClose">✕</button>
+    </div>
+    <p class="modal-sub">Your keys are stored <b>only in this browser</b> (localStorage) and requests go straight
+      to the provider — no ANTROR server in between.</p>
+
+    <div class="set-sec">Model provider</div>
+    <div id="provGrid"></div>
+
+    <label class="fld">API key
+      <input id="keyInput" type="password" placeholder="paste your API key…" autocomplete="off" />
+    </label>
+    <label class="fld" id="baseRow">Base URL <small>(optional — proxy / local endpoint)</small>
+      <input id="baseInput" type="text" placeholder="https://…" autocomplete="off" spellcheck="false" />
+    </label>
+    <label class="fld">Model
+      <input id="modelInput" type="text" placeholder="" autocomplete="off" spellcheck="false" />
+    </label>
+    <p id="provHint" class="hint"></p>
+
+    <div class="modal-foot">
+      <button id="btnTestKey" class="ghost">Test connection</button>
+      <button id="btnForget" class="ghost danger" title="Erase the saved key for this provider">Forget key</button>
+      <span class="spacer"></span>
+      <button id="btnSaveSet" class="primary">Save</button>
+    </div>
+
+    <div class="set-sec">Workspace data</div>
+    <div class="data-row">
+      <button id="btnExpAll" class="ghost">⬇ Export project</button>
+      <button id="btnWipeChat" class="ghost danger">Clear conversation</button>
+      <button id="btnWipeProj" class="ghost danger">Delete all files</button>
+      <button id="btnWipeAll" class="ghost danger">Erase everything</button>
+    </div>
+    <p class="hint">Everything lives in this browser. “Erase everything” removes keys, files, chat and history.</p>
+
+    <div class="set-sec">Account</div>
+    <div id="acctBox">
+      <div class="acct-soon">
+        <span><b>Accounts</b> — sign in to sync projects across devices.</span>
+        <button class="ghost" id="acctGo">Sign in</button>
+      </div>
+    </div>
+
+    <div class="set-sec">About</div>
+    <div class="about-blk">
+      <img src="assets/logo.png" alt="" /><b>ANTROR Code</b> v1.0 — describe it. ship it.<br/>
+      A product by <b>ANTROR</b>. © 2026 ANTROR. All rights reserved.<br/>
+      <a href="legal.html" target="_blank" rel="noopener">Terms of Service</a> ·
+      <a href="legal.html#privacy" target="_blank" rel="noopener">Privacy Policy</a>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ HISTORY DRAWER ══════════ -->
+<div id="historyDrawer" class="overlay" hidden>
+  <div class="modal slim">
+    <div class="modal-head"><h3>⏱ Checkpoints</h3><button class="x" id="histClose">✕</button></div>
+    <p class="modal-sub">A snapshot of every file is saved before each AI run. Restore any point in time.</p>
+    <div id="histList"></div>
+  </div>
+</div>
+
+<!-- ══════════ PROJECTS DRAWER ══════════ -->
+<div id="projectsDrawer" class="overlay" hidden>
+  <div class="modal slim">
+    <div class="modal-head"><h3>🗂 Projects</h3><button class="x" id="projClose">✕</button></div>
+    <p class="modal-sub">Every project keeps its own files and chat. Switch freely — <b>nothing is erased</b>.
+       The project you're working on is snapshotted the moment you switch away.</p>
+    <div id="projList" style="max-height:56vh;overflow-y:auto"></div>
+  </div>
+</div>
+
+<!-- ══════════ FIRST-RUN HERO ══════════ -->
+<div id="welcome" class="overlay hero" hidden>
+  <div class="hero-card">
+    <img class="hero-logo" src="assets/logo.png" alt="ANTROR" />
+    <h1>ANTROR <span>Code</span></h1>
+    <div class="hero-co">a product by ANTROR</div>
+    <p class="tagline">describe it. ship it.</p>
+    <p class="sub">Tell an AI what you want in plain words. It writes the files. You watch them come alive.
+      Bring your own API key — it never leaves your browser.</p>
+    <div id="heroProv" class="pick-grid"></div>
+    <div class="hero-keyrow">
+      <input id="heroKey" type="password" placeholder="paste API key (or pick Ollama to go keyless)…" autocomplete="off" />
+      <button id="heroStart" class="primary big">Start building</button>
+    </div>
+    <p id="heroErr" class="hint err" hidden></p>
+    <button id="heroSkip" class="linklike">just let me look around first →</button>
+  </div>
+</div>
+
+<button id="chatFab" title="Chat with the ANTROR Assistant">💬</button>
+
+<div id="toasts"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

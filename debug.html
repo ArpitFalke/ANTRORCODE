@@ -1,0 +1,58 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>VibeForge preview debugger</title>
+<style>body{font-family:monospace;font-size:12px;background:#111;color:#ddd;padding:14px}
+pre{background:#000;border:1px solid #333;padding:10px;white-space:pre-wrap;word-break:break-all;max-height:340px;overflow:auto}
+iframe{width:100%;height:420px;border:2px solid #a78bfa;background:#fff}
+h2{color:#a78bfa;margin:14px 0 6px}</style></head>
+<body>
+<h1>VibeForge preview debugger</h1>
+<h2>files in localStorage</h2><pre id="inv"></pre>
+<h2>built srcdoc (first 1400 chars)</h2><pre id="out"></pre>
+<h2>live iframe of built doc</h2>
+<iframe id="f" sandbox="allow-scripts allow-forms allow-modals allow-popups allow-pointer-lock"></iframe>
+<script>
+const proj = JSON.parse(localStorage.getItem('vf.v1.project')||'{}');
+const files = proj.files||{};
+document.getElementById('inv').textContent =
+  Object.keys(files).map(p=>p+' ('+files[p].length+' bytes)').join('\n') || '(none)';
+
+const SHIM =
+ '<script>(function(){try{window.localStorage.getItem("__t")}catch(e){var m={};try{Object.defineProperty(window,"localStorage",{value:{getItem:function(k){return k in m?m[k]:null},setItem:function(k,v){m[k]=String(v)},removeItem:function(k){delete m[k]},clear:function(){m={}},key:function(i){return Object.keys(m)[i]!=null?Object.keys(m)[i]:null},get length(){return Object.keys(m).length}}})catch(e2){}}})();</script>' +
+ '<script>(function(){var send=function(t){try{parent.postMessage({__vfc:1,text:String(t).slice(0,500)},"*")}catch(e){}};' +
+ 'window.onerror=function(m,s,l){send("ERR "+m+" @ "+(s||"inline")+":"+l)};})();<\/script>';
+
+function resolveLocal(ref){
+  if(!ref || /^(https?:|data:|blob:|#|mailto:|\/\/)/i.test(ref)) return null;
+  const p = ref.replace(/^\.\//,'').split('?')[0].split('#')[0];
+  return Object.prototype.hasOwnProperty.call(files, p) ? p : null;
+}
+function guardClose(s){ return s.replace(/<\/(script|style)/gi, '<\\/$1'); }
+
+let html = files['index.html'];
+let report = [];
+if(html == null){ report.push('NO index.html'); }
+else{
+  html = html.replace(/<link\b[^>]*>/gi,function(tag){
+    const m = tag.match(/href=["']([^"']+)["']/i);
+    const rel = tag.match(/rel=["']([^"']+)["']/i);
+    if(rel && !/stylesheet/i.test(rel[1])) return tag;
+    const loc = m && resolveLocal(m[1]);
+    report.push('LINK tag resolved: '+(m&&m[1])+' -> '+(loc==null?'EXTERNAL/MISSING (kept)':loc));
+    if(loc == null) return tag;
+    return '<style>\n'+guardClose(files[loc])+'\n</style>';
+  });
+  html = html.replace(/<script\b[^>]*\bsrc=["']([^"']+)["'][^>]*>\s*<\/script>/gi,function(tag,src){
+    const loc = resolveLocal(src);
+    report.push('SCRIPT src: '+src+' -> '+(loc==null?'EXTERNAL/MISSING (kept)':loc));
+    if(loc == null) return tag;
+    return '<script>\n'+guardClose(files[loc])+'\n<\/script>';
+  });
+  if(/<head[^>]*>/i.test(html)) html = html.replace(/<head([^>]*)>/i, function(m){ return m+SHIM; });
+  else html = SHIM + html;
+}
+document.getElementById('out').textContent =
+  (report.length?('resolution log:\n'+report.join('\n')+'\n\n'):'') +
+  'doc length: '+(html?html.length:0)+'\n\n'+(html?html.slice(0,1400):'');
+if(html!=null) document.getElementById('f').srcdoc = html;
+</script>
+</body></html>
