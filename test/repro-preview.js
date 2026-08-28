@@ -69,3 +69,8 @@ const openScripts = (doc.match(/<script/g)||[]).length, closeScripts = (doc.matc
 console.log('── <script> balance: open=' + openScripts + ' close=' + closeScripts);
 const openStyles = (doc.match(/<style>/g)||[]).length, closeStyles = (doc.match(/<\/style>/g)||[]).length;
 console.log('── <style> balance: open=' + openStyles + ' close=' + closeStyles);
+
+// tail dump
+console.log('=== DOC TAIL (last 1100) ===');
+console.log(doc.slice(-1100));
+console.log('=== css inlined?', doc.includes('.glow'), '| body content?', doc.includes('click me'));

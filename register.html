@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Create account — ANTROR Code</title>
+<link rel="icon" href="assets/logo.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+:root{--bg:#0a0a0a;--panel:#141414;--panel2:#181818;--line:rgba(255,255,255,.08);--line2:rgba(255,255,255,.16);
+--txt:#ececec;--dim:#9a9a9a;--faint:#5c5c5c;--err:#e08585;--ok:#9fd8a8;--mono:'JetBrains Mono',monospace}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100%}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--txt);-webkit-font-smoothing:antialiased}
+.wrap{display:grid;grid-template-columns:minmax(380px,44%) 1fr;min-height:100vh}
+
+/* ── left: brand pane ── */
+.brand-pane{
+  position:relative;display:flex;flex-direction:column;justify-content:space-between;
+  padding:38px 46px;overflow:hidden;
+  background:
+    radial-gradient(640px 420px at 18% 8%,rgba(255,255,255,.075),transparent 62%),
+    repeating-linear-gradient(0deg,transparent 0 47px,rgba(255,255,255,.035) 47px 48px),
+    repeating-linear-gradient(90deg,transparent 0 47px,rgba(255,255,255,.035) 47px 48px),
+    #0c0c0c;
+  border-right:1px solid var(--line);
+}
+.back{position:absolute;top:20px;left:22px;font-size:12px;color:var(--faint);text-decoration:none;
+border:1px solid var(--line);border-radius:8px;padding:7px 13px;background:rgba(10,10,10,.7);backdrop-filter:blur(4px)}
+.back:hover{color:var(--txt);border-color:var(--line2)}
+.bp-mid{margin-top:56px}
+.bp-logo{width:74px;height:74px;border-radius:18px;box-shadow:0 16px 48px rgba(0,0,0,.6);border:1px solid var(--line2)}
+.brand-pane h1{font-size:34px;font-weight:800;letter-spacing:-.4px;margin-top:22px}
+.brand-pane h1 span{color:var(--dim);font-weight:400}
+.by{font-size:10px;letter-spacing:.32em;text-transform:uppercase;color:var(--faint);margin-top:8px}
+.lede{font-family:var(--mono);font-size:13px;color:#c9c9c9;letter-spacing:.06em;margin-top:14px}
+.pts{list-style:none;margin-top:38px;display:flex;flex-direction:column;gap:20px;max-width:400px}
+.pts li{display:flex;gap:16px;align-items:flex-start}
+.pts .n{font-family:var(--mono);font-size:11px;color:var(--faint);border:1px solid var(--line2);border-radius:7px;
+padding:4px 8px;flex:none;margin-top:2px}
+.pts b{display:block;font-size:14px;font-weight:700;margin-bottom:3px}
+.pts p{font-size:12.5px;color:var(--dim);line-height:1.65}
+.pfoot{font-size:11px;color:var(--faint)}
+.pfoot a{color:var(--faint);text-decoration:none}
+.pfoot a:hover{color:var(--dim);text-decoration:underline;text-underline-offset:3px}
+
+/* ── right: form pane ── */
+.form-pane{display:flex;align-items:center;justify-content:center;padding:44px 28px;position:relative}
+.form-inner{width:min(400px,100%)}
+.fhead h2{font-size:22px;font-weight:800}
+.fhead .fsub{font-size:13px;color:var(--dim);margin-top:7px;line-height:1.6}
+.fhead .fsub a{color:var(--txt);text-decoration:underline;text-underline-offset:3px}
+.oauth{display:flex;flex-direction:column;gap:10px;margin-top:26px}
+.obtn{display:flex;align-items:center;justify-content:center;gap:11px;padding:13px;border-radius:11px;
+border:1px solid var(--line2);background:var(--panel);font-size:13px;font-weight:650;transition:.15s;color:var(--txt);cursor:pointer}
+.obtn:hover{border-color:rgba(255,255,255,.42);background:rgba(255,255,255,.055);transform:translateY(-1px)}
+.obtn:active{transform:translateY(0)}
+.obtn svg{width:17px;height:17px;flex:none}
+.div{display:flex;align-items:center;gap:14px;margin:22px 0;color:var(--faint);font-size:10.5px;
+letter-spacing:.2em;text-transform:uppercase}
+.div::before,.div::after{content:"";flex:1;height:1px;background:var(--line)}
+label{display:block;font-size:11.5px;font-weight:650;color:var(--dim);margin-bottom:14px}
+input{display:block;width:100%;margin-top:6px;padding:12px 13px;border-radius:10px;font-size:13.5px;
+background:var(--panel);border:1px solid var(--line2);outline:none;color:var(--txt);font-family:inherit;transition:border-color .15s, box-shadow .15s}
+input:focus{border-color:rgba(255,255,255,.5);box-shadow:0 0 0 3px rgba(255,255,255,.06)}
+.submit{width:100%;margin-top:18px;padding:13px;border-radius:11px;background:#e8e8e8;color:#0a0a0a;
+font-size:13.5px;font-weight:800;transition:.15s;cursor:pointer;border:none;font-family:inherit}
+.submit:hover{background:#fff;transform:translateY(-1px)}
+.submit:active{transform:translateY(0)}
+.submit:disabled{opacity:.55;cursor:wait;transform:none}
+.msg{margin-top:14px;font-size:12.5px;line-height:1.65;color:var(--dim);text-align:center}
+.msg.err{color:var(--err)}
+.msg.ok{color:var(--ok)}
+.foot{margin-top:26px;text-align:center;font-size:12px;color:var(--faint);line-height:2}
+.foot a{color:var(--txt);text-decoration:underline;text-underline-offset:3px}
+.legal{margin-top:8px;text-align:center;font-size:10.5px;color:var(--faint)}
+.legal a{color:var(--faint);text-decoration:none}
+.legal a:hover{color:var(--dim);text-decoration:underline;text-underline-offset:3px}
+
+/* inline supabase setup */
+.setup{border:1px solid var(--line);border-radius:13px;padding:18px;margin-bottom:26px;background:var(--panel)}
+.setup.show{display:block}
+.setup:not(.show){display:none}
+.setup .st{font-size:11px;font-weight:750;letter-spacing:.12em;text-transform:uppercase;color:var(--txt);margin-bottom:12px}
+.sqlbox{font-family:var(--mono);font-size:10.5px;line-height:1.6;background:#0c0c0c;border:1px solid var(--line);
+border-radius:9px;padding:12px;color:#b5b5b5;white-space:pre-wrap;word-break:break-all;max-height:170px;
+overflow:auto;text-align:left;margin:10px 0 2px}
+
+@media (max-width:900px){
+  .wrap{grid-template-columns:1fr}
+  .brand-pane{display:none}
+  .form-pane{min-height:100vh}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <section class="brand-pane">
+    <a class="back" href="index.html">← back to app</a>
+    <div class="bp-mid">
+      <img class="bp-logo" src="assets/logo.png" alt="ANTROR" />
+      <h1>ANTROR <span>Code</span></h1>
+      <div class="by">a product by ANTROR</div>
+      <p class="lede">&gt; describe it. ship it.</p>
+      <ul class="pts">
+        <li><span class="n">01</span><span><b>Describe, don't configure</b><p>Tell the AI what you want in plain words — real files stream into your workspace and render live.</p></span></li>
+        <li><span class="n">02</span><span><b>Your keys stay yours</b><p>API keys and projects live in your browser only. Nothing ever passes through an ANTROR server.</p></span></li>
+        <li><span class="n">03</span><span><b>Sign in to carry it with you</b><p>An account on your own Supabase syncs projects across devices — GitHub or Google, one click.</p></span></li>
+      </ul>
+    </div>
+    <div class="pfoot"><a href="legal.html" target="_blank">Terms</a> · <a href="legal.html#privacy" target="_blank">Privacy</a> — © 2026 ANTROR</div>
+  </section>
+
+  <section class="form-pane">
+    <div class="form-inner">
+
+      <div class="setup" id="setup">
+        <div class="st">First time? Connect your Supabase</div>
+        <label>Project URL<input id="sbUrl" placeholder="https://xxxx.supabase.co" spellcheck="false" /></label>
+        <label>Anon public key<input id="sbAnon" placeholder="eyJhbGciOi…" spellcheck="false" /></label>
+        <button class="submit" id="sbSave" style="margin-top:6px">Save &amp; continue</button>
+        <div class="sqlbox" id="sqlBox"></div>
+        <p class="msg">Runs on <b>your own Supabase</b> — nothing touches an ANTROR server.</p>
+      </div>
+
+      <div class="fhead">
+        <h2>Create your account</h2>
+        <p class="fsub">Takes 20 seconds. Already have one? <a href="login.html">Sign in</a>.</p>
+      </div>
+
+      <div class="oauth">
+        <button class="obtn" id="ghBtn">
+          <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
+          Continue with GitHub
+        </button>
+        <button class="obtn" id="ggBtn">
+          <svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1Z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23Z"/><path fill="#FBBC05" d="M5.84 14.1a6.6 6.6 0 0 1 0-4.2V7.06H2.18a11 11 0 0 0 0 9.88l3.66-2.84Z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1A11 11 0 0 0 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52Z"/></svg>
+          Continue with Google
+        </button>
+      </div>
+
+      <div class="div">or with email</div>
+
+      <form id="regForm" novalidate>
+        <label>Email<input id="email" type="email" placeholder="you@example.com" autocomplete="email" required /></label>
+        <label>Password<input id="pass" type="password" placeholder="at least 6 characters" autocomplete="new-password" required /></label>
+        <label>Confirm password<input id="pass2" type="password" placeholder="same password again" autocomplete="new-password" required /></label>
+        <button class="submit" id="submitBtn" type="submit">Create account</button>
+      </form>
+
+      <p class="msg" id="msg"></p>
+      <div class="foot">Already have an account? <a href="login.html">Sign in</a></div>
+      <div class="legal"><a href="legal.html" target="_blank">Terms &amp; Privacy</a> · © ANTROR</div>
+    </div>
+  </section>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase.js"></script>
+<script>
+'use strict';
+const $=(x)=>document.getElementById(x);
+const say=(m,k)=>{ const el=$('msg'); el.textContent=m; el.className='msg'+(k?' '+k:''); };
+
+if(!VF.configured()){
+  $('setup').classList.add('show');
+  $('sqlBox').textContent=VF.PROJECTS_SQL;
+}
+$('sbSave').onclick=()=>{
+  const url=$('sbUrl').value.trim(), anon=$('sbAnon').value.trim();
+  if(!/^https:\/\/.+\.supabase\.co/.test(url)){ say('That doesn’t look like a Supabase URL (https://xxxx.supabase.co)','err'); return; }
+  if(anon.length<20){ say('Paste the anon public key (Supabase → Project Settings → API).','err'); return; }
+  VF.saveCfg({url,anon});
+  if(!VF.client()){ VF.clearCfg(); say('Could not initialize the client — check the values.','err'); return; }
+  say('Connected — create your account now.','ok');
+  $('setup').classList.remove('show');
+};
+
+async function alreadyIn(){
+  if(!VF.configured()) return false;
+  const u=await VF.getUser();
+  if(u){ say('Signed in as '+(u.email||'user')+' — taking you back…','ok');
+    setTimeout(()=>location.href='index.html',700); return true; }
+  return false;
+}
+alreadyIn();
+
+$('ghBtn').onclick=async()=>{ try{ await VF.oauth('github'); }catch(e){ say(e.message||'GitHub sign-up failed — enable the GitHub provider in Supabase first.','err'); } };
+$('ggBtn').onclick=async()=>{ try{ await VF.oauth('google'); }catch(e){ say(e.message||'Google sign-up failed — enable the Google provider in Supabase first.','err'); } };
+
+$('regForm').onsubmit=async(ev)=>{
+  ev.preventDefault();
+  const email=$('email').value.trim(), pass=$('pass').value, pass2=$('pass2').value;
+  if(!email||!pass){ say('Enter an email and a password.','err'); return; }
+  if(pass.length<6){ say('Password needs at least 6 characters.','err'); return; }
+  if(pass!==pass2){ say('Passwords don’t match.','err'); return; }
+  $('submitBtn').disabled=true; $('submitBtn').textContent='Creating…';
+  try{
+    const data=await VF.signUp(email,pass);
+    if(data && data.session){
+      say('Account created — welcome aboard!','ok');
+      setTimeout(()=>location.href='index.html',700);
+    }else{
+      say('Account created. Check your inbox for a confirmation email, then sign in.','ok');
+      setTimeout(()=>location.href='login.html',2600);
+    }
+  }catch(e){
+    say(e.message||'Could not create the account — try again.','err');
+    $('submitBtn').disabled=false; $('submitBtn').textContent='Create account';
+  }
+};
+</script>
+</body>
+</html>

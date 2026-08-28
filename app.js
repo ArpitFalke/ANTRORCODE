@@ -192,7 +192,7 @@ function sanitizePath(p){
 function applyFile(rawPath, content){
   const path = sanitizePath(rawPath);
   if(!path){ toast('⚠ The AI tried to write an invalid path: '+rawPath, 'err'); return null; }
-  state.project.files[path] = String(content).replace(/\r\n/g,'\n');
+  state.project.files[path] = String(content).replace(/\r\n/g,'\n').replace(/^\n+/,'').replace(/\s+$/,'\n');
   return path;
 }
 function fileIcon(p){
@@ -265,11 +265,18 @@ function buildPreviewDoc(){
 }
 let consErrors=[];
 function refreshPreview(){
-  const frame=$id('previewFrame'), empty=$id('previewEmpty');
+  const oldFrame=$id('previewFrame'), empty=$id('previewEmpty');
   consErrors=[]; updConsBadge();
   const doc = buildPreviewDoc();
-  if(doc==null){ frame.removeAttribute('srcdoc'); empty.hidden=false; }
-  else { empty.hidden=true; frame.srcdoc=doc; }
+  if(doc==null){ oldFrame.removeAttribute('srcdoc'); empty.hidden=false; }
+  else {
+    empty.hidden=true;
+    // swap in a fresh iframe so every run gets a clean document (avoids stale
+    // compositor/state on repeated srcdoc swaps)
+    const fresh = oldFrame.cloneNode(false);
+    oldFrame.replaceWith(fresh);
+    fresh.srcdoc = doc;
+  }
 }
 const refreshSoon = debounce(()=>refreshPreview(), 650);
 window.addEventListener('message',(e)=>{
@@ -600,6 +607,7 @@ async function sendPrompt(rawText){
       renderTreeSoon(); refreshSoon();
       fresh.forEach(w=>{ if(!carded.has(w.path)){ carded.add(w.path); fcard(ui.root,w.path,w.lines); } });
     }
+    const ts=window.__vfTermSink; if(ts&&ts.delta) try{ts.delta(raw,written.length);}catch(e){}
   };
   try{
     const sys=VIBE_SYSTEM+'\n\n=====\n'+manifestBlock();
@@ -615,6 +623,7 @@ async function sendPrompt(rawText){
       state.chat.push({role:'assistant',display:disp,files:written.map(w=>w.path),error:true,t:nowTs()});
       saveChat(); saveProject(); renderTree(); persistCurrentProject();
       errorCard(ui,friendlyError(err,cfg));
+      const te=window.__vfTermSink; if(te&&te.error) try{te.error(err);}catch(e){}
       setBusy(false); return;
     }
   }
@@ -626,6 +635,7 @@ async function sendPrompt(rawText){
   saveChat();
   saveProject(); renderTreeSoon(); persistCurrentProject();
   if(written.length) refreshPreview();
+  const td=window.__vfTermSink; if(td&&td.done) try{td.done(written);}catch(e){}
   setBusy(false);
 }
 function finalizeBubble(ui,disp,written,stopped){
@@ -667,6 +677,47 @@ function renderHistory(){
     });
     d.appendChild(btn); list.appendChild(d);
   });
+}
+
+/* ─────────────── import existing folder ─────────────── */
+const IMPORT_EXTS=['html','htm','css','js','mjs','cjs','jsx','ts','tsx','json','md','svg','txt','xml','yml','yaml','csv','webmanifest'];
+function importFolder(){ $id('importInput').click(); }
+async function handleImportFiles(fileList){
+  const files=[...fileList]; if(!files.length) return;
+  const root=((files[0].webkitRelativePath||'').split('/')[0]) || 'imported';
+  const picked=[];
+  for(const f of files){
+    const rel=((f.webkitRelativePath||f.name).split('/').slice(1).join('/')) || f.name;
+    const segs=rel.split('/');
+    if(segs.some(s=>s==='.git'||s==='node_modules'||s.startsWith('.'))) continue;
+    if(!IMPORT_EXTS.includes(rel.split('.').pop().toLowerCase())) continue;
+    if(f.size>300000) continue;               // skip big/binary-ish files
+    picked.push({f,rel});
+    if(picked.length>=80) break;
+  }
+  if(!picked.length){ toast('No readable text files in that folder — binaries and dotfiles are skipped','err',5000); return; }
+  if(!confirm('Import '+picked.length+' file(s) from “'+root+'” as a NEW project?\nYour current project is saved first — nothing is erased.')) return;
+  persistCurrentProject();
+  state.project=blankProject(root);
+  state.chat=[]; $id('chatLog').innerHTML='';
+  state.checkpoints=[]; saveChecks();
+  state.ui.tabs=[]; state.ui.open=null;
+  let n=0;
+  for(const {f,rel} of picked){
+    try{ state.project.files[rel]=await f.text(); n++; }catch(e){ /* unreadable — skip */ }
+  }
+  saveProject(); saveChat(); persistCurrentProject();
+  renderAll(); restoreChatLog(); showView('preview');
+  setChatOpen(true);
+  toast('📂 Imported '+n+' file(s) from “'+root+'” — ask the AI to change anything','ok');
+}
+
+/* ─────────────── chat panel collapse ─────────────── */
+function setChatOpen(v){
+  state.ui.chatOpen=v;
+  document.body.classList.toggle('nochat',!v);
+  if(v) $id('chatPanel').classList.add('open');   // mobile overlay variant
+  $id('chatFab').title = v ? 'Chat with the ANTROR Assistant' : 'Show the chat panel';
 }
 
 /* ─────────────── zip export ─────────────── */
@@ -1072,14 +1123,14 @@ async function renderAcctBox(){
   if(!window.VF || !VF.configured()){
     box.innerHTML='<div class="acct-soon"><span><b>Accounts</b> — sign in to sync projects across devices (Supabase).</span>'+
       '<button class="ghost" id="acctSetup">Connect</button></div>';
-    $id('acctSetup').addEventListener('click',()=>location.href='auth.html');
+    $id('acctSetup').addEventListener('click',()=>location.href='login.html');
     return;
   }
   const user=await VF.getUser();
   if(!user){
     box.innerHTML='<div class="acct-soon"><span><b>Supabase connected</b> — you are signed out.</span>'+
       '<button class="ghost" id="acctGo2">Sign in / Create account</button></div>';
-    $id('acctGo2').addEventListener('click',()=>location.href='auth.html');
+    $id('acctGo2').addEventListener('click',()=>location.href='login.html');
     return;
   }
   const email=user.email||'user';
@@ -1136,6 +1187,8 @@ function bind(){
   // sidebar
   $id('btnNew').addEventListener('click',newProject);
   $id('btnZip').addEventListener('click',exportZip);
+  $id('btnImport').addEventListener('click',importFolder);
+  $id('importInput').addEventListener('change',(e)=>{ handleImportFiles(e.target.files); e.target.value=''; });
   $id('btnHistory').addEventListener('click',()=>{ renderHistory(); $id('historyDrawer').hidden=false; });
   $id('histClose').addEventListener('click',()=>$id('historyDrawer').hidden=true);
   $id('btnProjects').addEventListener('click',()=>{ persistCurrentProject(); renderProjectsDrawer(); $id('projectsDrawer').hidden=false; });
@@ -1238,8 +1291,14 @@ function bind(){
   $id('heroStart').addEventListener('click',heroGo);
   $id('heroKey').addEventListener('keydown',(e)=>{ if(e.key==='Enter')heroGo(); });
   $id('heroSkip').addEventListener('click',()=>{ $id('welcome').hidden=true; state.settings.onboarded=true; saveSettings(); });
-  // mobile fab
-  $id('chatFab').addEventListener('click',()=>$id('chatPanel').classList.toggle('open'));
+  // chat head: collapse + clear
+  $id('btnChatToggle').addEventListener('click',()=>setChatOpen(false));
+  // mobile fab — reopens the panel when collapsed, toggles the overlay on small screens
+  $id('chatFab').addEventListener('click',()=>{
+    if(document.body.classList.contains('nochat')) setChatOpen(true);
+    else $id('chatPanel').classList.toggle('open');
+  });
+  if(state.ui.chatOpen===false) setChatOpen(false);
   // esc closes overlays
   addEventListener('keydown',(e)=>{
     if(e.key==='Escape'){ ['settingsModal','historyDrawer'].forEach(id=>$id(id).hidden=true); $id('chatPanel').classList.remove('open'); }

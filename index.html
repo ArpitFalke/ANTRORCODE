@@ -30,7 +30,10 @@
       <button id="btnProjects" class="sbtn" title="All projects — switch without losing anything"><span>🗂</span><span class="slbl">Projects</span></button>
       <button id="btnNew" class="sbtn" title="Start a fresh project"><span>✦</span><span class="slbl">New</span></button>
       <button id="btnZip" class="sbtn" title="Download the whole project as a .zip"><span>⬇</span><span class="slbl">Export ZIP</span></button>
+      <button id="btnImport" class="sbtn" title="Open an existing project folder from your computer"><span>📂</span><span class="slbl">Import folder</span></button>
+      <input type="file" id="importInput" webkitdirectory multiple hidden />
       <button id="btnHistory" class="sbtn" title="Restore an earlier snapshot"><span>⏱</span><span class="slbl">History</span></button>
+      <button id="btnTerm" class="sbtn" title="ANTROR CLI — terminal over your project + AI in the loop (Ctrl+`)"><span>&gt;_</span><span class="slbl">Terminal</span></button>
       <button id="btnSettings" class="sbtn accent" title="Settings — model, keys, data, legal"><span>⚙</span><span class="slbl">Settings</span></button>
     </div>
 
@@ -91,13 +94,30 @@
       </div>
       <div id="edStatus"><span id="edPath">no file open</span><span id="edMeta"></span></div>
     </section>
+
+    <!-- ════ TERMINAL (antror cli) ════ -->
+    <section id="termPanel" hidden>
+      <div id="termHead">
+        <span class="tt">&gt;_ Terminal</span>
+        <span class="tsub">antror cli — shell + AI · Ctrl+` toggles</span>
+        <button id="termClose" title="Close terminal">✕</button>
+      </div>
+      <div id="termOut"></div>
+      <form id="termForm">
+        <span id="termPrompt"><b>antror $</b></span>
+        <input id="termIn" autocomplete="off" spellcheck="false" placeholder="help · ls · cat index.html · or just describe what to build…" />
+      </form>
+    </section>
   </main>
 
   <!-- ══════════ RIGHT PANEL : chat ══════════ -->
   <aside id="chatPanel">
     <div class="chat-head">
       <span class="chat-title">ANTROR Assistant</span>
-      <button id="btnClearChat" title="Clear conversation">🗑</button>
+      <span class="chat-head-btns">
+        <button id="btnClearChat" title="Clear conversation">🗑</button>
+        <button id="btnChatToggle" title="Hide chat (bring it back with the chat button, bottom-right)">»</button>
+      </span>
     </div>
     <div id="chatLogWrap">
       <div id="chatLog"></div>
@@ -222,5 +242,6 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase.js"></script>
 <script src="app.js"></script>
+<script src="terminal.js"></script>
 </body>
 </html>
