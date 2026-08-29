@@ -707,6 +707,8 @@ body.sbmin .tree-head{display:none}
 body.sbmin #sbToggle{display:block;margin-left:0}
 body.sbmin .sbtn{justify-content:center;padding:9px 0}
 body.sbmin #userChip{justify-content:center;padding:8px 4px}
+body.sbmin #provChip{display:none}
+body.sbmin .side-foot{gap:6px;align-items:center}
 body.sbmin .logo-row{justify-content:center;gap:0}
 body.sbmin .side-actions{gap:3px}
 
@@ -781,23 +783,36 @@ body.sbmin .side-actions{gap:3px}
 
 /* ══════════ GEMINI-STYLE GLOW BORDER (prompt box) ══════════ */
 @property --ang{syntax:'<angle>';initial-value:0deg;inherits:false}
+.composer::after{
+  content:"";position:absolute;inset:-1.5px;border-radius:19px;padding:1.5px;
+  background:linear-gradient(115deg, rgba(224,144,107,0) 30%, rgba(224,144,107,.35) 46%, rgba(242,234,216,.4) 50%, rgba(224,144,107,.35) 54%, rgba(224,144,107,0) 70%);
+  background-size:240% 100%;
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  mask-composite:exclude;
+  opacity:0;transition:opacity .5s ease;pointer-events:none;
+  animation:sweep 7s ease-in-out infinite;
+}
 .composer::before{
   content:"";position:absolute;inset:-1.5px;border-radius:19px;padding:1.5px;
   background:repeating-linear-gradient(115deg,
     rgba(242,234,216,0) 0px, rgba(242,234,216,0) 26px,
-    rgba(242,234,216,.85) 26px, rgba(224,144,107,.9) 30px,
-    rgba(107,114,128,.7) 34px, rgba(242,234,216,0) 40px,
-    rgba(242,234,216,0) 64px);
+    rgba(242,234,216,.9) 26px, rgba(224,144,107,.95) 30px,
+    rgba(107,114,128,.75) 34px, rgba(242,234,216,0) 40px,
+    rgba(242,234,216,0) 62px);
   background-size:280% 100%;
   -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
   -webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
   mask-composite:exclude;
   opacity:0;transition:opacity .35s ease;pointer-events:none;
 }
-.composer:focus-within::before{opacity:.7;animation:streaks 5.5s linear infinite}
-.composer:focus-within{box-shadow:0 0 0 1px rgba(242,234,216,.08),0 0 30px rgba(224,144,107,.10)}
-#chatPanel.generating .composer::before{opacity:1;animation:streaks 2.6s linear infinite}
+.composer:focus-within::after{opacity:.5}
+.composer:focus-within::before{opacity:.85;animation:streaks 5s linear infinite}
+.composer:focus-within{box-shadow:0 0 0 1px rgba(242,234,216,.1),0 0 34px rgba(224,144,107,.14)}
+#chatPanel.generating .composer::after{opacity:.8}
+#chatPanel.generating .composer::before{opacity:1;animation:streaks 2.2s linear infinite}
 @keyframes streaks{to{background-position:-280% 0}}
+@keyframes sweep{0%,100%{background-position:120% 0}50%{background-position:-120% 0}}
 
 /* warm touches on the live indicators */
 .eq i{background:linear-gradient(180deg,var(--cream),var(--slate))}

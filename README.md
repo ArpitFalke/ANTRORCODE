@@ -51,20 +51,27 @@ node serve.js                    # clean-URL dev server (zero dependencies)
 
 ## 📥 Get the app
 
-Everything lives on the **download page** — the one link to share anywhere:
+One link to share anywhere: **[antrorcode.vercel.app/download](https://antrorcode.vercel.app/download)**
 
-> ### 🔗 [antrorcode.vercel.app/download](https://antrorcode.vercel.app/download)
+<div align="center">
 
-| Platform | How |
-|---|---|
-| 🪟 Windows | `.exe` installer — [Releases](https://github.com/ArpitFalke/ANTRORCODE/releases/latest) |
-| 🍎 macOS | `.dmg` — [Releases](https://github.com/ArpitFalke/ANTRORCODE/releases/latest) |
-| 🐧 Linux | `.AppImage` / `.deb` — [Releases](https://github.com/ArpitFalke/ANTRORCODE/releases/latest) |
-| 🤖 Android | Installable app (PWA) or signed `.apk` — see the [download page](https://antrorcode.vercel.app/download) |
-| 🌐 Web | [antrorcode.vercel.app](https://antrorcode.vercel.app) — nothing to install |
+| | | |
+|---|---|---|
+| <img src="https://cdn.jsdelivr.net/npm/simple-icons@9/icons/windows.svg" width="34" alt="Windows"/> | **Windows** | `.exe` installer (64-bit). Windows may show *"Windows protected your PC"* for unsigned apps — click **More info → Run anyway**. Verify against the release's `SHA256SUMS.txt`. |
+| <img src="https://cdn.jsdelivr.net/npm/simple-icons@13/icons/apple.svg" width="34" alt="macOS"/> | **macOS** | `.dmg` for Apple Silicon & Intel. If Gatekeeper hesitates: right-click the app → **Open** (first launch only). |
+| <img src="https://cdn.jsdelivr.net/npm/simple-icons@13/icons/linux.svg" width="34" alt="Linux"/> | **Linux** | `.AppImage` — `chmod +x` and run, no install needed. Or `.deb` for Debian/Ubuntu/Mint (`sudo dpkg -i`). x64. |
+| <img src="https://cdn.jsdelivr.net/npm/simple-icons@13/icons/android.svg" width="34" alt="Android"/> | **Android** | Installable app — open the site in Chrome → menu → **Install app**. Or build a signed `.apk` via PWABuilder from the download page. |
+| <img src="https://cdn.jsdelivr.net/npm/simple-icons@13/icons/googlechrome.svg" width="34" alt="Web"/> | **Web** | Nothing to install — [open the studio](https://antrorcode.vercel.app). Works offline after your first visit (PWA). |
 
-Desktop installers are built automatically for every version tag by GitHub Actions
-(workflow: `.github/workflows/desktop.yml`).
+</div>
+
+Installers are built automatically for every version tag by GitHub Actions
+(`.github/workflows/desktop.yml`) and attached to the
+[**Releases**](https://github.com/ArpitFalke/ANTRORCODE/releases/latest) page with SHA256 checksums.
+
+> **Why ~90 MB?** The desktop app bundles its own complete browser engine (Chromium) so it runs
+> identically on every machine with zero dependencies — the same reason VS Code, Slack and Discord
+> weigh the same. On older hardware, the Web version in a browser is the lighter option.
 
 ## 🖥️ Run the desktop app locally
 

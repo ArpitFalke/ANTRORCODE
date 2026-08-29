@@ -529,6 +529,7 @@ function bindChatScroll(){
 }
 
 function addUserMsg(text){
+  const ce=$id('chatEmpty'); if(ce) ce.hidden=true;
   const m=document.createElement('div'); m.className='msg user';
   m.innerHTML=`<span class="who">you</span>`;
   const b=document.createElement('div'); b.className='bubble'; b.textContent=text;
@@ -1706,7 +1707,7 @@ async function restoreCloudOnSignIn(){
     state.project={ id:first.id, cloudId:first.cloudId, name:first.name, files:first.files||{}, chat:first.chat||[], updatedAt:first.updatedAt };
     state.chat=clone(state.project.chat);
     saveProject(); saveChat(); persistCurrentProject();
-    renderAll(); restoreChatLog();
+    renderAll(); restoreChatLog(); syncPristine(true);
     toast('☁ Welcome back, '+(user.user_metadata?.display_name||user.email||'friend')+' — '+state.projects.length+' project(s) restored from your cloud','ok',5000);
   }catch(e){ /* silent — local-first still works */ }
 }
