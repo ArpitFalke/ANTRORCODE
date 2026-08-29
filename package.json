@@ -30,7 +30,8 @@
       "sw.js",
       "assets/**",
       "build/**",
-      "bridge/**"
+      "bridge/**",
+      "favicon-3d.png"
     ],
     "directories": {
       "output": "desktop-dist"

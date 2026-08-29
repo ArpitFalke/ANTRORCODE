@@ -38,7 +38,7 @@ input,textarea{font:inherit;color:inherit}
   display:flex;flex-direction:column;gap:8px;padding:14px 10px 12px;min-height:0;
   background:var(--bg2);border-right:1px solid var(--line);
 }
-.logo-row{display:flex;align-items:center;gap:10px;padding:2px 4px}
+.logo-row{display:flex;align-items:center;gap:11px;padding:2px 2px}
 .logo-row img{width:26px;height:26px;border-radius:6px;display:block}
 .logo-text{font-weight:800;font-size:15.5px;letter-spacing:.4px;color:var(--txt)}
 .logo-text b{font-weight:800}
@@ -858,3 +858,5 @@ body.sbmin .side-actions{gap:3px}
 .seg{padding:2px;border-radius:8px}
 .segbtn{padding:5px 12px;font-size:11.5px;border-radius:6px}
 .bar-right button{padding:5px 10px;font-size:11.5px;border-radius:8px}
+
+.logo-row .logo-text{line-height:1.15}
