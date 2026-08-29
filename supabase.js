@@ -21,7 +21,11 @@ create policy "own rows" on public.projects
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);`;
 
   function cfg() {
-    try { return JSON.parse(localStorage.getItem(CFG_KEY) || 'null'); } catch (e) { return null; }
+    try {
+      const saved = JSON.parse(localStorage.getItem(CFG_KEY) || 'null');
+      if (saved && saved.url && saved.anon) return saved;
+      return window.__VF_SB_DEFAULT || null;   // pre-wired install default
+    } catch (e) { return window.__VF_SB_DEFAULT || null; }
   }
   function configured() {
     const c = cfg();
@@ -42,6 +46,15 @@ create policy "own rows" on public.projects
     return _client;
   }
 
+  /* Where auth flows send the user back to. Live hosts (Vercel cleanUrls)
+     get the bare path — no "index.html" in the address bar; plain local
+     servers keep the filename. */
+  function redirectTarget() {
+    const dir = location.pathname.replace(/[^/]*$/, '');
+    const local = location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.protocol === 'file:';
+    return location.origin + dir + (local ? 'index.html' : '');
+  }
+
   /* ── auth ── */
   async function getSession() {
     const cl = client(); if (!cl) return null;
@@ -53,9 +66,15 @@ create policy "own rows" on public.projects
   }
   async function signUp(email, password) {
     const cl = client(); if (!cl) throw new Error('Supabase not configured');
-    const { data, error } = await cl.auth.signUp({ email, password });
+    const { data, error } = await cl.auth.signUp({ email, password }, { emailRedirectTo: redirectTarget() });
     if (error) throw error;
     return data; // data.session may be null if email confirmation is on
+  }
+  async function resend(email) {
+    const cl = client(); if (!cl) throw new Error('Supabase not configured');
+    const { error } = await cl.auth.resend({ type: 'signup', email, options: { emailRedirectTo: redirectTarget() } });
+    if (error) throw error;
+    return true;
   }
   async function signIn(email, password) {
     const cl = client(); if (!cl) throw new Error('Supabase not configured');
@@ -65,9 +84,8 @@ create policy "own rows" on public.projects
   }
   async function oauth(provider) {
     const cl = client(); if (!cl) throw new Error('Supabase not configured');
-    const redirectTo = location.origin + location.pathname.replace(/[^/]*$/, '') + 'index.html';
     const { error } = await cl.auth.signInWithOAuth({
-      provider, options: { redirectTo },
+      provider, options: { redirectTo: redirectTarget() },
     });
     if (error) throw error;
   }
@@ -119,7 +137,7 @@ create policy "own rows" on public.projects
 
   return {
     PROJECTS_SQL, cfg, configured, saveCfg, clearCfg, client,
-    getSession, getUser, signUp, signIn, oauth, signOut, onAuthChange,
+    getSession, getUser, signUp, resend, signIn, oauth, signOut, onAuthChange,
     pushProject, listCloud, deleteCloud,
   };
 })();

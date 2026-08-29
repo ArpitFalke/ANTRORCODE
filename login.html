@@ -78,12 +78,32 @@ font-size:13.5px;font-weight:800;transition:.15s;cursor:pointer;border:none;font
 .legal{margin-top:8px;text-align:center;font-size:10.5px;color:var(--faint)}
 .legal a{color:var(--faint);text-decoration:none}
 .legal a:hover{color:var(--dim);text-decoration:underline;text-underline-offset:3px}
+.resend{background:none;border:1px dashed var(--line2);border-radius:8px;padding:7px 14px;
+font-size:11.5px;font-weight:650;color:var(--dim);cursor:pointer;font-family:inherit}
+.resend:hover{color:var(--txt);border-color:var(--line2)}
 
-/* inline supabase setup */
-.setup{border:1px solid var(--line);border-radius:13px;padding:18px;margin-bottom:26px;background:var(--panel)}
-.setup.show{display:block}
-.setup:not(.show){display:none}
-.setup .st{font-size:11px;font-weight:750;letter-spacing:.12em;text-transform:uppercase;color:var(--txt);margin-bottom:12px}
+/* premium top-right CTA */
+.top-cta{position:fixed;top:20px;right:22px;z-index:60;display:inline-flex;align-items:center;gap:8px;
+padding:11px 22px;border-radius:999px;background:#e8e8e8;color:#0a0a0a;font-weight:800;font-size:12.5px;
+text-decoration:none;border:1px solid rgba(255,255,255,.35);box-shadow:0 12px 40px rgba(0,0,0,.55);
+transition:.18s;letter-spacing:.2px;font-family:inherit}
+.top-cta:hover{background:#fff;transform:translateY(-2px);box-shadow:0 16px 48px rgba(0,0,0,.6)}
+/* sign in / create account switcher */
+.switcher{display:flex;background:var(--panel);border:1px solid var(--line2);border-radius:999px;padding:4px;margin-bottom:28px}
+.switcher .sw{flex:1;text-align:center;padding:9px;border-radius:999px;font-size:12.5px;font-weight:700;
+color:var(--dim);text-decoration:none;transition:.15s}
+.switcher .sw:hover{color:var(--txt)}
+.switcher .sw.on{background:#e8e8e8;color:#0a0a0a;box-shadow:0 4px 14px rgba(0,0,0,.4)}
+
+/* inline supabase setup — collapsed, at the bottom */
+.setupwrap{border:1px solid var(--line);border-radius:13px;background:var(--panel);margin-top:28px}
+.setupwrap summary{cursor:pointer;padding:15px 18px;font-size:10.5px;font-weight:750;letter-spacing:.14em;
+text-transform:uppercase;color:var(--faint);list-style:none;display:flex;align-items:center;gap:10px}
+.setupwrap summary::-webkit-details-marker{display:none}
+.setupwrap summary::before{content:"▸";color:var(--faint);transition:transform .15s}
+.setupwrap[open] summary::before{transform:rotate(90deg)}
+.setupwrap summary:hover{color:var(--dim)}
+.setupwrap .sb-body{padding:2px 18px 18px}
 .sqlbox{font-family:var(--mono);font-size:10.5px;line-height:1.6;background:#0c0c0c;border:1px solid var(--line);
 border-radius:9px;padding:12px;color:#b5b5b5;white-space:pre-wrap;word-break:break-all;max-height:170px;
 overflow:auto;text-align:left;margin:10px 0 2px}
@@ -115,20 +135,17 @@ overflow:auto;text-align:left;margin:10px 0 2px}
   </section>
 
   <section class="form-pane">
+    <a class="top-cta" href="register.html">Create account →</a>
     <div class="form-inner">
 
-      <div class="setup" id="setup">
-        <div class="st">First time? Connect your Supabase</div>
-        <label>Project URL<input id="sbUrl" placeholder="https://xxxx.supabase.co" spellcheck="false" /></label>
-        <label>Anon public key<input id="sbAnon" placeholder="eyJhbGciOi…" spellcheck="false" /></label>
-        <button class="submit" id="sbSave" style="margin-top:6px">Save &amp; continue</button>
-        <div class="sqlbox" id="sqlBox"></div>
-        <p class="msg">Runs on <b>your own Supabase</b> — nothing touches an ANTROR server.</p>
+      <div class="switcher">
+        <a href="login.html" class="sw on">Sign in</a>
+        <a href="register.html" class="sw">Create account</a>
       </div>
 
       <div class="fhead">
         <h2>Welcome back</h2>
-        <p class="fsub">Sign in to sync your projects — or <a href="register.html">create an account</a>.</p>
+        <p class="fsub">Sign in to sync your projects across devices.</p>
       </div>
 
       <div class="oauth">
@@ -151,13 +168,26 @@ overflow:auto;text-align:left;margin:10px 0 2px}
       </form>
 
       <p class="msg" id="msg"></p>
+      <p style="text-align:center;margin-top:10px"><button class="resend" id="resendBtn" type="button" hidden>Resend confirmation email</button></p>
       <div class="foot">New here? <a href="register.html">Create an account</a></div>
       <div class="legal"><a href="legal.html" target="_blank">Terms &amp; Privacy</a> · © ANTROR</div>
+
+      <details id="setup" class="setupwrap">
+        <summary>Connect your own Supabase — first-time setup</summary>
+        <div class="sb-body">
+          <label>Project URL<input id="sbUrl" placeholder="https://xxxx.supabase.co" spellcheck="false" /></label>
+          <label>Anon public key<input id="sbAnon" placeholder="eyJhbGciOi…" spellcheck="false" /></label>
+          <button class="submit" id="sbSave" style="margin-top:6px">Save &amp; continue</button>
+          <div class="sqlbox" id="sqlBox"></div>
+          <p class="msg">Runs on <b>your own Supabase</b> — nothing touches an ANTROR server.</p>
+        </div>
+      </details>
     </div>
   </section>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
 <script src="supabase.js"></script>
 <script>
 'use strict';
@@ -165,9 +195,9 @@ const $=(x)=>document.getElementById(x);
 const say=(m,k)=>{ const el=$('msg'); el.textContent=m; el.className='msg'+(k?' '+k:''); };
 
 if(!VF.configured()){
-  $('setup').classList.add('show');
-  $('sqlBox').textContent=VF.PROJECTS_SQL;
+  $('setup').open=true;
 }
+$('sqlBox').textContent=VF.PROJECTS_SQL;
 $('sbSave').onclick=()=>{
   const url=$('sbUrl').value.trim(), anon=$('sbAnon').value.trim();
   if(!/^https:\/\/.+\.supabase\.co/.test(url)){ say('That doesn’t look like a Supabase URL (https://xxxx.supabase.co)','err'); return; }
@@ -175,7 +205,7 @@ $('sbSave').onclick=()=>{
   VF.saveCfg({url,anon});
   if(!VF.client()){ VF.clearCfg(); say('Could not initialize the client — check the values.','err'); return; }
   say('Connected — you can sign in now.','ok');
-  $('setup').classList.remove('show');
+  $('setup').open=false;
 };
 
 async function alreadyIn(){
@@ -190,19 +220,37 @@ alreadyIn();
 $('ghBtn').onclick=async()=>{ try{ await VF.oauth('github'); }catch(e){ say(e.message||'GitHub sign-in failed — enable the GitHub provider in Supabase first.','err'); } };
 $('ggBtn').onclick=async()=>{ try{ await VF.oauth('google'); }catch(e){ say(e.message||'Google sign-in failed — enable the Google provider in Supabase first.','err'); } };
 
+function authErr(e){
+  const m=String(e.message||e);
+  if(/not confirmed/i.test(m)){
+    return 'Your email isn’t confirmed yet — open the link we emailed you (check spam!), then sign in again.';
+  }
+  if(/invalid login credentials/i.test(m)) return 'Wrong email or password — try again.';
+  if(/rate/i.test(m)) return 'Too many attempts — wait a minute and try again.';
+  return m;
+}
+let lastEmail='';
 $('loginForm').onsubmit=async(ev)=>{
   ev.preventDefault();
   const email=$('email').value.trim(), pass=$('pass').value;
   if(!email||!pass){ say('Enter your email and password.','err'); return; }
-  $('submitBtn').disabled=true; $('submitBtn').textContent='Signing in…';
+  $('submitBtn').disabled=true; $('submitBtn').textContent='Signing in…'; $('resendBtn').hidden=true;
   try{
     await VF.signIn(email,pass);
     say('Welcome back — taking you in…','ok');
     setTimeout(()=>location.href='index.html',600);
   }catch(e){
-    say((e.message||'Sign-in failed — check your email and password.'),'err');
+    const m=String(e.message||e);
+    say(authErr(e),'err');
+    if(/not confirmed/i.test(m)){ lastEmail=email; $('resendBtn').hidden=false; }
     $('submitBtn').disabled=false; $('submitBtn').textContent='Sign in';
+    return;
   }
+};
+$('resendBtn').onclick=async()=>{
+  if(!lastEmail) return;
+  try{ await VF.resend(lastEmail); say('Confirmation email sent again to '+lastEmail+' — check your inbox AND spam folder.','ok'); }
+  catch(e){ say(authErr(e),'err'); }
 };
 </script>
 </body>

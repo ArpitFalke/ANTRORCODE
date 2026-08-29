@@ -41,6 +41,17 @@
     <nav id="fileTree"></nav>
 
     <div class="side-foot">
+      <div id="userRow">
+        <button id="userChip" title="Account">
+          <span class="avatar" id="userAvatar">?</span>
+          <span class="uchip-txt"><b id="userName">Sign in</b><small id="userSub">local only</small></span>
+        </button>
+        <div id="userMenu" hidden>
+          <button id="umAccount">Account &amp; sync</button>
+          <button id="umSettings">Model settings</button>
+          <button id="umSignout" hidden>Sign out</button>
+        </div>
+      </div>
       <button id="provChip" title="Open settings">
         <span id="provDot" class="dot off"></span>
         <span id="provChipText">no provider</span>
@@ -240,6 +251,7 @@
 <div id="toasts"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
 <script src="supabase.js"></script>
 <script src="app.js"></script>
 <script src="terminal.js"></script>

@@ -1144,6 +1144,49 @@ async function renderAcctBox(){
   });
 }
 
+/* ─────────────── sidebar user chip (footer) ─────────────── */
+async function renderUserChip(){
+  const av=$id('userAvatar'), name=$id('userName'), sub=$id('userSub');
+  if(!av) return;
+  let user=null;
+  if(window.VF && VF.configured()) user=await VF.getUser();
+  state.ui.signedIn=!!user;
+  if(user){
+    const email=user.email||'user';
+    av.textContent=email[0].toUpperCase();
+    name.textContent=email.split('@')[0];
+    sub.textContent='synced via Supabase';
+  }else{
+    av.textContent='?';
+    name.textContent='Sign in';
+    sub.textContent=(window.VF&&VF.configured())?'supabase ready · not signed in':'local only · no account';
+  }
+}
+function bindUserChip(){
+  const menu=$id('userMenu');
+  if(!$id('userChip')) return;
+  $id('userChip').addEventListener('click',()=>{
+    menu.hidden=!menu.hidden;
+    if(!menu.hidden){
+      $id('umAccount').textContent = state.ui.signedIn ? 'Account & sync' : 'Sign in / Create account';
+      $id('umSignout').hidden = !state.ui.signedIn;
+    }
+  });
+  $id('umAccount').addEventListener('click',()=>{ menu.hidden=true; location.href='login.html'; });
+  $id('umSettings').addEventListener('click',()=>{ menu.hidden=true; openSettings(); });
+  $id('umSignout').addEventListener('click',async()=>{
+    menu.hidden=true;
+    if(window.VF && VF.configured()){
+      await VF.signOut();
+      toast('Signed out — projects stay on this device');
+      renderUserChip(); renderAcctBox();
+    }
+  });
+  document.addEventListener('click',(e)=>{
+    if(!menu.hidden && !$id('userRow').contains(e.target)) menu.hidden=true;
+  });
+}
+
 /* ─────────────── wiring / init ─────────────── */
 function autoGrow(){
   const tb=$id('promptBox'); tb.style.height='auto';
@@ -1306,7 +1349,7 @@ function bind(){
 }
 
 function init(){
-  bind(); bindEditor(); bindChatScroll();
+  bind(); bindEditor(); bindChatScroll(); bindUserChip();
   // adopt the most recent project as the open one (multi-project era)
   if(state.projects.length && (!state.project.id || !state.project.files || !Object.keys(state.project.files).length)){
     const last = state.projects[0];
@@ -1318,6 +1361,7 @@ function init(){
   if(!state.settings.onboarded) $id('welcome').hidden=false;
   autoGrow();
   renderAcctBox();
+  renderUserChip();
   if(location.search.includes('vfdebug')){
     const files=state.project.files;
     const inv=Object.keys(files).map(p=>p+' ('+files[p].length+' B)').join(' | ')||'(none)';
