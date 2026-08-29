@@ -469,7 +469,7 @@ function renderAcct(){
       }catch(e){}
       try{ ['vf.v1.project','vf.v1.chat','vf.v1.checkpoints','vf.v1.projects','vf.v1.usage'].forEach(k=>localStorage.removeItem(k)); }catch(e){}
       await VF.signOut();
-      location.href= (location.hostname==='localhost'||location.hostname==='127.0.0.1'||location.protocol==='file:') ? 'index.html' : '/';
+      location.href='/';
     };
     $('uSave').onclick=async()=>{
       const v=$('uName').value.trim(); if(!v){ toastMsg('Type a name first'); return; }

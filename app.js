@@ -18,8 +18,7 @@ const nowTs = () => Date.now();
 const fmtTime = (ts) => new Date(ts).toLocaleString([], {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
 
 /* navigate between pages — clean URLs on the live site, .html on plain local servers */
-function isLocalHost(){ return location.hostname==='localhost' || location.hostname==='127.0.0.1' || location.protocol==='file:'; }
-function go(page){ location.href = isLocalHost() ? page+'.html' : '/'+page; }
+function go(page){ location.href='/'+page; }
 
 function toast(msg, kind='', ms=3400){
   const box = $id('toasts');
@@ -1499,7 +1498,7 @@ async function signOutAndWipe(){
   if(pushed) toast('☁ Pushed '+pushed+' project(s) to your cloud — signing out…','ok');
   try{ ['vf.v1.project','vf.v1.chat','vf.v1.checkpoints','vf.v1.projects','vf.v1.usage'].forEach(k=>localStorage.removeItem(k)); }catch(e){}
   if(window.VF) await VF.signOut();
-  location.href = isLocalHost() ? 'index.html' : '/';
+  location.href='/';
 }
 
 /* ─────────────── sign in: restore cloud projects on a fresh browser ─────────────── */

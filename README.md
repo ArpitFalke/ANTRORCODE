@@ -40,7 +40,7 @@ No install. No build step. No backend. **Your API key never leaves your browser*
 ```bash
 git clone https://github.com/ArpitFalke/ANTRORCODE.git
 cd ANTRORCODE
-python3 -m http.server 8899      # or: npx serve .
+node serve.js                    # clean-URL dev server (zero dependencies)
 # open http://localhost:8899
 ```
 

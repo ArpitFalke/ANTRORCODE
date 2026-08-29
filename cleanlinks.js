@@ -3,14 +3,14 @@
    plain local servers keep working with .html unchanged. */
 'use strict';
 (function(){
-  if(location.hostname==='localhost' || location.hostname==='127.0.0.1' || location.protocol==='file:') return;
   document.addEventListener('click',function(e){
     const a=e.target && e.target.closest ? e.target.closest('a[href]') : null;
     if(!a) return;
     const h=a.getAttribute('href')||'';
     if(h.endsWith('.html') && !h.startsWith('http') && !h.startsWith('//')){
       e.preventDefault();
-      location.href='/'+h.slice(0,-5);
+      const clean=h==='index.html' ? '/' : '/'+h.slice(0,-5);
+      location.href=clean;
     }
   },true);
 })();

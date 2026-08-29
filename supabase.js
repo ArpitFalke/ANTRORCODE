@@ -51,8 +51,7 @@ create policy "own rows" on public.projects
      servers keep the filename. */
   function redirectTarget() {
     const dir = location.pathname.replace(/[^/]*$/, '');
-    const local = location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.protocol === 'file:';
-    return location.origin + dir + (local ? 'index.html' : '');
+    return location.origin + dir;   // clean URLs everywhere (/ on the live site and with node serve.js)
   }
 
   /* ── auth ── */
