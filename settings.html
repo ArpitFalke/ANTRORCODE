@@ -182,10 +182,11 @@ button.ghost.danger:hover{color:var(--err);border-color:rgba(224,133,133,.5)}
         <h3>Reasoning</h3>
         <div class="seg" id="thinkSeg">
           <button type="button" data-think="off">Off</button>
-          <button type="button" data-think="balanced">Balanced</button>
-          <button type="button" data-think="deep">Deep</button>
+          <button type="button" data-think="low">Low</button>
+          <button type="button" data-think="medium">Medium</button>
+          <button type="button" data-think="max">Max</button>
         </div>
-        <p class="hint" style="margin-top:8px">Uses each model's native thinking (GLM, Claude, Gemini, GPT-5, OpenRouter). <b>Deep</b> is slower but sharper for tricky builds.</p>
+        <p class="hint" style="margin-top:8px">Uses each model's native thinking (GLM, Claude, Gemini, GPT-5, OpenRouter). <b>Max</b> is the slowest but sharpest for hard problems.</p>
       </div>
       <div class="card">
         <h3>Editor</h3>
@@ -410,7 +411,7 @@ function friendlyError(err,cfg){
 
 /* ── general ── */
 function paintGeneral(){
-  const lvl=S.thinking??'balanced';
+  const lvl=({balanced:'medium',deep:'max'})[S.thinking]||S.thinking||'medium';
   document.querySelectorAll('#thinkSeg [data-think]').forEach(b=>b.classList.toggle('active',b.dataset.think===lvl));
   const f=S.editorFont??'m';
   document.querySelectorAll('#fontSeg [data-font]').forEach(b=>b.classList.toggle('active',b.dataset.font===f));

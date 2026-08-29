@@ -77,6 +77,7 @@
         </div>
         <button id="btnChatFocus" title="Focus mode — dim everything else, chat takes over (Esc exits)">⤢</button>
         <button id="btnClearChat" title="Clear conversation">🗑</button>
+        <button id="btnPrevToggle" title="Show / hide the preview"><span style="font-size:12px">▤</span> Preview</button>
         <button id="btnChatToggle" title="Hide chat (bring it back with the chat button, bottom-right)">»</button>
       </span>
       </span>
@@ -98,13 +99,21 @@
           placeholder="Describe what you want to build…  (Enter to send)"></textarea>
         <div id="modePop" hidden></div>
         <div class="composer-bar">
+          <button type="button" id="btnAttach" class="pb-chip sq" title="Add an image to the project (usable in the preview)">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6V5z"/></svg>
+          </button>
+          <input type="file" id="attachInput" accept="image/*" multiple hidden />
           <button type="button" id="pbMode" class="pb-chip" title="Build mode — what kind of thing you're building">
             <span id="pbModeIcon">🌐</span><span id="pbModeText">Web app</span><span class="crt">▾</span>
           </button>
           <button type="button" id="pbModel" class="pb-chip" title="Change model & key">
             <span id="pbDot" class="dot off"></span><span id="pbModelText">no model</span>
           </button>
-          <button type="button" id="pbThink" class="pb-chip" title="Toggle AI reasoning depth">🧠 Thinking</button>
+          <button type="button" id="pbThink" class="pb-chip" title="Thinking depth">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M12 2l1.8 4.6L18 8l-4.2 1.4L12 14l-1.8-4.6L6 8l4.2-1.4L12 2zm6.5 10l.9 2.3 2.6.7-2.6.9-.9 2.6-.9-2.6-2.6-.9 2.6-.7.9-2.3zM5.5 13l.7 1.8 2.3.7-2.3.8-.7 2.2-.7-2.2-2.3-.8 2.3-.7.7-1.8z"/></svg>
+            <span id="pbThinkText">Medium</span><span class="crt">▾</span>
+          </button>
+          <div id="thinkPop" hidden></div>
           <button type="submit" id="sendBtn" title="Send">➤</button>
           <button type="button" id="stopBtn" title="Stop generating" hidden>■</button>
         </div>
@@ -125,7 +134,6 @@
         </div>
         <button id="consBadgeBtn" hidden title="Runtime errors from your app">⚠ <b id="consCount">0</b></button>
         <button id="btnRefresh" title="Re-run the preview">↻ Run</button>
-        <button id="btnPopOut" title="Open the preview in a real browser tab">↗ Open tab</button>
       </div>
     </div>
 

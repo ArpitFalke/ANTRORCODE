@@ -26,9 +26,10 @@ function go(page){
 }
 
 /* preview column appears only when there is something to show (first prompt / files) */
-function syncPristine(){
+function syncPristine(open){
+  // opening old content via a user action → show the preview; otherwise chat-only
   const has=(state.chat && state.chat.length) || Object.keys(state.project.files||{}).length;
-  document.body.classList.toggle('pristine',!has);
+  document.body.classList.toggle('pristine', open===true ? false : (open===false ? true : !has));
 }
 
 function toast(msg, kind='', ms=3400){
@@ -143,6 +144,8 @@ const PROVIDERS = {
 const PROV_ORDER = ['zai','anthropic','openai','openrouter','gemini','groq','nvidia','ollama','custom'];
 
 /* ── build modes (premium composer picker) ── */
+const THINK_LABEL={off:'Off',low:'Low',medium:'Medium',max:'Max'};
+const THINK_LVL={low:{a:4096,g:4096,o:'low'},medium:{a:8192,g:8192,o:'medium'},max:{a:16384,g:24576,o:'high'}};
 const MODES={
   web: { icon:'🌐', label:'Web app',
     hint:'Sites, dashboards and tools — clean vanilla HTML/CSS/JS.',
@@ -552,23 +555,23 @@ function joinUrl(base, path){ return base.replace(/\/+$/,'') + path; }
 
 /* reasoning ("thinking") — uses each provider's native parameter */
 function thinkParams(cfg){
-  const lvl = state.settings.thinking ?? 'balanced';
+  const lvl = state.settings.thinking ?? 'medium';
   if(lvl==='off') return { body:{}, pickThinking:null };
-  const deep = lvl==='deep';
+  const L = THINK_LVL[lvl] || THINK_LVL.medium;
   if(cfg.kind==='anthropic') return {
-    body:{ thinking:{ type:'enabled', budget_tokens: deep?16000:8000 } },
+    body:{ thinking:{ type:'enabled', budget_tokens: L.a } },
     pickThinking:(j)=> j.type==='content_block_delta' && j.delta?.type==='thinking' ? (j.delta.thinking||'') : '',
   };
   if(cfg.kind==='gemini') return {
-    body:{ generationConfig:{ thinkingConfig:{ thinkingBudget: deep?20000:8000 } } },
+    body:{ generationConfig:{ thinkingConfig:{ thinkingBudget: L.g } } },
     pickThinking:(j)=>{ const c=j?.candidates?.[0]; if(!c?.content?.parts) return '';
       return c.content.parts.filter(p=>p.thought).map(p=>p.text||'').join(''); },
   };
   // OpenAI-compatible family
   let body={};
   if(cfg.id==='zai') body={ thinking:{ type:'enabled' } };                       // GLM-4.x native
-  else if(cfg.id==='openai') body={ reasoning_effort: deep?'high':'medium' };    // GPT-5 / o-series
-  else if(cfg.id==='openrouter') body={ reasoning:{ effort: deep?'high':'medium' } };
+  else if(cfg.id==='openai') body={ reasoning_effort: L.o };                     // GPT-5 / o-series
+  else if(cfg.id==='openrouter') body={ reasoning:{ effort: L.o } };
   return { body, pickThinking:(j)=> j.choices?.[0]?.delta?.reasoning_content || j.choices?.[0]?.delta?.reasoning || '' };
 }
 
@@ -768,7 +771,7 @@ async function sendPrompt(rawText){
   const t0=Date.now();
   const fmtDur=(ms)=>{ const sec=Math.round(ms/1000); return sec<60 ? sec+'s' : Math.floor(sec/60)+'m '+(sec%60)+'s'; };
   const timerEl=actLine('','live build');
-  const timerPaint=()=>{ timerEl.innerHTML='<span class="eq"><i></i><i></i><i></i><i></i></span> building · '+written.length+' file'+(written.length===1?'':'s')+' · '+fmtDur(Date.now()-t0); };
+  const timerPaint=()=>{ timerEl.innerHTML='<span class="eq"><i></i><i></i><i></i><i></i></span>Working for '+fmtDur(Date.now()-t0)+(written.length?' · '+written.length+' file'+(written.length===1?'':'s'):''); };
   timerPaint();
   const workTick=setInterval(timerPaint,900);
   const endTimer=(ok)=>{ clearInterval(workTick); timerEl.textContent=(ok?'✓ completed in ':'⚠ stopped after ')+fmtDur(Date.now()-t0); timerEl.className='actline'; };
@@ -778,7 +781,7 @@ async function sendPrompt(rawText){
   const onThinking=(t)=>{
     thinkTxt+=t;
     if(!thinkEl){ thinkEl=actLine('','live think'); }
-    thinkEl.innerHTML='<span class="spk">✦</span> thinking · '+Math.max(1,Math.round(thinkTxt.length/4))+' tokens';
+    thinkEl.innerHTML='<span class="spk">✦</span> Thinking · '+Math.max(1,Math.round(thinkTxt.length/4))+' tokens';
   };
 
   let raw=''; let stopped=false; const written=[]; const carded=new Set();
@@ -796,7 +799,7 @@ async function sendPrompt(rawText){
         const d=lineDiff(before, state.project.files[w.path]);
         let badge='';
         if(d){ let a=0,r=0; d.forEach(l=>{if(l.t==='+')a++;else if(l.t==='-')r++;}); badge=` (+${a} −${r})`; }
-        actLine((before!=null?'✏ updated ':'✍ created ')+w.path+badge,'ok');
+        actLine('✎ '+w.path+' '+(before!=null?'':'new ')+badge,'ok');
       });
     }
     const ts=window.__vfTermSink; if(ts&&ts.delta) try{ts.delta(raw,written.length);}catch(e){}
@@ -1433,9 +1436,21 @@ function renderStatusChip(){
 }
 function paintThinkChip(){
   const b=$id('pbThink'); if(!b) return;
-  const cur=state.settings.thinking??'balanced';
-  b.textContent = cur==='off' ? '🧠 Thinking off' : cur==='deep' ? '🧠 Deep think' : '🧠 Thinking';
+  const cur=state.settings.thinking??'medium';
+  $id('pbThinkText').textContent = THINK_LABEL[cur]||'Medium';
   b.classList.toggle('on', cur!=='off');
+  const tp=$id('thinkPop');
+  if(tp && !tp.hidden){
+    tp.innerHTML='';
+    ['off','low','medium','max'].forEach(k=>{
+      const o=document.createElement('button'); o.type='button'; o.className='modeopt'+(cur===k?' sel':'');
+      o.innerHTML='<span class="mi" style="font-size:13px;padding-top:2px">'+({off:'○',low:'✧',medium:'◈',max:'✦'}[k])+'</span>'+
+        '<span><b>'+THINK_LABEL[k]+'</b><small>'+({off:'No reasoning — fastest replies',low:'Light thinking for simple tweaks',medium:'Balanced depth for most builds',max:'Deepest reasoning for hard problems'}[k])+'</small></span>'+
+        (cur===k?'<span class="mck">✓</span>':'');
+      o.addEventListener('click',()=>{ state.settings.thinking=k; saveSettings(); paintThinkChip(); tp.hidden=true; toast('🧠 Thinking: '+THINK_LABEL[k]); });
+      tp.appendChild(o);
+    });
+  }
 }
 function heroPaint(sel){
   provCards($id('heroProv'), sel, (id)=>{ state.ui.heroSel=id; heroPaint(id); $id('heroKey').focus(); });
@@ -1770,14 +1785,6 @@ function bind(){
   };
   $id('wFull').addEventListener('click',()=>setW(false));
   $id('wPhone').addEventListener('click',()=>setW(true));
-  $id('btnPopOut').addEventListener('click',()=>{
-    const doc=buildPreviewDoc();
-    if(doc==null){ toast('Nothing to pop out yet'); return; }
-    const url=URL.createObjectURL(new Blob([SHIM+doc],{type:'text/html'}));
-    const w=window.open(url,'_blank');
-    if(!w){ toast('Pop-up blocked 😅','err'); return; }
-    setTimeout(()=>URL.revokeObjectURL(url), 20000);
-  });
   // prompt-box chips
   $id('pbModel').addEventListener('click',openSettings);
   // build mode picker
@@ -1809,12 +1816,35 @@ function bind(){
     if(!modePop.hidden && !modePop.contains(e.target) && e.target!==$id('pbMode') && !$id('pbMode').contains(e.target)) modePop.hidden=true;
   });
   paintMode();
+  // thinking dropdown (opens upward, anchored like the image)
   $id('pbThink').addEventListener('click',()=>{
-    const order=['off','balanced','deep'];
-    const cur=state.settings.thinking??'balanced';
-    state.settings.thinking=order[(order.indexOf(cur)+1)%3];
-    saveSettings(); paintThinkChip();
-    toast('🧠 Reasoning: '+state.settings.thinking);
+    const tp=$id('thinkPop');
+    if(tp.hidden){ paintThinkChip(); tp.hidden=false; }
+    else tp.hidden=true;
+  });
+  document.addEventListener('click',(e)=>{
+    const tp=$id('thinkPop');
+    if(!tp.hidden && !tp.contains(e.target) && !$id('pbThink').contains(e.target)) tp.hidden=true;
+  });
+  // preview show/hide from the chat header
+  $id('btnPrevToggle').addEventListener('click',()=>{
+    if(document.body.classList.contains('pristine')) syncPristine(true);
+    else { document.body.classList.add('pristine'); showView('preview'); }
+  });
+  // image attach (+) — images land in assets/ and can be used by the preview & AI
+  $id('btnAttach').addEventListener('click',()=>$id('attachInput').click());
+  $id('attachInput').addEventListener('change',async(e)=>{
+    const files=[...e.target.files]; e.target.value='';
+    let n=0;
+    for(const f of files){
+      if(!/^image\//.test(f.type)) continue;
+      if(f.size>1200000){ toast('🖼 '+f.name+' is over 1.2 MB — skipped','err'); continue; }
+      const dataUrl=await new Promise(res=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.readAsDataURL(f); });
+      applyFile('assets/'+f.name.replace(/[^\w.-]+/g,'-'), dataUrl);
+      n++;
+    }
+    if(n){ saveProject(); renderTree(); refreshPreview(); persistCurrentProject();
+      toast('🖼 Added '+n+' image'+(n>1?'s':'')+' to assets/ — tell the AI to use them','ok'); }
   });
   $id('consBadgeBtn').addEventListener('click',()=>{
     let pop=$id('consPop');
@@ -1884,8 +1914,10 @@ function init(){
   }
   renderAll();
   restoreChatLog();
-  syncPristine();
+  document.body.classList.add('pristine');   // fresh load: chat first — the ▤ Preview button opens it
   applyEditorFont();
+  if(state.settings.thinking==='balanced') state.settings.thinking='medium';
+  if(state.settings.thinking==='deep') state.settings.thinking='max';
   paintThinkChip();
   updateCtxPill(ctxOfConversation(''));
   if(!window.antrorAPI) idbGetDir().then(h=>{ if(h) state.ui.saveDirHandle=h; });
