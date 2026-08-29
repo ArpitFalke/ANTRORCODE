@@ -784,16 +784,17 @@ body.sbmin .side-actions{gap:3px}
 .composer::before{
   content:"";position:absolute;inset:-1.5px;border-radius:19px;padding:1.5px;
   background:conic-gradient(from var(--ang),
-    rgba(224,144,107,0) 0deg, rgba(224,144,107,.9) 40deg,
-    rgba(255,255,255,.95) 80deg, rgba(224,144,107,.9) 120deg,
-    rgba(224,144,107,0) 160deg, rgba(224,144,107,0) 360deg);
+    rgba(224,144,107,0) 0deg, rgba(224,144,107,.65) 55deg,
+    rgba(255,255,255,.9) 90deg, rgba(201,123,84,.65) 125deg,
+    rgba(224,144,107,0) 175deg, rgba(224,144,107,0) 360deg);
   -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
   -webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
   mask-composite:exclude;
   opacity:0;transition:opacity .35s ease;pointer-events:none;
 }
-.composer:focus-within::before{opacity:.55;animation:orbit 3.2s linear infinite}
-#chatPanel.generating .composer::before{opacity:1;animation:orbit 2.2s linear infinite}
+.composer:focus-within::before{opacity:.65;animation:orbit 4.2s linear infinite}
+.composer:focus-within{box-shadow:0 0 0 1px rgba(255,255,255,.07),0 0 34px rgba(224,144,107,.12)}
+#chatPanel.generating .composer::before{opacity:1;animation:orbit 2.6s linear infinite}
 @keyframes orbit{to{--ang:360deg}}
 
 /* warm touches on the live indicators */
@@ -808,3 +809,35 @@ body.sbmin .side-actions{gap:3px}
 }
 #btnPrevToggle:hover{color:var(--txt);border-color:rgba(255,255,255,.4);background:rgba(255,255,255,.05)}
 #btnPrevToggle svg{display:block;opacity:.85}
+
+
+/* ══════════ CHAT EMPTY STATE (Claude-style) ══════════ */
+#chatEmpty{
+  position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;padding:24px;z-index:2;
+}
+#chatEmpty[hidden]{display:none}
+#chatEmpty img{width:52px;height:52px;border-radius:13px;margin-bottom:16px;opacity:.95;
+  box-shadow:0 14px 40px rgba(0,0,0,.5)}
+#chatEmpty h3{font-size:19px;font-weight:800;letter-spacing:-.3px}
+#chatEmpty p{color:var(--dim);font-size:12.5px;margin:7px 0 20px}
+.ce-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;width:100%;max-width:380px}
+.ce-grid button{
+  display:flex;flex-direction:column;align-items:flex-start;gap:3px;padding:13px 14px;border-radius:12px;
+  background:var(--panel);border:1px solid var(--line);transition:.15s;text-align:left;
+}
+.ce-grid button:hover{border-color:rgba(255,255,255,.35);background:rgba(255,255,255,.05);transform:translateY(-2px)}
+.ce-grid span{font-size:17px}
+.ce-grid b{font-size:12.5px;color:var(--txt)}
+.ce-grid small{font-size:10.5px;color:var(--faint)}
+
+/* FILES header + empty tree */
+.tree-head::first-letter{color:var(--dim)}
+.tree-empty{display:flex;align-items:center;gap:7px;padding:9px 8px;font-size:11px;color:var(--faint)}
+.tree-empty span{filter:grayscale(1);opacity:.75}
+
+/* workspace toolbar polish */
+#stagebar{padding:6px 10px}
+.seg{padding:2px;border-radius:8px}
+.segbtn{padding:5px 12px;font-size:11.5px;border-radius:6px}
+.bar-right button{padding:5px 10px;font-size:11.5px;border-radius:8px}

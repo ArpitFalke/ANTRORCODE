@@ -42,7 +42,7 @@
       <input type="file" id="importInput" webkitdirectory multiple hidden />
     </div>
 
-    <div class="tree-head">FILES</div>
+    <div class="tree-head">⌄ FILES</div>
     <nav id="fileTree"></nav>
 
     <div class="side-foot">
@@ -85,6 +85,17 @@
     </div>
     <div id="chatLogWrap">
       <div id="chatLog"></div>
+      <div id="chatEmpty">
+        <img src="assets/logo.png" alt="" />
+        <h3>What should we build, <span id="ceName">friend</span>?</h3>
+        <p>Describe it in your own words — or start from one of these:</p>
+        <div class="ce-grid">
+          <button data-ce="A premium personal portfolio site with a dark aesthetic, smooth animations and project showcase"><span>🖥</span><b>Portfolio site</b><small>dark · animated · showcase</small></button>
+          <button data-ce="A full-stack todo app: polished frontend + Node/Express API + data layer" data-mode="full"><span>🧩</span><b>Full-stack todo</b><small>frontend + API + data</small></button>
+          <button data-ce="A neon snake game on canvas with particles, screen shake, procedural sound and touch controls" data-mode="game"><span>🎮</span><b>Neon snake</b><small>canvas · particles · sound</small></button>
+          <button data-ce="A premium landing page for a startup: hero, features, pricing, testimonials"><span>🚀</span><b>Startup landing</b><small>hero · pricing · vibe</small></button>
+        </div>
+      </div>
       <button id="jumpLatest" hidden title="Jump to latest">↓ latest</button>
     </div>
     <div id="chipsRow">

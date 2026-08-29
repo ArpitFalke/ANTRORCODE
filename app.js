@@ -29,7 +29,9 @@ function go(page){
 function syncPristine(open){
   // opening old content via a user action → show the preview; otherwise chat-only
   const has=(state.chat && state.chat.length) || Object.keys(state.project.files||{}).length;
-  document.body.classList.toggle('pristine', open===true ? false : (open===false ? true : !has));
+  const pristine = open===true ? false : (open===false ? true : !has);
+  document.body.classList.toggle('pristine',pristine);
+  const ce=$id('chatEmpty'); if(ce) ce.hidden = !pristine || (state.chat && state.chat.length>0);
 }
 
 /* pending image attachments (tray chips → assets/ on send) */
@@ -187,7 +189,7 @@ function updateCtxPill(total){
   if(txt) txt.textContent=fmtK(t)+' / '+fmtK(lim);
 }
 function ctxOfConversation(extra){
-  let t=est(VIBE_SYSTEM)+est(extra||'');
+  let t=est(buildSystem())+est((MODES[state.settings.mode]||MODES.web).sys)+est(extra||'');
   state.chat.forEach(m=>{ t+=est(m.display ?? m.text ?? ''); });
   return t;
 }
@@ -278,6 +280,18 @@ const VIBE_SYSTEM = [
 '- No filler, no apologies, exactly one best version of the solution.',
 ].join('\n');
 
+function buildSystem(){
+  let sys=VIBE_SYSTEM;
+  const P=state.settings.plugins||{};
+  if(P.tailwind) sys+='\n\nPLUGIN — TAILWIND: Style everything with Tailwind CSS via <script src="https://cdn.tailwindcss.com"></script> and utility classes; keep a <style> block only for custom keyframes.';
+  if(P.motion) sys+='\n\nPLUGIN — MOTION: Add tasteful life to the UI — transitions on every interactive element, keyframe entrances, scroll reveals, micro-interactions. Smooth, never gimmicky.';
+  if(P.seo) sys+='\n\nPLUGIN — SEO: Include complete meta tags (description, Open Graph, Twitter card), semantic HTML5 landmarks and descriptive page titles.';
+  if(P.strictjs) sys+='\n\nPLUGIN — STRICT JS: Write modern strict-mode JavaScript — no globals, small pure functions, defensive error handling, meaningful names.';
+  (state.settings.skills||[]).filter(s=>s.on).forEach(sk=>{ sys+='\n\nSKILL — '+sk.name+':\n'+sk.text; });
+  (state.settings.mcp||[]).filter(m=>m.on).forEach(m=>{ sys+='\n\nMCP SERVER CONNECTED — "'+m.name+'" ('+m.url+'). When the user asks for something this server provides, explain how you would call it and provide the exact request.'; });
+  return sys;
+}
+
 function manifestBlock(){
   const files = state.project.files;
   const paths = Object.keys(files);
@@ -323,6 +337,11 @@ function fileIcon(p){
 }
 function renderTree(){
   const tree = $id('fileTree'); tree.innerHTML='';
+  if(!Object.keys(state.project.files).length){
+    const e=document.createElement('div'); e.className='tree-empty';
+    e.innerHTML='<span>📁</span> No files yet — they appear as the AI builds';
+    tree.appendChild(e); return;
+  }
   const paths = Object.keys(state.project.files).sort((a,b)=>{
     const d=(x)=>x.includes('/')?1:0;
     return d(a)-d(b) || a.localeCompare(b);
@@ -837,7 +856,7 @@ async function sendPrompt(rawText){
   };
   const mode=MODES[state.settings.mode]||MODES.web;
   try{
-    const sys=VIBE_SYSTEM+'\n\n'+mode.sys+'\n\n=====\n'+manifestBlock();
+    const sys=buildSystem()+'\n\n'+mode.sys+'\n\n=====\n'+manifestBlock();
     const msgs=buildMessages();
     const adt=makeAdapter(cfg,msgs,sys,{});
     await sseStream(adt,controller.signal,onDelta,onThinking);
@@ -1857,6 +1876,18 @@ function bind(){
       modePop.appendChild(b);
     });
   };
+  // starter cards on the empty chat
+  document.querySelectorAll('.ce-grid button').forEach(b=>b.addEventListener('click',()=>{
+    if(b.dataset.mode){ state.settings.mode=b.dataset.mode; saveSettings(); paintMode(); }
+    const tb=$id('promptBox'); tb.value=b.dataset.ce; autoGrow(); tb.focus();
+    tb.setSelectionRange(tb.value.length,tb.value.length);
+  }));
+  const paintCeName=async()=>{
+    let name='friend';
+    try{ if(window.VF&&VF.configured()){ const u=await VF.getUser(); if(u) name=(u.user_metadata?.display_name||u.email||'friend').split('@')[0]; } }catch(e){}
+    const el=$id('ceName'); if(el) el.textContent=name;
+  };
+  paintCeName();
   $id('pbMode').addEventListener('click',()=>{
     if(modePop.hidden){ renderModePop(); modePop.hidden=false; }
     else modePop.hidden=true;
@@ -1868,7 +1899,7 @@ function bind(){
   // thinking dropdown (opens upward, anchored like the image)
   $id('pbThink').addEventListener('click',()=>{
     const tp=$id('thinkPop');
-    if(tp.hidden){ paintThinkChip(); tp.hidden=false; }
+    if(tp.hidden){ tp.hidden=false; paintThinkChip(); }
     else tp.hidden=true;
   });
   document.addEventListener('click',(e)=>{

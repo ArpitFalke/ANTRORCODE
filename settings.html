@@ -143,6 +143,7 @@ button.ghost.danger:hover{color:var(--err);border-color:rgba(224,133,133,.5)}
       <button data-sec="user">👤&nbsp; User</button>
       <button data-sec="providers">◈&nbsp; Providers</button>
       <button data-sec="tokens">🔑&nbsp; API tokens</button>
+      <button data-sec="ext">🧩&nbsp; Extensions</button>
       <button data-sec="usage">📈&nbsp; Usage</button>
       <button data-sec="workspace">🗂&nbsp; Workspace</button>
       <button data-sec="about">ⓘ&nbsp; About</button>
@@ -236,6 +237,39 @@ button.ghost.danger:hover{color:var(--err);border-color:rgba(224,133,133,.5)}
       <h1>API tokens</h1>
       <p class="sub">Saved keys, masked. They never leave this browser.</p>
       <div class="card"><div id="tokenList"></div></div>
+    </section>
+
+    <!-- ══ EXTENSIONS ══ -->
+    <section class="sec" id="sec-ext">
+      <h1>Extensions</h1>
+      <p class="sub">Skills, plugins and MCP servers — extra abilities layered onto every AI run.</p>
+
+      <div class="card">
+        <h3>Plugins — one-click presets</h3>
+        <div id="plugList"></div>
+      </div>
+
+      <div class="card">
+        <h3>Skills — your instruction packs</h3>
+        <p class="hint" style="margin-bottom:10px">Enabled skills are injected into every AI run. Teach it your style, stack rules, conventions…</p>
+        <div id="skillList"></div>
+        <div class="row" style="align-items:flex-start;margin-top:10px">
+          <input id="skillName" placeholder="skill name (e.g. My style guide)" style="flex:0 0 220px;padding:10px 12px;border-radius:9px;font-size:12.5px;background:var(--panel);border:1px solid var(--line2);outline:none" />
+          <button class="ghost" id="skillAdd">+ Add skill</button>
+        </div>
+        <textarea id="skillText" placeholder="Skill instructions — injected verbatim into the AI's system prompt…" rows="3" style="width:100%;margin-top:10px;padding:11px 12px;border-radius:9px;font-size:12px;background:var(--panel);border:1px solid var(--line2);outline:none;font-family:var(--mono);resize:vertical"></textarea>
+      </div>
+
+      <div class="card">
+        <h3>MCP servers</h3>
+        <p class="hint" style="margin-bottom:10px">Connect MCP (Model Context Protocol) servers. Connected servers are declared to the AI; tool execution runs through the desktop bridge (beta).</p>
+        <div id="mcpList"></div>
+        <div class="row" style="align-items:center;margin-top:10px">
+          <input id="mcpName" placeholder="server name" style="flex:0 0 160px;padding:10px 12px;border-radius:9px;font-size:12.5px;background:var(--panel);border:1px solid var(--line2);outline:none" />
+          <input id="mcpUrl" placeholder="https://mcp.example.com/sse" style="flex:1;min-width:180px;padding:10px 12px;border-radius:9px;font-size:12.5px;background:var(--panel);border:1px solid var(--line2);outline:none;font-family:var(--mono)" spellcheck="false" />
+          <button class="ghost" id="mcpAdd">+ Connect</button>
+        </div>
+      </div>
     </section>
 
     <!-- ══ USAGE ══ -->
@@ -546,12 +580,120 @@ $('btnWipeAll').onclick=()=>{
 window.addEventListener('message',(e)=>{
   if(e.data && e.data.__antrorSettings===1){
     Object.assign(S, loadJSON(LS.s,{}));
-    buildGrid(); paintProvFields(S.provider||'zai'); paintGeneral(); renderLists(); renderAcct();
+    buildGrid(); paintProvFields(S.provider||'zai'); /* ── extensions: plugins / skills / mcp ── */
+const PLUGINS=[
+  ['tailwind','Tailwind CSS','Utility-first styling via CDN for everything'],
+  ['motion','Motion & animation','Transitions, keyframes and micro-interactions everywhere'],
+  ['seo','SEO pack','Meta tags, Open Graph, semantic HTML'],
+  ['strictjs','Strict JS','Modern strict-mode, no globals, defensive code'],
+];
+function renderExt(){
+  const pl=$('plugList'); pl.innerHTML='';
+  PLUGINS.forEach(([key,name,desc])=>{
+    const on=!!(S.plugins||{})[key];
+    const row=document.createElement('label'); row.className='switch-row';
+    row.innerHTML='<input type="checkbox" '+(on?'checked':'')+' /><span><b>'+name+'</b> — <span style="color:var(--faint)">'+desc+'</span></span>';
+    row.querySelector('input').addEventListener('change',(e)=>{ S.plugins=S.plugins||{}; S.plugins[key]=e.target.checked; persist(); });
+    pl.appendChild(row);
+  });
+  const sl=$('skillList'); sl.innerHTML='';
+  (S.skills||[]).forEach((sk,i)=>{
+    const row=document.createElement('div'); row.className='plist-row';
+    row.innerHTML='<span class="pl-name">'+esc(sk.name)+'</span><span class="pl-sub">'+(sk.on?'injected':'off')+'</span>';
+    const tg=document.createElement('button'); tg.className='ghost'; tg.textContent=sk.on?'On':'Off';
+    tg.onclick=()=>{ sk.on=!sk.on; persist(); renderExt(); };
+    const del=document.createElement('button'); del.className='ghost danger'; del.textContent='Delete';
+    del.onclick=()=>{ S.skills.splice(i,1); persist(); renderExt(); };
+    row.append(tg,del); sl.appendChild(row);
+  });
+  if(!(S.skills||[]).length) sl.innerHTML='<p class="hint">No skills yet — add one below.</p>';
+  const ml=$('mcpList'); ml.innerHTML='';
+  (S.mcp||[]).forEach((m,i)=>{
+    const row=document.createElement('div'); row.className='plist-row';
+    row.innerHTML='<span class="pl-name">'+esc(m.name)+'</span><span class="pl-sub">'+esc(m.url)+'</span>';
+    const tg=document.createElement('button'); tg.className='ghost'; tg.textContent=m.on?'Connected':'Off';
+    tg.onclick=()=>{ m.on=!m.on; persist(); renderExt(); };
+    const del=document.createElement('button'); del.className='ghost danger'; del.textContent='Remove';
+    del.onclick=()=>{ S.mcp.splice(i,1); persist(); renderExt(); };
+    row.append(tg,del); ml.appendChild(row);
+  });
+  if(!(S.mcp||[]).length) ml.innerHTML='<p class="hint">No MCP servers connected yet.</p>';
+}
+$('skillAdd').onclick=()=>{
+  const name=$('skillName').value.trim(), text=$('skillText').value.trim();
+  if(!name||!text){ toastMsg('Give the skill a name and instructions.'); return; }
+  S.skills=S.skills||[]; S.skills.push({name,text,on:true});
+  $('skillName').value=''; $('skillText').value='';
+  persist(); renderExt(); toastMsg('✓ Skill added — it is now injected into every run');
+};
+$('mcpAdd').onclick=()=>{
+  const name=$('mcpName').value.trim(), url=$('mcpUrl').value.trim();
+  if(!name||!/^https?:\/\//.test(url)){ toastMsg('Enter a name and a valid http(s) URL.'); return; }
+  S.mcp=S.mcp||[]; S.mcp.push({name,url,on:true});
+  $('mcpName').value=''; $('mcpUrl').value='';
+  persist(); renderExt(); toastMsg('✓ MCP server connected — declared to the AI on every run');
+};
+
+paintGeneral(); renderLists(); renderAcct(); renderExt();
   }
 });
 window.opener?.focus?.();
 
-paintGeneral(); renderLists(); renderAcct();
+/* ── extensions: plugins / skills / mcp ── */
+const PLUGINS=[
+  ['tailwind','Tailwind CSS','Utility-first styling via CDN for everything'],
+  ['motion','Motion & animation','Transitions, keyframes and micro-interactions everywhere'],
+  ['seo','SEO pack','Meta tags, Open Graph, semantic HTML'],
+  ['strictjs','Strict JS','Modern strict-mode, no globals, defensive code'],
+];
+function renderExt(){
+  const pl=$('plugList'); pl.innerHTML='';
+  PLUGINS.forEach(([key,name,desc])=>{
+    const on=!!(S.plugins||{})[key];
+    const row=document.createElement('label'); row.className='switch-row';
+    row.innerHTML='<input type="checkbox" '+(on?'checked':'')+' /><span><b>'+name+'</b> — <span style="color:var(--faint)">'+desc+'</span></span>';
+    row.querySelector('input').addEventListener('change',(e)=>{ S.plugins=S.plugins||{}; S.plugins[key]=e.target.checked; persist(); });
+    pl.appendChild(row);
+  });
+  const sl=$('skillList'); sl.innerHTML='';
+  (S.skills||[]).forEach((sk,i)=>{
+    const row=document.createElement('div'); row.className='plist-row';
+    row.innerHTML='<span class="pl-name">'+esc(sk.name)+'</span><span class="pl-sub">'+(sk.on?'injected':'off')+'</span>';
+    const tg=document.createElement('button'); tg.className='ghost'; tg.textContent=sk.on?'On':'Off';
+    tg.onclick=()=>{ sk.on=!sk.on; persist(); renderExt(); };
+    const del=document.createElement('button'); del.className='ghost danger'; del.textContent='Delete';
+    del.onclick=()=>{ S.skills.splice(i,1); persist(); renderExt(); };
+    row.append(tg,del); sl.appendChild(row);
+  });
+  if(!(S.skills||[]).length) sl.innerHTML='<p class="hint">No skills yet — add one below.</p>';
+  const ml=$('mcpList'); ml.innerHTML='';
+  (S.mcp||[]).forEach((m,i)=>{
+    const row=document.createElement('div'); row.className='plist-row';
+    row.innerHTML='<span class="pl-name">'+esc(m.name)+'</span><span class="pl-sub">'+esc(m.url)+'</span>';
+    const tg=document.createElement('button'); tg.className='ghost'; tg.textContent=m.on?'Connected':'Off';
+    tg.onclick=()=>{ m.on=!m.on; persist(); renderExt(); };
+    const del=document.createElement('button'); del.className='ghost danger'; del.textContent='Remove';
+    del.onclick=()=>{ S.mcp.splice(i,1); persist(); renderExt(); };
+    row.append(tg,del); ml.appendChild(row);
+  });
+  if(!(S.mcp||[]).length) ml.innerHTML='<p class="hint">No MCP servers connected yet.</p>';
+}
+$('skillAdd').onclick=()=>{
+  const name=$('skillName').value.trim(), text=$('skillText').value.trim();
+  if(!name||!text){ toastMsg('Give the skill a name and instructions.'); return; }
+  S.skills=S.skills||[]; S.skills.push({name,text,on:true});
+  $('skillName').value=''; $('skillText').value='';
+  persist(); renderExt(); toastMsg('✓ Skill added — it is now injected into every run');
+};
+$('mcpAdd').onclick=()=>{
+  const name=$('mcpName').value.trim(), url=$('mcpUrl').value.trim();
+  if(!name||!/^https?:\/\//.test(url)){ toastMsg('Enter a name and a valid http(s) URL.'); return; }
+  S.mcp=S.mcp||[]; S.mcp.push({name,url,on:true});
+  $('mcpName').value=''; $('mcpUrl').value='';
+  persist(); renderExt(); toastMsg('✓ MCP server connected — declared to the AI on every run');
+};
+
+paintGeneral(); renderLists(); renderAcct(); renderExt();
 </script>
 <script src="cleanlinks.js"></script>
 </body>
