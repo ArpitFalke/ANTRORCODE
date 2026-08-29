@@ -799,7 +799,7 @@ async function sendPrompt(rawText){
   }
   state.chat.push({role:'user',text:sendText,t:nowTs()});
   try{ localStorage.removeItem('vf.v1.draft'); }catch(e){}
-  document.body.classList.remove('pristine');   // the preview takes its place from here on
+  syncPristine(true);                           // empty state clears, preview takes its place
   addUserMsg(text); saveChat();
   $id('promptBox').value=''; autoGrow();
 

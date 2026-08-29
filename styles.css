@@ -9,7 +9,7 @@
   --acc:#ffffff;            /* monochrome accent: pure white */
   --accdim:#c9c9c9;
   --ok:#9a9a9a; --warn:#c9c9c9; --err:#e08585;   /* errors stay faint red for function */
-  --r:10px; --warm:#e0906b; --warm2:#c97b54;
+  --r:10px; --warm:#e0906b; --warm2:#c97b54; --cream:#f2ead8; --slate:#6b7280;
   --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
 }
 *{box-sizing:border-box;margin:0;padding:0}
@@ -783,24 +783,26 @@ body.sbmin .side-actions{gap:3px}
 @property --ang{syntax:'<angle>';initial-value:0deg;inherits:false}
 .composer::before{
   content:"";position:absolute;inset:-1.5px;border-radius:19px;padding:1.5px;
-  background:conic-gradient(from var(--ang),
-    rgba(224,144,107,0) 0deg, rgba(224,144,107,.65) 55deg,
-    rgba(255,255,255,.9) 90deg, rgba(201,123,84,.65) 125deg,
-    rgba(224,144,107,0) 175deg, rgba(224,144,107,0) 360deg);
+  background:repeating-linear-gradient(115deg,
+    rgba(242,234,216,0) 0px, rgba(242,234,216,0) 26px,
+    rgba(242,234,216,.85) 26px, rgba(224,144,107,.9) 30px,
+    rgba(107,114,128,.7) 34px, rgba(242,234,216,0) 40px,
+    rgba(242,234,216,0) 64px);
+  background-size:280% 100%;
   -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
   -webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
   mask-composite:exclude;
   opacity:0;transition:opacity .35s ease;pointer-events:none;
 }
-.composer:focus-within::before{opacity:.65;animation:orbit 4.2s linear infinite}
-.composer:focus-within{box-shadow:0 0 0 1px rgba(255,255,255,.07),0 0 34px rgba(224,144,107,.12)}
-#chatPanel.generating .composer::before{opacity:1;animation:orbit 2.6s linear infinite}
-@keyframes orbit{to{--ang:360deg}}
+.composer:focus-within::before{opacity:.7;animation:streaks 5.5s linear infinite}
+.composer:focus-within{box-shadow:0 0 0 1px rgba(242,234,216,.08),0 0 30px rgba(224,144,107,.10)}
+#chatPanel.generating .composer::before{opacity:1;animation:streaks 2.6s linear infinite}
+@keyframes streaks{to{background-position:-280% 0}}
 
 /* warm touches on the live indicators */
-.eq i{background:var(--warm)}
-.actline.live::before{background:var(--warm);opacity:1}
-.spk{color:var(--warm)}
+.eq i{background:linear-gradient(180deg,var(--cream),var(--slate))}
+.actline.live::before{background:var(--cream);opacity:1}
+.spk{color:var(--cream)}
 
 /* workspace toggle button */
 #btnPrevToggle{
