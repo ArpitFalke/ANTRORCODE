@@ -123,6 +123,11 @@ function createWindow() {
   });
   win.loadFile(path.join(__dirname, 'index.html'));
   win.webContents.setWindowOpenHandler(({ url }) => {
+    if (/^blob:/.test(url)) {                                   // preview "New tab": real child window
+      const w = new BrowserWindow({ autoHideMenuBar: true, backgroundColor: '#ffffff' });
+      w.loadURL(url);
+      return { action: 'deny' };
+    }
     if (/^https?:\/\//.test(url)) shell.openExternal(url); // open legal/key links in the real browser
     return { action: 'deny' };
   });

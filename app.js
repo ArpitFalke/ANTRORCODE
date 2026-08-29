@@ -779,6 +779,7 @@ async function sendPrompt(rawText){
     sendText=text+'\n\n(attached images to use: '+names.join(', ')+')';
   }
   state.chat.push({role:'user',text:sendText,t:nowTs()});
+  try{ localStorage.removeItem('vf.v1.draft'); }catch(e){}
   document.body.classList.remove('pristine');   // the preview takes its place from here on
   addUserMsg(text); saveChat();
   $id('promptBox').value=''; autoGrow();
@@ -1759,7 +1760,7 @@ function bind(){
   $id('promptBox').addEventListener('keydown',(e)=>{
     if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); sendPrompt($id('promptBox').value); }
   });
-  $id('promptBox').addEventListener('input',autoGrow);
+  $id('promptBox').addEventListener('input',()=>{ autoGrow(); try{ localStorage.setItem('vf.v1.draft',$id('promptBox').value); }catch(e){} });
   $id('stopBtn').addEventListener('click',()=>{
     if(!controller) return;
     try{ controller.abort(); }catch(e){}
@@ -1816,6 +1817,13 @@ function bind(){
   $id('segPreview').addEventListener('click',()=>showView('preview'));
   $id('segCode').addEventListener('click',()=>showView('code'));
   $id('btnRefresh').addEventListener('click',()=>refreshPreview());
+  $id('btnOpenTab').addEventListener('click',()=>{
+    const doc=buildPreviewDoc();
+    if(doc==null){ toast('Nothing to open yet — the workspace is empty','err'); return; }
+    const url=URL.createObjectURL(new Blob([SHIM+doc],{type:'text/html'}));
+    window.open(url,'_blank');
+    setTimeout(()=>URL.revokeObjectURL(url),60000);
+  });
   // preview width
   const setW=(phone)=>{
     state.ui.phoneW=phone;
@@ -1910,13 +1918,8 @@ function bind(){
   $id('heroKey').addEventListener('keydown',(e)=>{ if(e.key==='Enter')heroGo(); });
   $id('heroSkip').addEventListener('click',()=>{ $id('welcome').hidden=true; state.settings.onboarded=true; saveSettings(); toast('Explore freely — connect a model anytime from the ⚙ chip below'); });
   // chat head: collapse + clear
-  $id('btnChatToggle').addEventListener('click',()=>setChatOpen(false));
-  // mobile fab — reopens the panel when collapsed, toggles the overlay on small screens
-  $id('chatFab').addEventListener('click',()=>{
-    if(document.body.classList.contains('nochat')) setChatOpen(true);
-    else $id('chatPanel').classList.toggle('open');
-  });
-  if(state.ui.chatOpen===false) setChatOpen(false);
+  // mobile fab — toggles the chat overlay on small screens
+  $id('chatFab').addEventListener('click',()=>$id('chatPanel').classList.toggle('open'));
   // focus mode — chat takes over, everything else dims
   // drag the left edge to resize the chat panel (persisted)
   const rz=$id('chatResizer'); let rx=null;
@@ -1960,6 +1963,7 @@ function init(){
   if(!window.antrorAPI) idbGetDir().then(h=>{ if(h) state.ui.saveDirHandle=h; });
   restoreCloudOnSignIn();
   if(!state.settings.onboarded) $id('welcome').hidden=false;
+  try{ const d=localStorage.getItem('vf.v1.draft'); if(d){ $id('promptBox').value=d; } }catch(e){}
   autoGrow();
   renderAcctBox();
   renderUserChip();

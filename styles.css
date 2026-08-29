@@ -9,7 +9,7 @@
   --acc:#ffffff;            /* monochrome accent: pure white */
   --accdim:#c9c9c9;
   --ok:#9a9a9a; --warn:#c9c9c9; --err:#e08585;   /* errors stay faint red for function */
-  --r:10px;
+  --r:10px; --warm:#e0906b; --warm2:#c97b54;
   --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
 }
 *{box-sizing:border-box;margin:0;padding:0}
@@ -777,3 +777,34 @@ body.sbmin .side-actions{gap:3px}
 .logo-text{font-size:14.5px}
 .proj-row{padding:5px 8px}
 .side-sec{padding:11px 8px 4px}
+
+
+/* ══════════ GEMINI-STYLE GLOW BORDER (prompt box) ══════════ */
+@property --ang{syntax:'<angle>';initial-value:0deg;inherits:false}
+.composer::before{
+  content:"";position:absolute;inset:-1.5px;border-radius:19px;padding:1.5px;
+  background:conic-gradient(from var(--ang),
+    rgba(224,144,107,0) 0deg, rgba(224,144,107,.9) 40deg,
+    rgba(255,255,255,.95) 80deg, rgba(224,144,107,.9) 120deg,
+    rgba(224,144,107,0) 160deg, rgba(224,144,107,0) 360deg);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  mask-composite:exclude;
+  opacity:0;transition:opacity .35s ease;pointer-events:none;
+}
+.composer:focus-within::before{opacity:.55;animation:orbit 3.2s linear infinite}
+#chatPanel.generating .composer::before{opacity:1;animation:orbit 2.2s linear infinite}
+@keyframes orbit{to{--ang:360deg}}
+
+/* warm touches on the live indicators */
+.eq i{background:var(--warm)}
+.actline.live::before{background:var(--warm);opacity:1}
+.spk{color:var(--warm)}
+
+/* workspace toggle button */
+#btnPrevToggle{
+  display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:999px;
+  border:1px solid var(--line2);font-size:11px;font-weight:650;color:var(--dim);transition:.15s;
+}
+#btnPrevToggle:hover{color:var(--txt);border-color:rgba(255,255,255,.4);background:rgba(255,255,255,.05)}
+#btnPrevToggle svg{display:block;opacity:.85}
