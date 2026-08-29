@@ -23,21 +23,14 @@
     "files": [
       "main.js",
       "preload.js",
-      "package.json",
-      "index.html",
-      "login.html",
-      "register.html",
-      "auth.html",
-      "legal.html",
-      "styles.css",
-      "app.js",
-      "supabase.js",
-      "supabase-config.js",
-      "terminal.js",
+      "*.html",
+      "*.css",
+      "*.js",
+      "manifest.json",
+      "sw.js",
       "assets/**",
-      "bridge/**",
-      "splash.html",
-      "build/**"
+      "build/**",
+      "bridge/**"
     ],
     "directories": {
       "output": "desktop-dist"

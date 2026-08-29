@@ -685,16 +685,16 @@ async function sendPrompt(rawText){
   // working timer (like ZCode's "Working for 1m 28s")
   const t0=Date.now();
   const fmtDur=(ms)=>{ const sec=Math.round(ms/1000); return sec<60 ? sec+'s' : Math.floor(sec/60)+'m '+(sec%60)+'s'; };
-  const timerEl=actLine('⏳ working…','live');
-  const workTick=setInterval(()=>{ timerEl.textContent='⏳ working for '+fmtDur(Date.now()-t0); },1000);
+  const timerEl=actLine('⏳ building…','live build');
+  const workTick=setInterval(()=>{ timerEl.textContent='⏳ building · '+written.length+' file'+(written.length===1?'':'s')+' · '+fmtDur(Date.now()-t0); },900);
   const endTimer=(ok)=>{ clearInterval(workTick); timerEl.textContent=(ok?'✓ completed in ':'⚠ stopped after ')+fmtDur(Date.now()-t0); timerEl.className='actline'; };
 
   // live "thinking" line while the model reasons (replaced by real output)
   let thinkEl=null, thinkTxt='';
   const onThinking=(t)=>{
     thinkTxt+=t;
-    if(!thinkEl){ thinkEl=actLine('🧠 thinking…','live'); }
-    else thinkEl.textContent='🧠 thinking… '+Math.max(1,Math.round(thinkTxt.length/4))+' tokens';
+    if(!thinkEl){ thinkEl=actLine('🧠 thinking','live think'); }
+    else thinkEl.textContent='🧠 thinking · '+Math.max(1,Math.round(thinkTxt.length/4))+' tokens';
   };
 
   let raw=''; let stopped=false; const written=[]; const carded=new Set();
