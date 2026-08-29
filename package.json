@@ -36,6 +36,7 @@
       "terminal.js",
       "assets/**",
       "bridge/**",
+      "splash.html",
       "build/**"
     ],
     "directories": {

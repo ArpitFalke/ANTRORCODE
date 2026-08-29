@@ -600,3 +600,20 @@ button.ghost.danger:hover{color:var(--err);border-color:rgba(224,133,133,.5)}
   border:1px solid var(--line2);font-size:13px;font-weight:700;transition:.15s;
 }
 .ghost-btn:hover{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.4);transform:translateY(-1px)}
+
+/* ══════════ 3D LOGO ══════════ */
+.logo3d{
+  transform:perspective(620px) rotateX(7deg) rotateY(-11deg);
+  filter:drop-shadow(0 9px 16px rgba(0,0,0,.55)) drop-shadow(0 2px 5px rgba(0,0,0,.45));
+  transition:transform .55s cubic-bezier(.2,.9,.3,1.25), filter .55s ease;
+  will-change:transform;
+}
+.logo3d:hover{transform:perspective(620px) rotateX(0) rotateY(0) scale(1.04);filter:drop-shadow(0 12px 22px rgba(0,0,0,.6))}
+.hero-logo.logo3d{
+  animation:heroLogo 7s ease-in-out infinite;
+  box-shadow:0 26px 60px rgba(0,0,0,.6),0 6px 14px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.12);
+}
+@keyframes heroLogo{
+  0%,100%{transform:perspective(680px) rotateX(6deg) rotateY(-10deg)}
+  50%{transform:perspective(680px) rotateX(-5deg) rotateY(9deg) translateY(-4px)}
+}

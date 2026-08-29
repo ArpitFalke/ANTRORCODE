@@ -10,4 +10,8 @@ contextBridge.exposeInMainWorld('antrorAPI', {
   writeProject: (name, files) => ipcRenderer.invoke('antror:writeProject', name, files),
   getWorkspace: () => ipcRenderer.invoke('antror:getWorkspace'),
   chooseWorkspace: () => ipcRenderer.invoke('antror:chooseWorkspace'),
+  /* in-app page navigation + in-app OAuth */
+  goPage: (page) => ipcRenderer.invoke('antror:go', page),
+  oauthStart: (url) => ipcRenderer.invoke('antror:oauth', url),
+  onOAuthResult: (cb) => ipcRenderer.on('antror:oauth-result', (_e, hash) => cb(hash)),
 });

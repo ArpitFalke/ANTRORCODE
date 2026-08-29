@@ -83,6 +83,23 @@ create policy "own rows" on public.projects
   }
   async function oauth(provider) {
     const cl = client(); if (!cl) throw new Error('Supabase not configured');
+    /* desktop app: sign in inside a popup window owned by the app —
+       tokens are captured from the redirect and injected via setSession */
+    if (window.antrorAPI && window.antrorAPI.oauthStart) {
+      const web = window.__VF_WEB_ORIGIN || 'https://antrorcode.vercel.app';
+      const { data, error } = await cl.auth.signInWithOAuth({
+        provider, options: { redirectTo: web, skipBrowserRedirect: true },
+      });
+      if (error) throw error;
+      const hash = await window.antrorAPI.oauthStart(data.url);
+      const params = new URLSearchParams(String(hash || '').replace(/^#/, ''));
+      const access_token = params.get('access_token');
+      const refresh_token = params.get('refresh_token');
+      if (!access_token) throw new Error(params.get('error_description') || 'Sign-in was closed before finishing.');
+      const { error: sErr } = await cl.auth.setSession({ access_token, refresh_token });
+      if (sErr) throw sErr;
+      return;
+    }
     const { error } = await cl.auth.signInWithOAuth({
       provider, options: { redirectTo: redirectTarget() },
     });

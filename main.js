@@ -60,6 +60,27 @@ function writeProjectFiles(baseDir, projName, files) {
   return { dir: projDir, count };
 }
 
+/* ── startup splash: animated 3D logo, desktop only, web never sees it ── */
+let splash = null;
+let splashShownAt = 0;
+function createSplash() {
+  splash = new BrowserWindow({
+    width: 360, height: 440, frame: false, resizable: false, movable: false,
+    transparent: true, alwaysOnTop: true, center: true, show: false,
+    webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true },
+  });
+  splash.loadFile(path.join(__dirname, 'splash.html'));
+  splash.once('ready-to-show', () => { splash.show(); splashShownAt = Date.now(); });
+}
+function closeSplash() {
+  if (!splash) return;
+  const elapsed = Date.now() - splashShownAt;
+  const wait = Math.max(0, 1400 - elapsed);          // let the animation play at least once
+  setTimeout(() => {
+    try { if (splash) { splash.close(); splash = null; } } catch (e) {}
+  }, wait);
+}
+
 function createWindow() {
   win = new BrowserWindow({
     width: 1480,
@@ -78,7 +99,7 @@ function createWindow() {
       sandbox: false,
     },
   });
-  win.once('ready-to-show', () => win.show());   // paint only when ready — no white flash
+  win.once('ready-to-show', () => { win.show(); closeSplash(); });   // paint when ready, then drop the splash
   win.webContents.on('render-process-gone', (_e, details) => {
     try { if (details.reason !== 'clean-exit') win.webContents.reload(); } catch (e) {}
   });
@@ -103,7 +124,41 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
-  /* ── device commands: always behind a native permission dialog ── */
+  /* ── in-app page navigation (settings/login/…) — loadFile always works ── */
+  ipcMain.handle('antror:go', (_e, page) => {
+    const name = String(page || 'index').replace(/[^a-z0-9-]/gi, '') || 'index';
+    return win.loadFile(name + '.html');
+  });
+
+  /* ── OAuth inside the app: popup window, tokens captured, no browser hop ── */
+  ipcMain.handle('antror:oauth', (_e, url) => {
+    return new Promise((resolve) => {
+      let done = false;
+      const authWin = new BrowserWindow({
+        parent: win, width: 520, height: 700, autoHideMenuBar: true,
+        title: 'Sign in — ANTROR Code',
+        webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true },
+      });
+      const finish = (hash) => {
+        if (done) return; done = true;
+        try { win.webContents.send('antror:oauth-result', hash || ''); } catch (e) {}
+        try { authWin.close(); } catch (e) {}
+        resolve(hash || '');
+      };
+      const check = async () => {
+        try {
+          const href = await authWin.webContents.executeJavaScript('location.href', true);
+          if (/[#&](access_token|error)=/.test(href)) finish('#' + (href.split('#')[1] || ''));
+        } catch (e) { /* page may block eval — keep waiting */ }
+      };
+      authWin.webContents.on('did-navigate', check);
+      authWin.webContents.on('did-navigate-in-page', check);
+      authWin.on('closed', () => { if (!done) { done = true; try { win.webContents.send('antror:oauth-result', ''); } catch (e) {} resolve(''); } });
+      authWin.loadURL(String(url || ''));
+    });
+  });
+
+  /* ── device commands: always behind a native permission dialog ──
   ipcMain.handle('antror:runCommand', async (_e, cmd) => {
     const c = String(cmd || '').slice(0, 2000).trim();
     if (!c) return { code: 1, stdout: '', stderr: 'no command' };
@@ -146,6 +201,7 @@ app.whenReady().then(() => {
     return r.filePaths[0];
   });
 
+  createSplash();
   createWindow();
   app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
 });

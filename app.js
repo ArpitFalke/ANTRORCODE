@@ -19,7 +19,8 @@ const fmtTime = (ts) => new Date(ts).toLocaleString([], {month:'short',day:'nume
 
 /* navigate between pages — clean URLs on the live site, .html on plain local servers */
 function go(page){
-  // desktop app runs from file:// where /settings doesn't exist — use the file there
+  // desktop app: navigate via the main process — no file:// URL quirks possible
+  if(window.antrorAPI){ window.antrorAPI.goPage(page); return; }
   if(location.protocol==='file:'){ location.href=page+'.html'; return; }
   location.href='/'+page;
 }
@@ -1502,6 +1503,7 @@ async function signOutAndWipe(){
   if(pushed) toast('☁ Pushed '+pushed+' project(s) to your cloud — signing out…','ok');
   try{ ['vf.v1.project','vf.v1.chat','vf.v1.checkpoints','vf.v1.projects','vf.v1.usage'].forEach(k=>localStorage.removeItem(k)); }catch(e){}
   if(window.VF) await VF.signOut();
+  if(window.antrorAPI){ window.antrorAPI.goPage('index'); return; }
   location.href = location.protocol==='file:' ? 'index.html' : '/';
 }
 

@@ -1,0 +1,43 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<style>
+  *{margin:0;padding:0}
+  html,body{height:100%;background:transparent;overflow:hidden;font-family:'Segoe UI',system-ui,sans-serif}
+  body{display:flex;align-items:center;justify-content:center}
+  .box{text-align:center;animation:appear .7s cubic-bezier(.2,.9,.3,1.15) both}
+  @keyframes appear{from{opacity:0;transform:scale(.86)}}
+  .logo3d{
+    width:108px;height:108px;border-radius:26px;display:block;margin:0 auto 22px;
+    box-shadow:0 30px 60px rgba(0,0,0,.65),0 8px 16px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.14);
+    animation:spin3d 1.6s cubic-bezier(.2,.9,.25,1.1) both, glow 2.6s ease-in-out .4s infinite;
+    transform-style:preserve-3d;
+  }
+  @keyframes spin3d{
+    0%{transform:perspective(700px) rotateY(-85deg) rotateX(14deg) scale(.55);opacity:0}
+    60%{opacity:1}
+    100%{transform:perspective(700px) rotateY(0) rotateX(0) scale(1);opacity:1}
+  }
+  @keyframes glow{
+    0%,100%{box-shadow:0 30px 60px rgba(0,0,0,.65),0 8px 16px rgba(0,0,0,.5),0 0 22px rgba(255,255,255,.06)}
+    50%{box-shadow:0 30px 60px rgba(0,0,0,.65),0 8px 16px rgba(0,0,0,.5),0 0 44px rgba(255,255,255,.16)}
+  }
+  h1{color:#ececec;font-size:21px;font-weight:800;letter-spacing:.4px;animation:rise .6s .45s ease both}
+  h1 span{color:#9a9a9a;font-weight:400}
+  @keyframes rise{from{opacity:0;transform:translateY(10px)}}
+  .by{color:#5c5c5c;font-size:9px;letter-spacing:.3em;text-transform:uppercase;margin-top:7px;animation:rise .6s .6s ease both}
+  .bar{width:150px;height:3px;border-radius:3px;background:rgba(255,255,255,.09);margin:26px auto 0;overflow:hidden;animation:rise .6s .7s ease both}
+  .bar i{display:block;height:100%;width:40%;border-radius:3px;background:linear-gradient(90deg,transparent,#e8e8e8,transparent);animation:slide 1.1s linear infinite}
+  @keyframes slide{from{transform:translateX(-120%)}to{transform:translateX(320%)}}
+</style>
+</head>
+<body>
+  <div class="box">
+    <img class="logo3d" src="assets/logo.png" alt="" />
+    <h1>ANTROR <span>Code</span></h1>
+    <div class="by">a product by antror</div>
+    <div class="bar"><i></i></div>
+  </div>
+</body>
+</html>
