@@ -14,6 +14,20 @@ const { exec } = require('child_process');
 
 let win = null;
 
+/* ── Windows stability hardening ──
+   • single instance: a second launch just focuses the existing window
+   • GPU acceleration off: the #1 crash source on Windows is flaky GPU
+     drivers crashing the GPU process — software rendering is stable and
+     plenty fast for an IDE-style UI
+   • crashed renderer auto-reloads instead of leaving a dead white window */
+const gotLock = app.requestSingleInstanceLock();
+if (!gotLock) { app.quit(); } else {
+  app.disableHardwareAcceleration();
+  app.on('second-instance', () => { if (win) { if (win.isMinimized()) win.restore(); win.focus(); } });
+}
+app.setAppUserModelId('com.antror.code');
+process.on('uncaughtException', (err) => { try { console.error('[antror]', err); } catch (e) {} });
+
 /* ── workspace folder (where generated projects are saved) ── */
 const SETTINGS_FILE = () => path.join(app.getPath('userData'), 'antror-settings.json');
 function readSettings() {
@@ -65,6 +79,9 @@ function createWindow() {
     },
   });
   win.once('ready-to-show', () => win.show());   // paint only when ready — no white flash
+  win.webContents.on('render-process-gone', (_e, details) => {
+    try { if (details.reason !== 'clean-exit') win.webContents.reload(); } catch (e) {}
+  });
   win.loadFile(path.join(__dirname, 'index.html'));
   win.webContents.setWindowOpenHandler(({ url }) => {
     if (/^https?:\/\//.test(url)) shell.openExternal(url); // open legal/key links in the real browser

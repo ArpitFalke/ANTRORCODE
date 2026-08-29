@@ -2,7 +2,7 @@
   "name": "antror-code",
   "productName": "ANTROR Code",
   "version": "1.0.0",
-  "description": "ANTROR Code \u2014 describe it. ship it. A product by ANTROR.",
+  "description": "ANTROR Code — describe it. ship it. A product by ANTROR.",
   "author": "ANTROR <antror@users.noreply.github.com>",
   "license": "MIT",
   "main": "main.js",
@@ -14,8 +14,8 @@
     "dist:mac": "electron-builder --mac"
   },
   "devDependencies": {
-    "electron": "^33.2.0",
-    "electron-builder": "^25.1.8"
+    "electron": "^44.0.0",
+    "electron-builder": "^26.15.3"
   },
   "build": {
     "appId": "com.antror.code",
