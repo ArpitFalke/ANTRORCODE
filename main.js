@@ -72,15 +72,6 @@ function createSplash() {
   splash.loadFile(path.join(__dirname, 'splash.html'));
   splash.once('ready-to-show', () => { splash.show(); splashShownAt = Date.now(); });
 }
-function closeSplash() {
-  if (!splash) return;
-  const elapsed = Date.now() - splashShownAt;
-  const wait = Math.max(0, 1400 - elapsed);          // let the animation play at least once
-  setTimeout(() => {
-    try { if (splash) { splash.close(); splash = null; } } catch (e) {}
-  }, wait);
-}
-
 function createWindow() {
   win = new BrowserWindow({
     width: 1480,
@@ -99,7 +90,21 @@ function createWindow() {
       sandbox: false,
     },
   });
-  win.once('ready-to-show', () => { win.show(); closeSplash(); });   // paint when ready, then drop the splash
+  win.once('ready-to-show', () => {
+    // sequence: splash plays its animation → closes → THEN the app appears. Never both.
+    const elapsed = splash ? Date.now() - splashShownAt : 99999;
+    const wait = Math.max(0, 1600 - elapsed);
+    setTimeout(() => {
+      try { if (splash) { splash.close(); splash = null; } } catch (e) {}
+      win.show();
+    }, wait);
+  });
+  win.webContents.on('did-fail-load', (e, code, _desc, url) => {
+    // main frame failed (missing file etc.) → recover to the app instead of a black window
+    if (e.isMainFrame && code !== -3 && !String(url || '').includes('index.html')) {
+      try { win.loadFile('index.html'); } catch (err) {}
+    }
+  });
   win.webContents.on('render-process-gone', (_e, details) => {
     try { if (details.reason !== 'clean-exit') win.webContents.reload(); } catch (e) {}
   });
@@ -125,9 +130,10 @@ function createWindow() {
 
 app.whenReady().then(() => {
   /* ── in-app page navigation (settings/login/…) — loadFile always works ── */
-  ipcMain.handle('antror:go', (_e, page) => {
+  ipcMain.handle('antror:go', async (_e, page) => {
     const name = String(page || 'index').replace(/[^a-z0-9-]/gi, '') || 'index';
-    return win.loadFile(name + '.html');
+    try { await win.loadFile(name + '.html'); }
+    catch (e) { try { await win.loadFile('index.html'); } catch (e2) {} }
   });
 
   /* ── OAuth inside the app: popup window, tokens captured, no browser hop ── */

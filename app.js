@@ -126,12 +126,14 @@ const PROVIDERS = {
                base:'https://generativelanguage.googleapis.com/v1beta', model:'gemini-2.5-flash', keyUrl:'https://aistudio.google.com/app/apikey' },
   groq:      { label:'Groq',            desc:'Llama & friends at silly speeds',                   kind:'openai',
                base:'https://api.groq.com/openai/v1',                  model:'llama-3.3-70b-versatile', keyUrl:'https://console.groq.com/keys' },
+  nvidia:    { label:'NVIDIA NIM',      desc:'Llama · Nemotron · DeepSeek · Qwen — free credits',  kind:'openai',
+               base:'https://integrate.api.nvidia.com/v1',             model:'meta/llama-3.3-70b-instruct', keyUrl:'https://build.nvidia.com' },
   ollama:    { label:'Ollama · local',  desc:'Free & private — run “ollama serve” first',         kind:'openai', noKey:true,
                base:'http://localhost:11434/v1',                       model:'qwen2.5-coder:7b', keyUrl:'' },
   custom:    { label:'Custom endpoint', desc:'Any OpenAI-compatible URL (LM Studio, proxy…)',     kind:'openai', noKey:true,
                base:'',                                                model:'',                 keyUrl:'' },
 };
-const PROV_ORDER = ['zai','anthropic','openai','openrouter','gemini','groq','ollama','custom'];
+const PROV_ORDER = ['zai','anthropic','openai','openrouter','gemini','groq','nvidia','ollama','custom'];
 
 function activeProviderId(){ return state.settings.provider || 'zai'; }
 function activeConfig(){
@@ -680,6 +682,13 @@ async function sendPrompt(rawText){
   ui.root.insertBefore(act, ui.bubble);
   const actLine=(text, cls)=>{ const d=document.createElement('div'); d.className='actline '+(cls||''); d.textContent=text; act.appendChild(d); scrollChat(); return d; };
 
+  // working timer (like ZCode's "Working for 1m 28s")
+  const t0=Date.now();
+  const fmtDur=(ms)=>{ const sec=Math.round(ms/1000); return sec<60 ? sec+'s' : Math.floor(sec/60)+'m '+(sec%60)+'s'; };
+  const timerEl=actLine('⏳ working…','live');
+  const workTick=setInterval(()=>{ timerEl.textContent='⏳ working for '+fmtDur(Date.now()-t0); },1000);
+  const endTimer=(ok)=>{ clearInterval(workTick); timerEl.textContent=(ok?'✓ completed in ':'⚠ stopped after ')+fmtDur(Date.now()-t0); timerEl.className='actline'; };
+
   // live "thinking" line while the model reasons (replaced by real output)
   let thinkEl=null, thinkTxt='';
   const onThinking=(t)=>{
@@ -721,6 +730,7 @@ async function sendPrompt(rawText){
       finalizeBubble(ui,disp,written,stopped);
       state.chat.push({role:'assistant',display:disp,files:written.map(w=>w.path),error:true,t:nowTs()});
       saveChat(); saveProject(); renderTree(); persistCurrentProject();
+      endTimer(false);
       errorCard(ui,friendlyError(err,cfg));
       const te=window.__vfTermSink; if(te&&te.error) try{te.error(err);}catch(e){}
       setBusy(false); return;
@@ -731,7 +741,27 @@ async function sendPrompt(rawText){
   extractWritten(raw, written);
   const dsum=diffSummary(beforeFiles, state.project.files);
   lastRunDiff={before:beforeFiles, after:clone(state.project.files)};
+  endTimer(!stopped);
   finalizeBubble(ui,disp,written,stopped,dsum,thinkTxt);
+  // ZCode-style summary chip: how many lines added / removed + undo
+  let nCh=0,add=0,del=0;
+  Object.values(dsum||{}).forEach(v=>{ nCh++; add+=v.added; del+=v.removed; });
+  if(nCh){
+    const chip=document.createElement('div'); chip.className='changesum';
+    chip.innerHTML='<span><b>'+nCh+' file'+(nCh>1?'s':'')+' changed</b></span>'+
+      '<span class="da">+'+add+'</span><span class="dr">−'+del+'</span>';
+    const undo=document.createElement('button'); undo.className='ghost'; undo.textContent='Undo';
+    undo.addEventListener('click',()=>{
+      pushCheckpoint('before undo');
+      state.project.files=clone(beforeFiles); saveProject();
+      state.ui.tabs=[]; state.ui.open=null; renderTabs(); loadEditor();
+      renderTree(); showView('preview'); persistCurrentProject();
+      lastRunDiff=null; chip.remove();
+      toast('↩ Undid the last AI run — files restored','ok');
+    });
+    chip.appendChild(undo);
+    act.insertBefore(chip, act.firstChild);
+  }
   state.chat.push({role:'assistant',display:disp,files:written.map(w=>w.path),stopped,t:nowTs()});
   saveChat();
   saveProject(); renderTreeSoon(); persistCurrentProject();

@@ -617,3 +617,12 @@ button.ghost.danger:hover{color:var(--err);border-color:rgba(224,133,133,.5)}
   0%,100%{transform:perspective(680px) rotateX(6deg) rotateY(-10deg)}
   50%{transform:perspective(680px) rotateX(-5deg) rotateY(9deg) translateY(-4px)}
 }
+
+/* ══════════ RUN SUMMARY CHIP (files changed +/− + undo) ══════════ */
+.changesum{
+  display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:10px;margin-bottom:8px;
+  background:var(--panel);border:1px solid var(--line2);font-size:12px;animation:pop .25s ease;
+}
+.changesum b{color:var(--txt);font-weight:700}
+.changesum .da,.changesum .dr{font-family:var(--mono);font-weight:700}
+.changesum .ghost{margin-left:auto;padding:4px 12px;font-size:11px}

@@ -87,6 +87,7 @@ dialog (no bridge needed) and every project auto-saves to `~/ANTRORCode/`.
 | OpenRouter | `z-ai/glm-4.6` | [openrouter.ai](https://openrouter.ai/settings/keys) |
 | Google · Gemini | `gemini-2.5-flash` | [aistudio.google.com](https://aistudio.google.com/app/apikey) |
 | Groq | `llama-3.3-70b-versatile` | [console.groq.com](https://console.groq.com/keys) |
+| NVIDIA NIM | `meta/llama-3.3-70b-instruct` | [build.nvidia.com](https://build.nvidia.com) |
 | Ollama (local, free) | `qwen2.5-coder:7b` | run `ollama serve`, just connect |
 | Custom endpoint | any | any OpenAI-compatible `/chat/completions` URL |
 

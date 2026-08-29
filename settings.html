@@ -302,10 +302,11 @@ const PROVIDERS={
   openrouter:{label:'OpenRouter',desc:'One key → hundreds of models, some free',kind:'openai',base:'https://openrouter.ai/api/v1',model:'z-ai/glm-4.6',keyUrl:'https://openrouter.ai/settings/keys'},
   gemini:{label:'Google · Gemini',desc:'Gemini 2.5 Pro / Flash — generous free tier',kind:'gemini',base:'https://generativelanguage.googleapis.com/v1beta',model:'gemini-2.5-flash',keyUrl:'https://aistudio.google.com/app/apikey'},
   groq:{label:'Groq',desc:'Llama & friends at silly speeds',kind:'openai',base:'https://api.groq.com/openai/v1',model:'llama-3.3-70b-versatile',keyUrl:'https://console.groq.com/keys'},
+  nvidia:{label:'NVIDIA NIM',desc:'Llama · Nemotron · DeepSeek · Qwen — free credits',kind:'openai',base:'https://integrate.api.nvidia.com/v1',model:'meta/llama-3.3-70b-instruct',keyUrl:'https://build.nvidia.com'},
   ollama:{label:'Ollama · local',desc:'Free & private — run "ollama serve" first',kind:'openai',noKey:true,base:'http://localhost:11434/v1',model:'qwen2.5-coder:7b',keyUrl:''},
   custom:{label:'Custom endpoint',desc:'Any OpenAI-compatible URL (LM Studio, proxy…)',kind:'openai',noKey:true,base:'',model:'',keyUrl:''},
 };
-const PROV_ORDER=['zai','anthropic','openai','openrouter','gemini','groq','ollama','custom'];
+const PROV_ORDER=['zai','anthropic','openai','openrouter','gemini','groq','nvidia','ollama','custom'];
 
 /* ── nav ── */
 document.querySelectorAll('.s-nav nav button').forEach(b=>b.addEventListener('click',()=>{
