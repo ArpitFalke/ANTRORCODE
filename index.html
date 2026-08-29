@@ -30,16 +30,15 @@
     </div>
 
     <div class="side-actions">
-      <button id="btnProjects" class="sbtn" title="All projects — switch without losing anything"><span>🗂</span><span class="slbl">Projects</span></button>
-      <button id="btnTasks" class="sbtn" title="Tasks — every AI run with status, duration and lines changed"><span>☑</span><span class="slbl">Tasks</span></button>
-      <button id="btnNew" class="sbtn" title="Start a fresh project"><span>✦</span><span class="slbl">New</span></button>
-      <button id="btnZip" class="sbtn" title="Download the whole project as a .zip"><span>⬇</span><span class="slbl">Export ZIP</span></button>
-      <button id="btnImport" class="sbtn" title="Open an existing project folder from your computer"><span>📂</span><span class="slbl">Import folder</span></button>
-      <input type="file" id="importInput" webkitdirectory multiple hidden />
+      <div class="side-sec">Workspace</div>
+      <button id="btnProjects" class="sbtn" title="All projects — switch, import a folder, start new"><span>🗂</span><span class="slbl">Projects</span></button>
+      <button id="btnTasks" class="sbtn" title="Every AI run — status, duration, lines changed"><span>☑</span><span class="slbl">Tasks</span></button>
       <button id="btnHistory" class="sbtn" title="Restore an earlier snapshot"><span>⏱</span><span class="slbl">History</span></button>
       <button id="btnTerm" class="sbtn" title="ANTROR CLI — terminal over your project + AI in the loop (Ctrl+`)"><span>&gt;_</span><span class="slbl">Terminal</span></button>
+      <div class="side-sec">App</div>
       <button id="btnGetApp" class="sbtn" title="Get ANTROR Code for your device"><span>⤓</span><span class="slbl">Get the app</span></button>
       <button id="btnSettings" class="sbtn accent" title="Settings — model, keys, data, legal"><span>⚙</span><span class="slbl">Settings</span></button>
+      <input type="file" id="importInput" webkitdirectory multiple hidden />
     </div>
 
     <div class="tree-head">FILES</div>
@@ -207,7 +206,12 @@
     <div class="modal-head"><h3>🗂 Projects</h3><button class="x" id="projClose">✕</button></div>
     <p class="modal-sub">Every project keeps its own files and chat. Switch freely — <b>nothing is erased</b>.
        The project you're working on is snapshotted the moment you switch away.</p>
-    <div id="projList" style="max-height:56vh;overflow-y:auto"></div>
+    <div class="proj-actions">
+      <button id="btnNew2" class="proj-act primary-act"><span>✦</span> New project</button>
+      <button id="btnImport2" class="proj-act"><span>📂</span> Import folder</button>
+      <button id="btnZip" class="proj-act"><span>⬇</span> Export ZIP</button>
+    </div>
+    <div id="projList" style="max-height:52vh;overflow-y:auto"></div>
   </div>
 </div>
 

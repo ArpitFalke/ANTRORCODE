@@ -1515,9 +1515,6 @@ function renderProjectsDrawer(){
     d.append(open,cloud,del);
     local.appendChild(d);
   });
-  const add=document.createElement('button'); add.className='primary'; add.style.marginTop='8px'; add.textContent='+ New project';
-  add.addEventListener('click',()=>{ $id('projectsDrawer').hidden=true; newProject(); });
-  local.appendChild(add);
   wrap.appendChild(local);
   // cloud list
   const cloudSec=document.createElement('div');
@@ -1718,10 +1715,10 @@ function bind(){
     if(!confirm('Clear the conversation? Files stay.')) return;
     state.chat=[]; $id('chatLog').innerHTML=''; saveChat();
   });
-  // sidebar
-  $id('btnNew').addEventListener('click',newProject);
+  // sidebar (New + Import live inside the Projects drawer now)
+  $id('btnNew2').addEventListener('click',()=>{ $id('projectsDrawer').hidden=true; newProject(); });
+  $id('btnImport2').addEventListener('click',()=>{ $id('projectsDrawer').hidden=true; importFolder(); });
   $id('btnZip').addEventListener('click',exportZip);
-  $id('btnImport').addEventListener('click',importFolder);
   $id('btnGetApp').addEventListener('click',()=>go('download'));
   if(window.antrorAPI){ $id('btnGetApp').style.display='none'; }   // already in the app
   $id('importInput').addEventListener('change',(e)=>{ handleImportFiles(e.target.files); e.target.value=''; });
