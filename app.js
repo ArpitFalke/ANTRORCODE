@@ -797,6 +797,8 @@ async function sendPrompt(rawText){
   ui.root.insertBefore(act, ui.bubble);
   const actLine=(text, cls)=>{ const d=document.createElement('div'); d.className='actline '+(cls||''); d.textContent=text; act.appendChild(d); scrollChat(); return d; };
 
+  let raw=''; let stopped=false; const written=[]; const carded=new Set();
+
   // working timer (like ZCode's "Working for 1m 28s")
   const t0=Date.now();
   const fmtDur=(ms)=>{ const sec=Math.round(ms/1000); return sec<60 ? sec+'s' : Math.floor(sec/60)+'m '+(sec%60)+'s'; };
@@ -813,8 +815,6 @@ async function sendPrompt(rawText){
     if(!thinkEl){ thinkEl=actLine('','live think'); }
     thinkEl.innerHTML='<span class="spk">✦</span> Thinking · '+Math.max(1,Math.round(thinkTxt.length/4))+' tokens';
   };
-
-  let raw=''; let stopped=false; const written=[]; const carded=new Set();
   const onDelta=(chunk)=>{
     raw+=chunk;
     ui.txt.textContent = stripTags(raw);
