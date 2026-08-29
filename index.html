@@ -75,7 +75,6 @@
         <div id="ctxPill" title="Context window — how much of the model's memory this conversation uses">
           <div class="ctxbar"><i id="ctxFill"></i></div><span id="ctxText">0 / 128k</span>
         </div>
-        <button id="btnChatFocus" title="Focus mode — dim everything else, chat takes over (Esc exits)">⤢</button>
         <button id="btnClearChat" title="Clear conversation">🗑</button>
         <button id="btnPrevToggle" title="Show / hide the preview"><span style="font-size:12px">▤</span> Preview</button>
         <button id="btnChatToggle" title="Hide chat (bring it back with the chat button, bottom-right)">»</button>
@@ -98,8 +97,9 @@
         <textarea id="promptBox" rows="2"
           placeholder="Describe what you want to build…  (Enter to send)"></textarea>
         <div id="modePop" hidden></div>
+        <div id="attachTray" hidden></div>
         <div class="composer-bar">
-          <button type="button" id="btnAttach" class="pb-chip sq" title="Add an image to the project (usable in the preview)">
+          <button type="button" id="btnAttach" class="pb-chip sq" title="Attach images — added to assets/ for the preview & AI">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6V5z"/></svg>
           </button>
           <input type="file" id="attachInput" accept="image/*" multiple hidden />

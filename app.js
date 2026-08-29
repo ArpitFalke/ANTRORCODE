@@ -32,6 +32,21 @@ function syncPristine(open){
   document.body.classList.toggle('pristine', open===true ? false : (open===false ? true : !has));
 }
 
+/* pending image attachments (tray chips → assets/ on send) */
+let pendingAttach=[];
+function renderAttachTray(){
+  const tray=$id('attachTray'); if(!tray) return;
+  tray.innerHTML='';
+  tray.hidden=!pendingAttach.length;
+  pendingAttach.forEach((a,i)=>{
+    const chip=document.createElement('div'); chip.className='atchip';
+    chip.innerHTML='<img src="'+a.dataUrl+'" alt="" /><span>'+esc(a.name)+'</span>';
+    const x=document.createElement('button'); x.textContent='✕'; x.title='Remove';
+    x.addEventListener('click',()=>{ pendingAttach.splice(i,1); renderAttachTray(); });
+    chip.appendChild(x); tray.appendChild(chip);
+  });
+}
+
 function toast(msg, kind='', ms=3400){
   const box = $id('toasts');
   const t = document.createElement('div');
@@ -498,6 +513,12 @@ function addUserMsg(text){
   const m=document.createElement('div'); m.className='msg user';
   m.innerHTML=`<span class="who">you</span>`;
   const b=document.createElement('div'); b.className='bubble'; b.textContent=text;
+  b.title='Click to edit & resend';
+  b.addEventListener('click',()=>{
+    const tb=$id('promptBox');
+    tb.value=text.replace(/\n\n\(attached images[^)]*\)$/,''); autoGrow();
+    tb.focus(); tb.setSelectionRange(tb.value.length,tb.value.length);
+  });
   m.appendChild(b); $id('chatLog').appendChild(m); scrollChat(true);
 }
 function newAiMsg(){
@@ -747,8 +768,17 @@ async function sendPrompt(rawText){
   if(state.ui.busy) return;
   const text=rawText.trim(); if(!text) return;
   const cfg=ensureConfigured(); if(!cfg) return;
+  sendPrompt.lastPrompt=text;
 
-  state.chat.push({role:'user',text,t:nowTs()});
+  let sendText=text;
+  if(pendingAttach.length){
+    const names=[];
+    for(const a of pendingAttach){ applyFile('assets/'+a.name, a.dataUrl); names.push('assets/'+a.name); }
+    pendingAttach=[]; renderAttachTray();
+    saveProject(); renderTree(); refreshPreview();
+    sendText=text+'\n\n(attached images to use: '+names.join(', ')+')';
+  }
+  state.chat.push({role:'user',text:sendText,t:nowTs()});
   document.body.classList.remove('pristine');   // the preview takes its place from here on
   addUserMsg(text); saveChat();
   $id('promptBox').value=''; autoGrow();
@@ -833,6 +863,9 @@ async function sendPrompt(rawText){
   lastRunDiff={before:beforeFiles, after:clone(state.project.files)};
   endTimer(!stopped);
   taskDone(runTask, stopped?'stopped':(written.length||disp?'done':'done'), nowTs()-runStart, dsum);
+  if(stopped && sendPrompt.lastPrompt && !$id('promptBox').value.trim()){
+    $id('promptBox').value=sendPrompt.lastPrompt; autoGrow();
+  }
   finalizeBubble(ui,disp,written,stopped,dsum,thinkTxt);
   // ZCode-style summary chip: how many lines added / removed + undo
   let nCh=0,add=0,del=0;
@@ -1727,7 +1760,15 @@ function bind(){
     if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); sendPrompt($id('promptBox').value); }
   });
   $id('promptBox').addEventListener('input',autoGrow);
-  $id('stopBtn').addEventListener('click',()=>{ if(controller) controller.abort(); });
+  $id('stopBtn').addEventListener('click',()=>{
+    if(!controller) return;
+    try{ controller.abort(); }catch(e){}
+    setBusy(false);
+    if($id('promptBox').value.trim()==='' && sendPrompt.lastPrompt){
+      $id('promptBox').value=sendPrompt.lastPrompt; autoGrow(); $id('promptBox').focus();
+      toast('⏹ Stopped — your prompt is back in the box, edit it and resend','ok');
+    } else toast('⏹ Stopped');
+  });
   document.querySelectorAll('.chip[data-fill]').forEach(c=>{
     c.addEventListener('click',()=>{
       const tb=$id('promptBox'); tb.value=c.dataset.fill; tb.focus();
@@ -1835,16 +1876,13 @@ function bind(){
   $id('btnAttach').addEventListener('click',()=>$id('attachInput').click());
   $id('attachInput').addEventListener('change',async(e)=>{
     const files=[...e.target.files]; e.target.value='';
-    let n=0;
     for(const f of files){
       if(!/^image\//.test(f.type)) continue;
       if(f.size>1200000){ toast('🖼 '+f.name+' is over 1.2 MB — skipped','err'); continue; }
       const dataUrl=await new Promise(res=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.readAsDataURL(f); });
-      applyFile('assets/'+f.name.replace(/[^\w.-]+/g,'-'), dataUrl);
-      n++;
+      pendingAttach.push({ name:f.name.replace(/[^\w.-]+/g,'-'), dataUrl });
     }
-    if(n){ saveProject(); renderTree(); refreshPreview(); persistCurrentProject();
-      toast('🖼 Added '+n+' image'+(n>1?'s':'')+' to assets/ — tell the AI to use them','ok'); }
+    renderAttachTray();
   });
   $id('consBadgeBtn').addEventListener('click',()=>{
     let pop=$id('consPop');
@@ -1880,7 +1918,6 @@ function bind(){
   });
   if(state.ui.chatOpen===false) setChatOpen(false);
   // focus mode — chat takes over, everything else dims
-  $id('btnChatFocus').addEventListener('click',()=>document.body.classList.toggle('focusmode'));
   // drag the left edge to resize the chat panel (persisted)
   const rz=$id('chatResizer'); let rx=null;
   rz.addEventListener('pointerdown',(e)=>{ rx=e.clientX; document.body.style.cursor='col-resize'; try{rz.setPointerCapture(e.pointerId);}catch(_){} });
@@ -1900,7 +1937,7 @@ function bind(){
   if(state.settings.chatWidth) document.documentElement.style.setProperty('--chatw', state.settings.chatWidth);
   // esc closes overlays
   addEventListener('keydown',(e)=>{
-    if(e.key==='Escape'){ ['historyDrawer','diffModal','tasksDrawer'].forEach(id=>{ const el=$id(id); if(el) el.hidden=true; }); const mp=$id('modePop'); if(mp) mp.hidden=true; document.body.classList.remove('focusmode'); $id('chatPanel').classList.remove('open'); }
+    if(e.key==='Escape'){ ['historyDrawer','diffModal','tasksDrawer'].forEach(id=>{ const el=$id(id); if(el) el.hidden=true; }); const mp=$id('modePop'); if(mp) mp.hidden=true; $id('chatPanel').classList.remove('open'); }
   });
 }
 
