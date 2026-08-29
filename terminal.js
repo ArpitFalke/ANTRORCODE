@@ -103,6 +103,7 @@ const COMMANDS = {
       ['restore <n>', 'restore checkpoint n'],
       ['ai <prompt>', 'ask the AI to build/change things'],
       ['(free text)', 'anything unknown goes to the AI too'],
+      ['!<command>', 'run a REAL command on this device — asks permission (node bridge/bridge.js)'],
       ['git …', 'snapshots + GitHub: init/commit/log, clone/push/pull — git help'],
       ['provider · key', 'show / set the active model + key'],
       ['whoami · login · logout', 'account status / open login / sign out'],
@@ -262,6 +263,11 @@ const COMMANDS = {
     const p=raw.replace(/^ai\s+/,'').trim();
     if(!p){ line('usage: ai <what to build or change>', 'err'); return; }
     return aiRun(p);
+  },
+  sh(args, raw){
+    const c=raw.replace(/^(!|sh)\s?/,'').trim();
+    if(!c){ line('usage: !<command>  — runs a REAL command on this device (asks permission first). e.g.  !npm install', 'err'); return; }
+    return bridgeRun(c);
   },
   git(args, raw){
     const sub=args[0];
@@ -503,6 +509,53 @@ async function gitPull(){
   line('✓ pulled '+n+' file(s)'+(skipped?' (skipped '+skipped+')':'')+' — local extras kept','ok');
 }
 
+/* ── device bridge: run REAL commands on this machine (with permission) ── */
+async function bridgeRun(cmd){
+  /* desktop app → native, permission via the OS dialog, no bridge needed */
+  if(window.antrorAPI){
+    line('$ '+cmd, 'cmd');
+    let status=line('… running (2 min timeout)', 'dim');
+    try{
+      const j=await window.antrorAPI.runCommand(cmd);
+      status.remove();
+      if(j.denied){ line('denied — nothing ran', 'dim'); return; }
+      if(j.stdout) preBlock(j.stdout);
+      if(j.stderr){ const e=preBlock(j.stderr); e.className='tl pre err'; }
+      line(j.code===0?'✓ exit 0':'exit '+j.code, j.code===0?'ok':'err');
+    }catch(e){ status.remove(); line('failed — '+(e.message||e), 'err'); }
+    return;
+  }
+  const tok=(state.settings.bridge||{}).token;
+  if(!tok){
+    line('device bridge not set up:', 'err');
+    line('  1. in a terminal run:  node bridge/bridge.js');
+    line('  2. paste its token into ⚙ Settings → Device bridge', 'dim');
+    return;
+  }
+  if(!confirm('ANTROR Code wants to run this command on YOUR device:\n\n  '+cmd+'\n\nAllow?')){
+    line('denied — nothing ran', 'dim'); return;
+  }
+  line('$ '+cmd, 'cmd');
+  let status=line('… running (2 min timeout)', 'dim');
+  try{
+    const r=await fetch('http://127.0.0.1:8765/run',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},
+      body:JSON.stringify({cmd}),
+    });
+    const j=await r.json();
+    status.remove();
+    if(j.error){ line('bridge: '+j.error, 'err'); return; }
+    if(j.stdout) preBlock(j.stdout);
+    if(j.stderr) { const e=preBlock(j.stderr); e.className='tl pre err'; }
+    line(j.code===0?'✓ exit 0':'exit '+j.code, j.code===0?'ok':'err');
+    line('note: the bridge runs commands in its own folder — files it changes are not auto-imported (use 📂 Import folder if needed)', 'dim');
+  }catch(e){
+    status.remove();
+    line('bridge unreachable — start it:  node bridge/bridge.js  (⚙ Settings → Device bridge to test)', 'err');
+  }
+}
+
 /* ── dispatch ── */
 function exec(raw){
   echoCmd(raw);
@@ -512,6 +565,12 @@ function exec(raw){
   try{ localStorage.setItem(HIST_KEY, JSON.stringify(hist)); }catch(e){}
   const parts=l.split(/\s+/);
   const cmd=parts[0], rest=parts.slice(1);
+  if(cmd.startsWith('!')){                       // !npm install … → device
+    const c=l.slice(1).trim();
+    if(!c){ line('usage: !<command> — e.g.  !npm install', 'err'); return; }
+    const r=bridgeRun(c); if(r&&r.catch) r.catch(e=>line('error — '+(e.message||e),'err'));
+    return;
+  }
   if(Object.prototype.hasOwnProperty.call(COMMANDS, cmd)){
     try{ const r=COMMANDS[cmd](rest, l); if(r&&r.catch) r.catch(e=>line('error — '+(e.message||e),'err')); }
     catch(e){ line('error — '+(e.message||e), 'err'); }

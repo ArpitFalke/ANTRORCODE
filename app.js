@@ -33,7 +33,7 @@ function downloadBlob(name, blob){
 }
 
 /* ─────────────── persistence ─────────────── */
-const LS = { s:'vf.v1.settings', p:'vf.v1.project', c:'vf.v1.chat', h:'vf.v1.checkpoints', pr:'vf.v1.projects' };
+const LS = { s:'vf.v1.settings', p:'vf.v1.project', c:'vf.v1.chat', h:'vf.v1.checkpoints', pr:'vf.v1.projects', u:'vf.v1.usage' };
 const loadJSON=(k,d)=>{ try{ const v=localStorage.getItem(k); return v==null ? d : JSON.parse(v);}catch(e){ return d; } };
 let quotaWarned=false;
 function save(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }
@@ -60,8 +60,23 @@ const state = {
   chat:     loadJSON(LS.c, []),
   checkpoints: loadJSON(LS.h, []),
   projects: migrateProjects(),
+  usage: loadJSON(LS.u, { req:0, tin:0, tout:0, prov:{}, day:{} }),
   ui: { tabs:[], open:null, view:'preview', busy:false, chatSticky:true, phoneW:false },
 };
+function usageAdd(pid, tin, tout){
+  const u=state.usage;
+  const day=new Date().toISOString().slice(0,10);
+  u.req=(u.req||0)+1; u.tin=(u.tin||0)+tin; u.tout=(u.tout||0)+tout;
+  u.prov=u.prov||{}; u.day=u.day||{};
+  const p=u.prov[pid]=u.prov[pid]||{req:0,tin:0,tout:0};
+  p.req++; p.tin+=tin; p.tout+=tout;
+  const d=u.day[day]=u.day[day]||{req:0,tin:0,tout:0};
+  d.req++; d.tin+=tin; d.tout+=tout;
+  // keep only the last 30 days
+  const days=Object.keys(u.day).sort();
+  while(days.length>30) delete u.day[days.shift()];
+  save(LS.u, u);
+}
 const saveSettings = () => save(LS.s, state.settings);
 const saveProject  = () => save(LS.p, state.project);
 const saveChat     = () => save(LS.c, state.chat.slice(-30));
@@ -281,6 +296,7 @@ function refreshPreview(){
 const refreshSoon = debounce(()=>refreshPreview(), 650);
 window.addEventListener('message',(e)=>{
   const d=e.data;
+  if(d && d.__antrorSettings===1 && e.source!==window){ location.reload(); return; }
   if(d && d.__vfc===1 && e.source && e.source !== window){
     consErrors.push(d.text); if(consErrors.length>30) consErrors.shift();
     updConsBadge();
@@ -402,12 +418,13 @@ function newAiMsg(){
   m.appendChild(b); $id('chatLog').appendChild(m); scrollChat(true);
   return { root:m, txt:sp, caret, bubble:b };
 }
-function fcard(root, path, n){
+function fcard(root, path, n, delta){
   let wrap=root.querySelector('.fcards');
   if(!wrap){ wrap=document.createElement('div'); wrap.className='fcards'; root.appendChild(wrap); }
   const c=document.createElement('div'); c.className='fcard';
-  c.innerHTML=`📄 <b>${esc(path)}</b><span class="ln">${n} lines</span>`;
-  c.addEventListener('click',()=>openInEditor(path));
+  const badge = delta ? ` · <b class="da">+${delta.added}</b> <b class="dr">−${delta.removed}</b>` : '';
+  c.innerHTML=`📄 <b>${esc(path)}</b><span class="ln">${n} lines${badge}</span>`;
+  c.addEventListener('click',()=>{ if(delta) openDiff(path); else openInEditor(path); });
   wrap.appendChild(c); scrollChat();
 }
 function errorCard(msgRoot, html){
@@ -444,8 +461,32 @@ function renderRich(md){
 /* ─────────────── provider adapters / SSE ─────────────── */
 function joinUrl(base, path){ return base.replace(/\/+$/,'') + path; }
 
+/* reasoning ("thinking") — uses each provider's native parameter */
+function thinkParams(cfg){
+  const lvl = state.settings.thinking ?? 'balanced';
+  if(lvl==='off') return { body:{}, pickThinking:null };
+  const deep = lvl==='deep';
+  if(cfg.kind==='anthropic') return {
+    body:{ thinking:{ type:'enabled', budget_tokens: deep?16000:8000 } },
+    pickThinking:(j)=> j.type==='content_block_delta' && j.delta?.type==='thinking' ? (j.delta.thinking||'') : '',
+  };
+  if(cfg.kind==='gemini') return {
+    body:{ generationConfig:{ thinkingConfig:{ thinkingBudget: deep?20000:8000 } } },
+    pickThinking:(j)=>{ const c=j?.candidates?.[0]; if(!c?.content?.parts) return '';
+      return c.content.parts.filter(p=>p.thought).map(p=>p.text||'').join(''); },
+  };
+  // OpenAI-compatible family
+  let body={};
+  if(cfg.id==='zai') body={ thinking:{ type:'enabled' } };                       // GLM-4.x native
+  else if(cfg.id==='openai') body={ reasoning_effort: deep?'high':'medium' };    // GPT-5 / o-series
+  else if(cfg.id==='openrouter') body={ reasoning:{ effort: deep?'high':'medium' } };
+  return { body, pickThinking:(j)=> j.choices?.[0]?.delta?.reasoning_content || j.choices?.[0]?.delta?.reasoning || '' };
+}
+
 function makeAdapter(cfg, msgs, sys, opts={}){
+  const th = thinkParams(cfg);
   if(cfg.kind==='anthropic'){
+    const maxTok = (opts.maxTokens??16000) + ((th.body.thinking?.budget_tokens)||0);
     return {
       url: joinUrl(cfg.base,'/v1/messages'),
       headers:{
@@ -453,9 +494,15 @@ function makeAdapter(cfg, msgs, sys, opts={}){
         'anthropic-version':'2023-06-01',
         'anthropic-dangerous-direct-browser-access':'true',
       },
-      body:{
-        model:cfg.model, max_tokens:opts.maxTokens??16000, stream:true, system:sys,
+      body:Object.assign({
+        model:cfg.model, max_tokens:maxTok, stream:true, system:sys,
         messages: msgs.map(m=>({role:m.role, content:[{type:'text',text:m.text}]})),
+      }, th.body),
+      pickThinking: th.pickThinking,
+      usagePick(j){
+        if(j.type==='message_start') return { in: j.message?.usage?.input_tokens ?? null, out: null };
+        if(j.type==='message_delta') return { out: j.usage?.output_tokens ?? null };
+        return null;
       },
       pick(j){
         if(j.type==='error') throw new Error(j.error?.message||'API error');
@@ -468,9 +515,14 @@ function makeAdapter(cfg, msgs, sys, opts={}){
     return {
       url: joinUrl(cfg.base, `/models/${encodeURIComponent(cfg.model)}:streamGenerateContent?alt=sse`),
       headers:{ 'x-goog-api-key':cfg.key },
-      body:{
+      body:Object.assign({
         systemInstruction:{parts:[{text:sys}]},
         contents: msgs.map(m=>({role: m.role==='assistant'?'model':'user', parts:[{text:m.text}]})),
+      }, th.body),
+      pickThinking: th.pickThinking,
+      usagePick(j){
+        const u=j?.usageMetadata;
+        return u ? { in: u.promptTokenCount ?? null, out: u.candidatesTokenCount ?? null } : null;
       },
       pick(j){
         const c=j?.candidates?.[0];
@@ -484,9 +536,14 @@ function makeAdapter(cfg, msgs, sys, opts={}){
   return {
     url: joinUrl(cfg.base,'/chat/completions'),
     headers: cfg.key ? {'Authorization':'Bearer '+cfg.key} : {},
-    body:{
+    body:Object.assign({
       model:cfg.model, stream:true,
       messages:[{role:'system',content:sys}, ...msgs.map(m=>({role:m.role,content:m.text}))],
+    }, th.body),
+    pickThinking: th.pickThinking,
+    usagePick(j){
+      const u=j?.usage;
+      return u ? { in: u.prompt_tokens ?? null, out: u.completion_tokens ?? null } : null;
     },
     pick(j){
       if(j.error) throw new Error(j.error.message||String(j.error));
@@ -494,7 +551,7 @@ function makeAdapter(cfg, msgs, sys, opts={}){
     },
   };
 }
-async function sseStream(adt, signal, onDelta){
+async function sseStream(adt, signal, onDelta, onThinking){
   const res = await fetch(adt.url,{
     method:'POST',
     headers:Object.assign({'Content-Type':'application/json'}, adt.headers),
@@ -522,6 +579,18 @@ async function sseStream(adt, signal, onDelta){
       let j; try{ j=JSON.parse(data); }catch(e){ continue; }
       const piece = adt.pick(j) || '';
       if(piece){ out+=piece; if(onDelta) onDelta(piece); }
+      if(onThinking && adt.pickThinking){
+        const th = adt.pickThinking(j);
+        if(th) onThinking(th);
+      }
+      if(adt.usagePick){
+        const u=adt.usagePick(j);
+        if(u && (u.in!=null || u.out!=null)){
+          adt.__usage = adt.__usage || { in:0, out:0 };
+          if(u.in!=null) adt.__usage.in=u.in;    // cumulative fields overwrite
+          if(u.out!=null) adt.__usage.out=u.out;
+        }
+      }
     }
   }
   return out;
@@ -592,10 +661,24 @@ async function sendPrompt(rawText){
   $id('promptBox').value=''; autoGrow();
 
   pushCheckpoint(text);
+  const beforeFiles = clone(state.project.files);   // for the +/− diff after the run
   const ui=newAiMsg();
   setBusy(true);
   controller=new AbortController();
   persistCurrentProject(); // user turn is never lost, even mid-run
+
+  // live activity feed — what the AI is doing, visible before the full output
+  const act=document.createElement('div'); act.className='activity';
+  ui.root.insertBefore(act, ui.bubble);
+  const actLine=(text, cls)=>{ const d=document.createElement('div'); d.className='actline '+(cls||''); d.textContent=text; act.appendChild(d); scrollChat(); return d; };
+
+  // live "thinking" line while the model reasons (replaced by real output)
+  let thinkEl=null, thinkTxt='';
+  const onThinking=(t)=>{
+    thinkTxt+=t;
+    if(!thinkEl){ thinkEl=actLine('🧠 thinking…','live'); }
+    else thinkEl.textContent='🧠 thinking… '+Math.max(1,Math.round(thinkTxt.length/4))+' tokens';
+  };
 
   let raw=''; let stopped=false; const written=[]; const carded=new Set();
   const onDelta=(chunk)=>{
@@ -605,7 +688,15 @@ async function sendPrompt(rawText){
     const fresh=extractWritten(raw, written);   // files land (and preview refreshes) as they finish streaming
     if(fresh.length){
       renderTreeSoon(); refreshSoon();
-      fresh.forEach(w=>{ if(!carded.has(w.path)){ carded.add(w.path); fcard(ui.root,w.path,w.lines); } });
+      fresh.forEach(w=>{
+        if(!carded.has(w.path)){ carded.add(w.path); fcard(ui.root,w.path,w.lines); }
+        // ZCode-style live activity: what changed, where
+        const before=beforeFiles[w.path];
+        const d=lineDiff(before, state.project.files[w.path]);
+        let badge='';
+        if(d){ let a=0,r=0; d.forEach(l=>{if(l.t==='+')a++;else if(l.t==='-')r++;}); badge=` (+${a} −${r})`; }
+        actLine((before!=null?'✏ updated ':'✍ created ')+w.path+badge,'ok');
+      });
     }
     const ts=window.__vfTermSink; if(ts&&ts.delta) try{ts.delta(raw,written.length);}catch(e){}
   };
@@ -613,7 +704,7 @@ async function sendPrompt(rawText){
     const sys=VIBE_SYSTEM+'\n\n=====\n'+manifestBlock();
     const msgs=buildMessages();
     const adt=makeAdapter(cfg,msgs,sys,{});
-    await sseStream(adt,controller.signal,onDelta);
+    await sseStream(adt,controller.signal,onDelta,onThinking);
   }catch(err){
     if(err.name==='AbortError'){ stopped=true; }
     else{
@@ -630,18 +721,32 @@ async function sendPrompt(rawText){
 
   const disp=stripTags(raw);
   extractWritten(raw, written);
-  finalizeBubble(ui,disp,written,stopped);
+  const dsum=diffSummary(beforeFiles, state.project.files);
+  lastRunDiff={before:beforeFiles, after:clone(state.project.files)};
+  finalizeBubble(ui,disp,written,stopped,dsum,thinkTxt);
   state.chat.push({role:'assistant',display:disp,files:written.map(w=>w.path),stopped,t:nowTs()});
   saveChat();
   saveProject(); renderTreeSoon(); persistCurrentProject();
   if(written.length) refreshPreview();
+  // usage accounting (exact where the provider reports it, chars/4 estimate otherwise)
+  const u=(typeof adt!=='undefined'&&adt&&adt.__usage)||{};
+  usageAdd(cfg.id, u.in!=null?u.in:Math.round(text.length/4), u.out!=null?u.out:Math.round(raw.length/4));
+  // auto-save the project to the device (desktop: native · browser: chosen folder)
+  dsAutoSave();
   const td=window.__vfTermSink; if(td&&td.done) try{td.done(written);}catch(e){}
   setBusy(false);
 }
-function finalizeBubble(ui,disp,written,stopped){
+function finalizeBubble(ui,disp,written,stopped,dsum,thinkTxt){
   ui.caret.remove(); ui.root.classList.remove('stream');
   ui.bubble.innerHTML = disp.trim() ? renderRich(disp) : '<p class="typeline">(no message — just code)</p>';
-  written.forEach(w=>fcard(ui.root,w.path,w.lines));
+  if(thinkTxt && thinkTxt.trim()){
+    const d=document.createElement('details'); d.className='thinkdetails';
+    d.innerHTML='<summary>🧠 reasoning — '+Math.max(1,Math.round(thinkTxt.length/4))+' tokens</summary>';
+    const body=document.createElement('div'); body.className='thinkbody'; body.textContent=thinkTxt.trim();
+    d.appendChild(body);
+    ui.root.insertBefore(d, ui.bubble);
+  }
+  written.forEach(w=>fcard(ui.root,w.path,w.lines,dsum?dsum[w.path]:null));
   if(stopped && (disp.trim()||written.length)){
     const note=document.createElement('div'); note.className='typeline'; note.textContent='⏹ stopped by you — partial work kept';
     ui.root.appendChild(note);
@@ -653,6 +758,70 @@ function setBusy(b){
   $id('sendBtn').disabled=b;
   $id('stopBtn').hidden=!b;
   if(b) $id('chatPanel').classList.add('generating'); else $id('chatPanel').classList.remove('generating');
+}
+
+/* ─────────────── diff engine (what the AI added / removed) ─────────────── */
+let lastRunDiff=null;
+
+function lineDiff(aText,bText){
+  const a=String(aText??'').split('\n'), b=String(bText??'').split('\n');
+  const n=a.length, m=b.length;
+  if(n*m>1200000) return null;                    // huge file — stats only
+  const dp=Array.from({length:n+1},()=>new Uint16Array(m+1));
+  for(let i=n-1;i>=0;i--) for(let j=m-1;j>=0;j--)
+    dp[i][j]= a[i]===b[j] ? dp[i+1][j+1]+1 : Math.max(dp[i+1][j], dp[i][j+1]);
+  const out=[]; let i=0, j=0;
+  while(i<n && j<m){
+    if(a[i]===b[j]){ out.push({t:' ',s:a[i]}); i++; j++; }
+    else if(dp[i+1][j] >= dp[i][j+1]){ out.push({t:'-',s:a[i]}); i++; }
+    else { out.push({t:'+',s:b[j]}); j++; }
+  }
+  while(i<n) out.push({t:'-',s:a[i++]});
+  while(j<m) out.push({t:'+',s:b[j++]});
+  return out;
+}
+function diffSummary(beforeFiles, afterFiles){
+  const paths=new Set([...Object.keys(beforeFiles||{}), ...Object.keys(afterFiles||{})]);
+  const res={};
+  paths.forEach(p=>{
+    const a=beforeFiles?.[p], b=afterFiles?.[p];
+    if(a===b) return;
+    const d=lineDiff(a,b);
+    if(!d){ res[p]={added:0,removed:0,big:true}; return; }
+    let add=0, rem=0;
+    d.forEach(l=>{ if(l.t==='+') add++; else if(l.t==='-') rem++; });
+    res[p]={added:add,removed:rem,big:false};
+  });
+  return res;
+}
+function diffRuns(lines){                          // changes with 2 lines of context
+  const keep=new Set();
+  lines.forEach((l,idx)=>{ if(l.t!==' '){ for(let k=Math.max(0,idx-2);k<=Math.min(lines.length-1,idx+2);k++) keep.add(k); } });
+  const out=[]; let last=-2;
+  lines.forEach((l,idx)=>{
+    if(!keep.has(idx)) return;
+    if(idx-last>1) out.push({t:'…'});
+    out.push(l); last=idx;
+  });
+  return out;
+}
+function openDiff(path){
+  if(!lastRunDiff){ openInEditor(path); return; }
+  const d=lineDiff(lastRunDiff.before[path], lastRunDiff.after[path]);
+  if(!d){ openInEditor(path); return; }
+  const runs=diffRuns(d);
+  let add=0, rem=0; d.forEach(l=>{ if(l.t==='+') add++; else if(l.t==='-') rem++; });
+  $id('diffTitle').innerHTML='📄 '+esc(path);
+  $id('diffStats').innerHTML='<span class="da">+'+add+'</span> <span class="dr">−'+rem+'</span>';
+  const body=$id('diffBody'); body.innerHTML='';
+  runs.forEach(l=>{
+    const r=document.createElement('div');
+    if(l.t==='…'){ r.className='dl gap'; r.textContent='⋯'; }
+    else{ r.className='dl '+l.t; r.textContent=(l.t===' '?' ':l.t)+l.s; }
+    body.appendChild(r);
+  });
+  $id('diffOpenEditor').onclick=()=>{ $id('diffModal').hidden=true; openInEditor(path); };
+  $id('diffModal').hidden=false;
 }
 
 /* ─────────────── checkpoints drawer ─────────────── */
@@ -718,6 +887,72 @@ function setChatOpen(v){
   document.body.classList.toggle('nochat',!v);
   if(v) $id('chatPanel').classList.add('open');   // mobile overlay variant
   $id('chatFab').title = v ? 'Chat with the ANTROR Assistant' : 'Show the chat panel';
+}
+
+/* ─────────────── device save: projects land on disk like ZCode ─────────────── */
+function idbSetDir(handle){
+  return new Promise((res)=>{ try{
+    const r=indexedDB.open('antror',1);
+    r.onupgradeneeded=()=>r.result.createObjectStore('kv');
+    r.onsuccess=()=>{ const tx=r.result.transaction('kv','readwrite'); tx.objectStore('kv').put(handle,'dirhandle'); tx.oncomplete=res; };
+    r.onerror=res;
+  }catch(e){ res(); } });
+}
+function idbGetDir(){
+  return new Promise((res)=>{ try{
+    const r=indexedDB.open('antror',1);
+    r.onupgradeneeded=()=>r.result.createObjectStore('kv');
+    r.onsuccess=()=>{ const g=r.result.transaction('kv').objectStore('kv').get('dirhandle'); g.onsuccess=()=>res(g.result||null); g.onerror=()=>res(null); };
+    r.onerror=()=>res(null);
+  }catch(e){ res(null); } });
+}
+async function webWriteFile(dirHandle, path, content){
+  const parts=String(path).replace(/\\/g,'/').split('/').filter(p=>p && p!=='.' && p!=='..');
+  const fname=parts.pop(); if(!fname) return;
+  let d=dirHandle;
+  for(const p of parts) d=await d.getDirectoryHandle(p,{create:true});
+  const fh=await d.getFileHandle(fname,{create:true});
+  const w=await fh.createWritable(); await w.write(String(content)); await w.close();
+}
+async function dsPickFolder(){
+  if(window.antrorAPI){
+    const dir=await window.antrorAPI.chooseWorkspace();
+    if(dir) toast('📁 Projects will save inside '+dir,'ok');
+    paintGeneralSettings();
+    return;
+  }
+  if(!window.showDirectoryPicker){ toast('This browser can’t pick folders — use the desktop app, or Export ZIP','err',4500); return; }
+  try{
+    const h=await window.showDirectoryPicker({ mode:'readwrite' });
+    state.ui.saveDirHandle=h;
+    await idbSetDir(h);
+    toast('📁 Projects auto-save into “'+(h.name||'chosen folder')+'/'+state.project.name+'” after every run','ok',4500);
+    paintGeneralSettings();
+  }catch(e){ /* user cancelled */ }
+}
+async function dsAutoSave(){
+  if(state.settings.autoSaveDevice===false) return;
+  const files=state.project.files;
+  if(!files || !Object.keys(files).length) return;
+  const name=state.project.name||'untitled';
+  /* desktop app: native, silent, always */
+  if(window.antrorAPI){
+    try{ const r=await window.antrorAPI.writeProject(name, files);
+      if(r && r.dir && !state.ui.saveToastShown){ toast('💾 Saved to '+r.dir,'ok',2600); }
+      state.ui.saveToastShown=true;
+    }catch(e){ /* silent */ }
+    return;
+  }
+  /* browser: write into the folder the user picked once */
+  const h=state.ui.saveDirHandle;
+  if(!h) return;
+  try{
+    if(h.queryPermission && await h.queryPermission({mode:'readwrite'})!=='granted') return; // needs re-grant — wait for a click
+    let count=0;
+    for(const [p,c] of Object.entries(files)){ await webWriteFile(h, name+'/'+p, c); count++; }
+    if(count && !state.ui.saveToastShown){ toast('💾 Saved '+count+' file(s) to your folder ('+h.name+')','ok',2400); }
+    state.ui.saveToastShown=true;
+  }catch(e){ /* silent */ }
 }
 
 /* ─────────────── zip export ─────────────── */
@@ -973,19 +1208,108 @@ function paintProvFields(id){
   $id('provHint').className='hint'; $id('provHint').innerHTML=hint+' Model names are editable — newer releases usually just work.';
   document.querySelectorAll('#provGrid .pcard').forEach(c=>c.classList.toggle('sel',c.dataset.prov===id));
 }
-function openSettings(){
-  state.ui.pickProv=activeProviderId();
-  paintProvFields(activeProviderId());
-  renderAcctBox();
-  $id('settingsModal').hidden=false;
+/* ── Providers / Tokens / Usage lists (Settings) ── */
+function renderProviders(){
+  const el=$id('provList'); if(!el) return;
+  el.innerHTML='';
+  PROV_ORDER.forEach(id=>{
+    const P=PROVIDERS[id];
+    const hasKey=!!state.settings.keys[id];
+    const active=activeProviderId()===id;
+    const row=document.createElement('div'); row.className='plist-row'+(active?' cur':'');
+    row.innerHTML='<span class="dot '+(hasKey||P.noKey?'on':'off')+'"></span>'+
+      '<span class="pl-name">'+esc(P.label)+'</span>'+
+      '<span class="pl-sub">'+(active?'active · ':'')+(state.settings.models[id]||P.model)+'</span>';
+    const use=document.createElement('button'); use.className='ghost'; use.textContent=active?'In use':'Use';
+    use.addEventListener('click',()=>{ state.settings.provider=id; state.settings.onboarded=true; saveSettings(); renderProviders(); renderStatusChip(); paintProvFields(id); toast('Model: '+P.label,'ok'); });
+    row.appendChild(use); el.appendChild(row);
+  });
 }
+function renderTokens(){
+  const el=$id('tokenList'); if(!el) return;
+  el.innerHTML='';
+  const withKeys=PROV_ORDER.filter(id=>state.settings.keys[id]);
+  if(!withKeys.length){ el.innerHTML='<p class="hint">No API keys saved yet. Pick a provider above under “Model provider” and paste your key — it never leaves this browser.</p>'; return; }
+  withKeys.forEach(id=>{
+    const k=state.settings.keys[id];
+    const row=document.createElement('div'); row.className='plist-row';
+    row.innerHTML='<span class="pl-name">'+esc(PROVIDERS[id].label)+'</span>'+
+      '<span class="pl-sub mono">••••'+esc(String(k).slice(-4))+' · '+String(k).length+' chars</span>';
+    const forget=document.createElement('button'); forget.className='ghost danger'; forget.textContent='Forget';
+    forget.addEventListener('click',()=>{ delete state.settings.keys[id]; saveSettings(); renderTokens(); renderProviders(); renderStatusChip(); toast('Key erased — '+PROVIDERS[id].label); });
+    row.appendChild(forget); el.appendChild(row);
+  });
+}
+function renderUsage(){
+  const el=$id('usageList'); if(!el) return;
+  const u=state.usage||{req:0,tin:0,tout:0,prov:{},day:{}};
+  const today=new Date().toISOString().slice(0,10);
+  const d=u.day&&u.day[today]||{req:0,tin:0,tout:0};
+  const fmt=(n)=>n>=1000000?(n/1000000).toFixed(1)+'M':n>=1000?(n/1000).toFixed(1)+'k':String(n||0);
+  let html='<div class="usage-tot"><span><b>'+fmt(u.tin+u.tout)+'</b><small>total tokens</small></span>'+
+    '<span><b>'+fmt(u.tin)+'</b><small>in</small></span>'+
+    '<span><b>'+fmt(u.tout)+'</b><small>out</small></span>'+
+    '<span><b>'+u.req+'</b><small>runs</small></span>'+
+    '<span><b>'+fmt(d.tin+d.tout)+'</b><small>today</small></span></div>';
+  const provs=Object.entries(u.prov||{}).sort((a,b)=>(b[1].tin+b[1].tout)-(a[1].tin+a[1].tout));
+  if(provs.length){
+    html+='<div class="usage-rows">';
+    provs.forEach(([id,p])=>{
+      html+='<div class="plist-row"><span class="pl-name">'+esc(PROVIDERS[id]?.label||id)+'</span>'+
+        '<span class="pl-sub mono">'+fmt(p.tin)+' in · '+fmt(p.tout)+' out · '+p.req+' runs</span></div>';
+    });
+    html+='</div>';
+  } else html+='<p class="hint">No runs yet — usage appears here after your first AI build (tokens are counted per provider).</p>';
+  el.innerHTML=html;
+}
+
+function paintGeneralSettings(){
+  // reasoning level
+  const lvl=state.settings.thinking ?? 'balanced';
+  document.querySelectorAll('#thinkSeg [data-think]').forEach(b=>b.classList.toggle('active',b.dataset.think===lvl));
+  // editor font size
+  const f=state.settings.editorFont ?? 'm';
+  document.querySelectorAll('#fontSeg [data-font]').forEach(b=>b.classList.toggle('active',b.dataset.font===f));
+  applyEditorFont();
+  // auto-save to device
+  const chk=$id('chkAutoSave'); if(chk) chk.checked=state.settings.autoSaveDevice!==false;
+  const pickHint=$id('pickHint');
+  if(pickHint){
+    if(window.antrorAPI){
+      window.antrorAPI.getWorkspace().then(dir=>pickHint.textContent='saving into '+dir);
+    } else if(state.ui.saveDirHandle){
+      pickHint.textContent='saving into “'+(state.ui.saveDirHandle.name||'chosen folder')+'”';
+    } else pickHint.textContent=window.showDirectoryPicker?'no folder chosen yet':'desktop app required for silent saving';
+  }
+  // bridge only matters in the browser
+  const bb=$id('bridgeBox'); if(bb) bb.hidden=!!window.antrorAPI;
+  const bt=$id('bridgeToken'); if(bt) bt.value=(state.settings.bridge||{}).token||'';
+}
+function applyEditorFont(){
+  const sizes={s:'11.5px', m:'12.5px', l:'14px'};
+  const px=sizes[state.settings.editorFont ?? 'm'];
+  const ta=$id('codeEditor'), g=$id('gutter');
+  if(ta) ta.style.fontSize=px;
+  if(g) g.style.fontSize=px;
+}
+function openSettings(){ location.href='settings.html'; }
 function renderStatusChip(){
   const cfg=activeConfig();
   const ready = cfg.noKey ? !!cfg.base || !!cfg.model : !!cfg.key;
   $id('provDot').className='dot '+(ready?'on':'off');
   $id('provChipText').textContent = (PROVIDERS[cfg.id]?.label||'no provider') +
     (ready && cfg.model ? ' · '+cfg.model.split('/').pop().slice(0,22) : '');
+  const pbDot=$id('pbDot'), pbText=$id('pbModelText');
+  if(pbDot) pbDot.className='dot '+(ready?'on':'off');
+  if(pbText) pbText.textContent = (PROVIDERS[cfg.id]?.label||'no model') +
+    (ready && cfg.model ? ' · '+cfg.model.split('/').pop().slice(0,20) : '');
   document.title = (state.project.name||'untitled')+' — ANTROR Code';
+}
+function paintThinkChip(){
+  const b=$id('pbThink'); if(!b) return;
+  const cur=state.settings.thinking??'balanced';
+  b.textContent = cur==='off' ? '🧠 Thinking off' : cur==='deep' ? '🧠 Deep think' : '🧠 Thinking';
+  b.classList.toggle('on', cur!=='off');
 }
 function heroPaint(sel){
   provCards($id('heroProv'), sel, (id)=>{ state.ui.heroSel=id; heroPaint(id); $id('heroKey').focus(); });
@@ -1134,13 +1458,27 @@ async function renderAcctBox(){
     return;
   }
   const email=user.email||'user';
-  const initial=email[0].toUpperCase();
+  const meta=user.user_metadata||{};
+  const display=meta.display_name||meta.full_name||'';
+  const initial=(display||email)[0].toUpperCase();
   box.innerHTML='<div class="acct-user"><span class="avatar">'+esc(initial)+'</span>'+
-    '<span class="acct-txt"><b>'+esc(email)+'</b><small>signed in via Supabase</small></span>'+
-    '<button class="ghost danger" id="acctOut">Sign out</button></div>';
+    '<span class="acct-txt"><b>'+esc(display||email)+'</b><small>'+esc(email)+'</small></span>'+
+    '<button class="ghost danger" id="acctOut">Sign out</button></div>'+
+    '<label class="fld" style="margin-top:10px">Display name <small>(shown on your chip &amp; to the AI)</small>'+
+    '<input id="acctName" type="text" maxlength="40" placeholder="e.g. Arpit" value="'+esc(display)+'" autocomplete="off" /></label>'+
+    '<div class="data-row"><button class="primary" id="btnSaveName">Save name</button></div>';
   $id('acctOut').addEventListener('click',async()=>{
     await VF.signOut(); toast('Signed out — projects stay on this device');
-    renderAcctBox();
+    renderAcctBox(); renderUserChip();
+  });
+  $id('btnSaveName').addEventListener('click',async()=>{
+    const v=$id('acctName').value.trim();
+    if(!v){ toast('Type a name first','err'); return; }
+    try{
+      await VF.updateName(v);
+      toast('✓ Name saved — '+v,'ok');
+      renderAcctBox(); renderUserChip();
+    }catch(e){ toast('Could not save — '+(e.message||e),'err',4500); }
   });
 }
 
@@ -1152,9 +1490,11 @@ async function renderUserChip(){
   if(window.VF && VF.configured()) user=await VF.getUser();
   state.ui.signedIn=!!user;
   if(user){
+    const meta=user.user_metadata||{};
+    const display=meta.display_name||meta.full_name||'';
     const email=user.email||'user';
-    av.textContent=email[0].toUpperCase();
-    name.textContent=email.split('@')[0];
+    av.textContent=(display||email)[0].toUpperCase();
+    name.textContent=display||email.split('@')[0];
     sub.textContent='synced via Supabase';
   }else{
     av.textContent='?';
@@ -1238,7 +1578,6 @@ function bind(){
   $id('projClose').addEventListener('click',()=>$id('projectsDrawer').hidden=true);
   $id('btnSettings').addEventListener('click',openSettings);
   $id('provChip').addEventListener('click',openSettings);
-  $id('setClose').addEventListener('click',()=>{ $id('settingsModal').hidden=true; renderStatusChip(); });
   // projName editable
   const pn=$id('projName');
   pn.addEventListener('keydown',(e)=>{ if(e.key==='Enter'){e.preventDefault();pn.blur();} });
@@ -1260,24 +1599,6 @@ function bind(){
   };
   $id('wFull').addEventListener('click',()=>setW(false));
   $id('wPhone').addEventListener('click',()=>setW(true));
-  // workspace data (Settings)
-  $id('btnExpAll').addEventListener('click',exportZip);
-  $id('btnWipeChat').addEventListener('click',()=>{
-    if(!state.chat.length || !confirm('Clear this project’s conversation?')) return;
-    state.chat=[]; $id('chatLog').innerHTML=''; saveChat(); persistCurrentProject(); toast('Conversation cleared');
-  });
-  $id('btnWipeProj').addEventListener('click',()=>{
-    if(!confirm('Delete all FILES of the current project? The chat stays.')) return;
-    state.project.files={}; saveProject(); persistCurrentProject();
-    state.ui.tabs=[]; state.ui.open=null; renderTabs(); loadEditor(); renderTree(); refreshPreview();
-    toast('Files deleted');
-  });
-  $id('btnWipeAll').addEventListener('click',()=>{
-    if(!confirm('Erase EVERYTHING — keys, all projects, chat and history? This cannot be undone.')) return;
-    if(!confirm('Really sure? Last chance.')) return;
-    try{ ['vf.v1.settings','vf.v1.project','vf.v1.chat','vf.v1.checkpoints','vf.v1.projects','vf.v1.supabase'].forEach(k=>localStorage.removeItem(k)); }catch(e){}
-    location.reload();
-  });
   $id('btnPopOut').addEventListener('click',()=>{
     const doc=buildPreviewDoc();
     if(doc==null){ toast('Nothing to pop out yet'); return; }
@@ -1285,6 +1606,15 @@ function bind(){
     const w=window.open(url,'_blank');
     if(!w){ toast('Pop-up blocked 😅','err'); return; }
     setTimeout(()=>URL.revokeObjectURL(url), 20000);
+  });
+  // prompt-box chips
+  $id('pbModel').addEventListener('click',openSettings);
+  $id('pbThink').addEventListener('click',()=>{
+    const order=['off','balanced','deep'];
+    const cur=state.settings.thinking??'balanced';
+    state.settings.thinking=order[(order.indexOf(cur)+1)%3];
+    saveSettings(); paintThinkChip();
+    toast('🧠 Reasoning: '+state.settings.thinking);
   });
   $id('consBadgeBtn').addEventListener('click',()=>{
     let pop=$id('consPop');
@@ -1295,39 +1625,6 @@ function bind(){
     $id('stage').appendChild(pop);
   });
   document.querySelectorAll('[data-sample]').forEach(b=>b.addEventListener('click',()=>loadSample(b.dataset.sample)));
-  // settings modal internals
-  provCards($id('provGrid'), activeProviderId(), paintProvFields);
-  $id('btnSaveSet').addEventListener('click',()=>{
-    const cfg=configFromUI();
-    state.settings.provider=cfg.id;
-    if(cfg.noKey){ delete state.settings.keys[cfg.id]; }
-    else{
-      if(!cfg.key){ const h=$id('provHint'); h.className='hint err'; h.textContent='A key is required for this provider.'; return; }
-      state.settings.keys[cfg.id]=cfg.key;
-    }
-    if(cfg.base && cfg.base!==PROVIDERS[cfg.id].base) state.settings.bases[cfg.id]=cfg.base; else delete state.settings.bases[cfg.id];
-    if(cfg.model && cfg.model!==PROVIDERS[cfg.id].model) state.settings.models[cfg.id]=cfg.model; else delete state.settings.models[cfg.id];
-    state.settings.onboarded=true;
-    saveSettings(); renderStatusChip();
-    $id('settingsModal').hidden=true;
-    toast('⚙ Saved — '+PROVIDERS[cfg.id].label+(cfg.model?' · '+cfg.model:''),'ok');
-  });
-  $id('btnForget').addEventListener('click',()=>{
-    const id=state.ui.pickProv;
-    delete state.settings.keys[id]; saveSettings();
-    paintProvFields(id); renderStatusChip();
-    toast('Key erased for '+PROVIDERS[id].label);
-  });
-  $id('btnTestKey').addEventListener('click',async ()=>{
-    const cfg=configFromUI();
-    const h=$id('provHint'); h.className='hint'; h.textContent='pinging '+PROVIDERS[cfg.id].label+' …';
-    try{
-      await probe(cfg);
-      h.className='hint ok'; h.textContent='✓ connected — the model answered!';
-    }catch(err){
-      h.className='hint err'; h.innerHTML=friendlyError(err,cfg);
-    }
-  });
   // hero
   state.ui.heroSel=activeProviderId();
   heroPaint(state.ui.heroSel);
@@ -1342,9 +1639,28 @@ function bind(){
     else $id('chatPanel').classList.toggle('open');
   });
   if(state.ui.chatOpen===false) setChatOpen(false);
+  // focus mode — chat takes over, everything else dims
+  $id('btnChatFocus').addEventListener('click',()=>document.body.classList.toggle('focusmode'));
+  // drag the left edge to resize the chat panel (persisted)
+  const rz=$id('chatResizer'); let rx=null;
+  rz.addEventListener('pointerdown',(e)=>{ rx=e.clientX; document.body.style.cursor='col-resize'; try{rz.setPointerCapture(e.pointerId);}catch(_){} });
+  rz.addEventListener('pointermove',(e)=>{
+    if(rx==null) return;
+    const w=Math.min(Math.max(300, window.innerWidth-e.clientX), window.innerWidth-380);
+    document.documentElement.style.setProperty('--chatw', w+'px');
+  });
+  const endDrag=()=>{
+    if(rx==null) return;
+    rx=null; document.body.style.cursor='';
+    const w=getComputedStyle(document.documentElement).getPropertyValue('--chatw').trim();
+    if(w){ state.settings.chatWidth=w; saveSettings(); }
+  };
+  rz.addEventListener('pointerup',endDrag);
+  rz.addEventListener('pointercancel',endDrag);
+  if(state.settings.chatWidth) document.documentElement.style.setProperty('--chatw', state.settings.chatWidth);
   // esc closes overlays
   addEventListener('keydown',(e)=>{
-    if(e.key==='Escape'){ ['settingsModal','historyDrawer'].forEach(id=>$id(id).hidden=true); $id('chatPanel').classList.remove('open'); }
+    if(e.key==='Escape'){ ['historyDrawer','diffModal'].forEach(id=>{ const el=$id(id); if(el) el.hidden=true; }); document.body.classList.remove('focusmode'); $id('chatPanel').classList.remove('open'); }
   });
 }
 
@@ -1358,6 +1674,9 @@ function init(){
   }
   renderAll();
   restoreChatLog();
+  applyEditorFont();
+  paintThinkChip();
+  if(!window.antrorAPI) idbGetDir().then(h=>{ if(h) state.ui.saveDirHandle=h; });
   if(!state.settings.onboarded) $id('welcome').hidden=false;
   autoGrow();
   renderAcctBox();

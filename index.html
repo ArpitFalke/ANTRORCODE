@@ -123,9 +123,11 @@
 
   <!-- ══════════ RIGHT PANEL : chat ══════════ -->
   <aside id="chatPanel">
+    <div id="chatResizer" title="Drag to resize the chat panel"></div>
     <div class="chat-head">
       <span class="chat-title">ANTROR Assistant</span>
       <span class="chat-head-btns">
+        <button id="btnChatFocus" title="Focus mode — dim everything else, chat takes over (Esc exits)">⤢</button>
         <button id="btnClearChat" title="Clear conversation">🗑</button>
         <button id="btnChatToggle" title="Hide chat (bring it back with the chat button, bottom-right)">»</button>
       </span>
@@ -142,69 +144,29 @@
       <button class="chip" data-fill="Explain how this project works in simple words.">🧠 Explain</button>
     </div>
     <form id="composerForm">
-      <textarea id="promptBox" rows="2"
-        placeholder="Describe what you want to build…  (Enter to send, Shift+Enter for a new line)"></textarea>
-      <button type="submit" id="sendBtn" title="Send">➤</button>
-      <button type="button" id="stopBtn" title="Stop generating" hidden>■</button>
+      <div class="composer">
+        <textarea id="promptBox" rows="2"
+          placeholder="Describe what you want to build…  (Enter to send)"></textarea>
+        <div class="composer-bar">
+          <button type="button" id="pbModel" class="pb-chip" title="Change model & key">
+            <span id="pbDot" class="dot off"></span><span id="pbModelText">no model</span>
+          </button>
+          <button type="button" id="pbThink" class="pb-chip" title="Toggle AI reasoning depth">🧠 Thinking</button>
+          <button type="submit" id="sendBtn" title="Send">➤</button>
+          <button type="button" id="stopBtn" title="Stop generating" hidden>■</button>
+        </div>
+      </div>
     </form>
   </aside>
 </div>
 
-<!-- ══════════ SETTINGS MODAL ══════════ -->
-<div id="settingsModal" class="overlay" hidden>
-  <div class="modal">
-    <div class="modal-head">
-      <h3><img src="assets/logo.png" alt="" /> Settings</h3>
-      <button class="x" id="setClose">✕</button>
-    </div>
-    <p class="modal-sub">Your keys are stored <b>only in this browser</b> (localStorage) and requests go straight
-      to the provider — no ANTROR server in between.</p>
-
-    <div class="set-sec">Model provider</div>
-    <div id="provGrid"></div>
-
-    <label class="fld">API key
-      <input id="keyInput" type="password" placeholder="paste your API key…" autocomplete="off" />
-    </label>
-    <label class="fld" id="baseRow">Base URL <small>(optional — proxy / local endpoint)</small>
-      <input id="baseInput" type="text" placeholder="https://…" autocomplete="off" spellcheck="false" />
-    </label>
-    <label class="fld">Model
-      <input id="modelInput" type="text" placeholder="" autocomplete="off" spellcheck="false" />
-    </label>
-    <p id="provHint" class="hint"></p>
-
-    <div class="modal-foot">
-      <button id="btnTestKey" class="ghost">Test connection</button>
-      <button id="btnForget" class="ghost danger" title="Erase the saved key for this provider">Forget key</button>
-      <span class="spacer"></span>
-      <button id="btnSaveSet" class="primary">Save</button>
-    </div>
-
-    <div class="set-sec">Workspace data</div>
-    <div class="data-row">
-      <button id="btnExpAll" class="ghost">⬇ Export project</button>
-      <button id="btnWipeChat" class="ghost danger">Clear conversation</button>
-      <button id="btnWipeProj" class="ghost danger">Delete all files</button>
-      <button id="btnWipeAll" class="ghost danger">Erase everything</button>
-    </div>
-    <p class="hint">Everything lives in this browser. “Erase everything” removes keys, files, chat and history.</p>
-
-    <div class="set-sec">Account</div>
-    <div id="acctBox">
-      <div class="acct-soon">
-        <span><b>Accounts</b> — sign in to sync projects across devices.</span>
-        <button class="ghost" id="acctGo">Sign in</button>
-      </div>
-    </div>
-
-    <div class="set-sec">About</div>
-    <div class="about-blk">
-      <img src="assets/logo.png" alt="" /><b>ANTROR Code</b> v1.0 — describe it. ship it.<br/>
-      A product by <b>ANTROR</b>. © 2026 ANTROR. All rights reserved.<br/>
-      <a href="legal.html" target="_blank" rel="noopener">Terms of Service</a> ·
-      <a href="legal.html#privacy" target="_blank" rel="noopener">Privacy Policy</a>
-    </div>
+<!-- ══════════ DIFF VIEWER ══════════ -->
+<div id="diffModal" class="overlay" hidden>
+  <div class="modal diffmodal">
+    <div class="modal-head"><h3 id="diffTitle">diff</h3><span id="diffStats" class="dstats"></span><button class="x" id="diffClose" onclick="document.getElementById('diffModal').hidden=true">✕</button></div>
+    <p class="modal-sub">What changed in this file during the last AI run — <span class="da">added</span> / <span class="dr">removed</span> lines.</p>
+    <div id="diffBody"></div>
+    <div class="modal-foot"><button class="ghost" id="diffOpenEditor">Open in editor</button></div>
   </div>
 </div>
 

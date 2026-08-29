@@ -1,0 +1,53 @@
+{
+  "name": "antror-code",
+  "productName": "ANTROR Code",
+  "version": "1.0.0",
+  "description": "ANTROR Code — describe it. ship it. A product by ANTROR.",
+  "author": "ANTROR",
+  "license": "MIT",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder",
+    "dist:win": "electron-builder --win",
+    "dist:linux": "electron-builder --linux",
+    "dist:mac": "electron-builder --mac"
+  },
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.antror.code",
+    "productName": "ANTROR Code",
+    "files": [
+      "main.js",
+      "preload.js",
+      "package.json",
+      "index.html",
+      "login.html",
+      "register.html",
+      "auth.html",
+      "legal.html",
+      "styles.css",
+      "app.js",
+      "supabase.js",
+      "supabase-config.js",
+      "terminal.js",
+      "assets/**",
+      "bridge/**"
+    ],
+    "directories": { "output": "desktop-dist" },
+    "linux": {
+      "target": ["AppImage", "deb"],
+      "category": "Development"
+    },
+    "win": {
+      "target": ["nsis"]
+    },
+    "mac": {
+      "target": ["dmg"],
+      "category": "public.app-category.developer-tools"
+    }
+  }
+}

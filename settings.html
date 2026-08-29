@@ -1,0 +1,544 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Settings — ANTROR Code</title>
+<link rel="icon" href="assets/logo.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --bg:#0a0a0a; --bg2:#0e0e0e; --panel:#141414; --panel2:#181818;
+  --line:rgba(255,255,255,.07); --line2:rgba(255,255,255,.14);
+  --txt:#ececec; --dim:#9a9a9a; --faint:#5c5c5c; --err:#e08585; --ok:#9fd8a8;
+  --mono:'JetBrains Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--txt);-webkit-font-smoothing:antialiased;overflow:hidden}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+input,textarea{font:inherit;color:inherit}
+::-webkit-scrollbar{width:9px;height:9px}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:8px;border:2px solid transparent;background-clip:content-box}
+::-webkit-scrollbar-track{background:transparent}
+
+.s-wrap{display:grid;grid-template-columns:240px 1fr;height:100vh}
+
+/* ── nav ── */
+.s-nav{display:flex;flex-direction:column;background:var(--bg2);border-right:1px solid var(--line);padding:20px 14px 16px}
+.brand{display:flex;align-items:center;gap:10px;padding:0 6px 4px}
+.brand img{width:30px;height:30px;border-radius:8px}
+.brand b{font-size:14.5px;font-weight:800}
+.brand b span{color:var(--dim);font-weight:400}
+.by{font-size:9px;letter-spacing:.24em;text-transform:uppercase;color:var(--faint);padding:2px 6px 14px}
+.s-nav nav{display:flex;flex-direction:column;gap:3px;flex:1}
+.s-nav nav button{
+  text-align:left;padding:9px 12px;border-radius:9px;font-size:12.5px;font-weight:600;color:var(--dim);
+  display:flex;align-items:center;gap:10px;transition:.15s;border:1px solid transparent;
+}
+.s-nav nav button:hover{color:var(--txt);background:rgba(255,255,255,.04)}
+.s-nav nav button.on{color:var(--txt);background:rgba(255,255,255,.07);border-color:var(--line2)}
+.back{font-size:12px;color:var(--dim);text-decoration:none;border:1px solid var(--line2);border-radius:8px;padding:8px 13px;text-align:center}
+.back:hover{color:var(--txt);border-color:rgba(255,255,255,.4)}
+
+/* ── main pane ── */
+.s-main{overflow-y:auto;padding:34px 46px 60px}
+.s-main>.sec{display:none;max-width:680px;animation:fade .18s ease}
+.s-main>.sec.on{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(5px)}}
+.sec h1{font-size:20px;font-weight:800;letter-spacing:-.2px;padding-bottom:6px}
+.sec .sub{font-size:13px;color:var(--dim);line-height:1.65;margin:6px 0 24px}
+.sec .sub b{color:var(--txt)}
+.card{background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:20px 22px;margin-bottom:16px}
+.card h3{font-size:12px;font-weight:750;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin-bottom:14px}
+.card h3:first-child{margin-top:0}
+.hint{font-size:11.5px;color:var(--faint);line-height:1.65}
+.hint.err{color:var(--err);margin-top:8px}
+.hint.ok{color:var(--ok)}
+.hint b{color:var(--dim)}
+.hint code{font-family:var(--mono);font-size:11px;background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:5px;padding:1px 6px}
+.fld{display:block;font-size:11.5px;font-weight:650;color:var(--dim);margin-bottom:13px}
+.fld small{font-weight:500;color:var(--faint)}
+.fld input{
+  display:block;width:100%;margin-top:6px;padding:11px 13px;border-radius:9px;font-size:13px;
+  background:var(--panel);border:1px solid var(--line2);outline:none;transition:.15s;font-family:var(--mono);
+}
+.fld input:focus{border-color:rgba(255,255,255,.45);box-shadow:0 0 0 3px rgba(255,255,255,.05)}
+button.primary{padding:10px 20px;border-radius:10px;font-weight:750;font-size:12.5px;color:#0a0a0a;background:#e8e8e8;transition:.15s}
+button.primary:hover{background:#fff;transform:translateY(-1px)}
+button.ghost{padding:9px 15px;border-radius:9px;font-weight:650;font-size:12px;color:var(--dim);border:1px solid var(--line2);transition:.15s}
+button.ghost:hover{color:var(--txt);border-color:rgba(255,255,255,.4)}
+button.ghost.danger:hover{color:var(--err);border-color:rgba(224,133,133,.5)}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:14px}
+
+/* provider pick grid */
+.pick-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:9px}
+.pcard{text-align:left;padding:12px 13px;border-radius:11px;border:1px solid var(--line);background:var(--panel);transition:.15s}
+.pcard:hover{border-color:var(--line2);transform:translateY(-1px)}
+.pcard.sel{border-color:rgba(255,255,255,.55);background:rgba(255,255,255,.06);box-shadow:0 0 0 1px rgba(255,255,255,.25)}
+.pcard .pn{font-weight:700;font-size:12.5px;display:block}
+.pcard .pd{font-size:10.5px;color:var(--dim);display:block;margin-top:3px;line-height:1.45}
+
+/* segmented */
+.seg{display:inline-flex;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:3px;gap:3px}
+.seg button{padding:7px 18px;border-radius:7px;font-size:12px;font-weight:650;color:var(--dim);transition:.15s}
+.seg button:hover{color:var(--txt)}
+.seg button.active{color:#0a0a0a;background:#e8e8e8;font-weight:700}
+.glab{font-size:11.5px;font-weight:700;color:var(--dim);margin:16px 0 7px}
+.glab:first-child{margin-top:0}
+.switch-row{display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--dim);cursor:pointer;padding:11px 13px;border:1px solid var(--line);border-radius:10px;background:var(--panel)}
+.switch-row input{width:15px;height:15px;accent-color:#e8e8e8;flex:none}
+.switch-row:hover{color:var(--txt)}
+
+/* lists */
+.plist-row{display:flex;align-items:center;gap:12px;padding:11px 13px;border:1px solid var(--line);border-radius:10px;background:var(--panel);margin-bottom:7px;font-size:12.5px}
+.plist-row.cur{border-color:rgba(255,255,255,.3)}
+.plist-row .pl-name{font-weight:650;color:var(--txt);flex:none;min-width:130px}
+.plist-row .pl-sub{flex:1;min-width:0;color:var(--faint);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right;font-family:var(--mono)}
+.dot{width:7px;height:7px;border-radius:50%;flex:none}
+.dot.on{background:#e6e6e6;box-shadow:0 0 6px rgba(255,255,255,.5)}
+.dot.off{background:var(--faint)}
+
+/* usage */
+.usage-tot{display:flex;gap:9px;margin-bottom:14px;flex-wrap:wrap}
+.usage-tot span{flex:1;min-width:90px;display:flex;flex-direction:column;align-items:center;gap:3px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 8px}
+.usage-tot b{font-size:18px;font-weight:800}
+.usage-tot small{font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+
+/* account */
+.acct-user{display:flex;align-items:center;gap:12px}
+.acct-user .avatar{width:44px;height:44px;flex:none;border-radius:50%;background:#e8e8e8;color:#0a0a0a;font-weight:800;font-size:17px;display:flex;align-items:center;justify-content:center}
+.acct-user .acct-txt{flex:1;min-width:0;display:flex;flex-direction:column}
+.acct-user .acct-txt b{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.acct-user .acct-txt small{font-size:11px;color:var(--faint)}
+
+/* about */
+.about-blk{display:flex;align-items:center;gap:14px}
+.about-blk img{width:52px;height:52px;border-radius:12px}
+.about-blk .at b{font-size:14.5px}
+.about-blk .at p{font-size:12px;color:var(--dim);margin-top:3px;line-height:1.6}
+.about-blk a{color:var(--dim)}
+@media (max-width:760px){
+  .s-wrap{grid-template-columns:1fr;grid-template-rows:auto 1fr}
+  .s-nav{flex-direction:row;flex-wrap:wrap;align-items:center;gap:8px;padding:12px}
+  .s-nav nav{flex-direction:row;flex-wrap:wrap;flex:initial}
+  .by{display:none}
+  .s-main{padding:22px 18px 50px}
+}
+</style>
+</head>
+<body>
+<div class="s-wrap">
+
+  <aside class="s-nav">
+    <div class="brand"><img src="assets/logo.png" alt="" /><b>ANTROR <span>Code</span></b></div>
+    <div class="by">a product by ANTROR</div>
+    <nav>
+      <button data-sec="model" class="on">✦&nbsp; Model</button>
+      <button data-sec="general">⚙&nbsp; General</button>
+      <button data-sec="user">👤&nbsp; User</button>
+      <button data-sec="providers">◈&nbsp; Providers</button>
+      <button data-sec="tokens">🔑&nbsp; API tokens</button>
+      <button data-sec="usage">📈&nbsp; Usage</button>
+      <button data-sec="workspace">🗂&nbsp; Workspace</button>
+      <button data-sec="about">ⓘ&nbsp; About</button>
+    </nav>
+    <a class="back" href="index.html">← Back to app</a>
+  </aside>
+
+  <main class="s-main">
+
+    <!-- ══ MODEL ══ -->
+    <section class="sec on" id="sec-model">
+      <h1>Model</h1>
+      <p class="sub">Pick a provider and paste <b>your own API key</b>. Keys are stored only in this browser and requests go straight to the provider — no ANTROR server in between.</p>
+      <div class="card">
+        <h3>Provider</h3>
+        <div id="provGrid" class="pick-grid"></div>
+        <div style="margin-top:18px">
+          <label class="fld">API key<input id="keyInput" type="password" placeholder="paste your API key…" autocomplete="off" /></label>
+          <label class="fld">Base URL <small>(optional — proxy / local endpoint)</small><input id="baseInput" type="text" placeholder="https://…" autocomplete="off" spellcheck="false" /></label>
+          <label class="fld">Model<input id="modelInput" type="text" placeholder="" autocomplete="off" spellcheck="false" /></label>
+          <p id="provHint" class="hint"></p>
+        </div>
+        <div class="row">
+          <button class="ghost" id="btnTestKey">Test connection</button>
+          <button class="ghost danger" id="btnForget">Forget key</button>
+          <span style="flex:1"></span>
+          <button class="primary" id="btnSaveSet">Save</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══ GENERAL ══ -->
+    <section class="sec" id="sec-general">
+      <h1>General</h1>
+      <p class="sub">Everyday behaviour of ANTROR Code.</p>
+      <div class="card">
+        <h3>Reasoning</h3>
+        <div class="seg" id="thinkSeg">
+          <button type="button" data-think="off">Off</button>
+          <button type="button" data-think="balanced">Balanced</button>
+          <button type="button" data-think="deep">Deep</button>
+        </div>
+        <p class="hint" style="margin-top:8px">Uses each model's native thinking (GLM, Claude, Gemini, GPT-5, OpenRouter). <b>Deep</b> is slower but sharper for tricky builds.</p>
+      </div>
+      <div class="card">
+        <h3>Editor</h3>
+        <div class="glab" style="margin-top:0">Code font size</div>
+        <div class="seg" id="fontSeg">
+          <button type="button" data-font="s">S</button>
+          <button type="button" data-font="m">M</button>
+          <button type="button" data-font="l">L</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Auto-save to device</h3>
+        <label class="switch-row"><input type="checkbox" id="chkAutoSave" /> Save AI-generated files to the device after every run — like ZCode</label>
+        <div class="row" style="margin-top:10px">
+          <button class="ghost" id="btnPickDir">📁 Choose folder…</button>
+          <span id="pickHint" class="hint"></span>
+        </div>
+      </div>
+      <div class="card" id="bridgeBox">
+        <h3>Device terminal — browser mode</h3>
+        <p class="hint">In the <b>desktop app</b> the terminal runs commands natively — no setup. In the browser, start the tiny bridge first: <code>node bridge/bridge.js</code></p>
+        <div class="row" style="align-items:center;margin-top:10px">
+          <input id="bridgeToken" type="password" placeholder="bridge token (printed when it starts)" autocomplete="off" spellcheck="false" style="flex:1;min-width:200px;padding:10px 12px;border-radius:9px;font-size:12px;background:var(--panel);border:1px solid var(--line2);outline:none;font-family:var(--mono)" />
+          <button class="ghost" id="btnBridgeSave">Save</button>
+          <button class="ghost" id="btnBridgeTest">Test</button>
+        </div>
+        <p id="bridgeHint" class="hint"></p>
+      </div>
+    </section>
+
+    <!-- ══ USER ══ -->
+    <section class="sec" id="sec-user">
+      <h1>User</h1>
+      <p class="sub">Your account runs on <b>your own Supabase</b> — sign in to sync projects across devices.</p>
+      <div class="card"><div id="acctBox"></div></div>
+    </section>
+
+    <!-- ══ PROVIDERS ══ -->
+    <section class="sec" id="sec-providers">
+      <h1>Providers</h1>
+      <p class="sub">At a glance — which providers are connected and which model each will use.</p>
+      <div class="card"><div id="provList"></div></div>
+    </section>
+
+    <!-- ══ TOKENS ══ -->
+    <section class="sec" id="sec-tokens">
+      <h1>API tokens</h1>
+      <p class="sub">Saved keys, masked. They never leave this browser.</p>
+      <div class="card"><div id="tokenList"></div></div>
+    </section>
+
+    <!-- ══ USAGE ══ -->
+    <section class="sec" id="sec-usage">
+      <h1>Usage</h1>
+      <p class="sub">Token counts per provider — exact where the provider reports them, estimated otherwise. Stored locally.</p>
+      <div class="card">
+        <div id="usageList"></div>
+        <div class="row"><button class="ghost danger" id="btnUsageReset">Reset usage data</button></div>
+      </div>
+    </section>
+
+    <!-- ══ WORKSPACE ══ -->
+    <section class="sec" id="sec-workspace">
+      <h1>Workspace</h1>
+      <p class="sub">Everything lives in this browser. “Erase everything” removes keys, all projects, chat and history.</p>
+      <div class="card">
+        <div class="row" style="margin-top:0">
+          <button class="ghost" id="btnExpAll">⬇ Export project (.zip)</button>
+          <button class="ghost danger" id="btnWipeChat">Clear conversation</button>
+          <button class="ghost danger" id="btnWipeProj">Delete all files</button>
+        </div>
+        <div class="row">
+          <button class="ghost danger" id="btnWipeAll">Erase everything</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══ ABOUT ══ -->
+    <section class="sec" id="sec-about">
+      <h1>About</h1>
+      <div class="card">
+        <div class="about-blk">
+          <img src="assets/logo.png" alt="" />
+          <div class="at">
+            <b>ANTROR Code</b> <span style="color:var(--faint)">v1.0</span>
+            <p>describe it. ship it.<br/>A product by <b>ANTROR</b> — © 2026 ANTROR. All rights reserved.<br/>
+            <a href="legal.html" target="_blank" rel="noopener">Terms of Service</a> · <a href="legal.html#privacy" target="_blank" rel="noopener">Privacy Policy</a></p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<script src="supabase.js"></script>
+<script>
+'use strict';
+/* Settings page — reads/writes the SAME localStorage keys as the app. */
+const $=(x)=>document.getElementById(x);
+const esc=(s)=>String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const LS={s:'vf.v1.settings',p:'vf.v1.project',c:'vf.v1.chat',h:'vf.v1.checkpoints',pr:'vf.v1.projects',u:'vf.v1.usage'};
+const loadJSON=(k,d)=>{try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v);}catch(e){return d;}};
+const save=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}};
+const S=loadJSON(LS.s,{provider:'zai',keys:{},models:{},bases:{}});
+const persist=()=>{ save(LS.s,S); try{ if(window.opener) window.opener.postMessage({__antrorSettings:1},'*'); }catch(e){} };
+
+const PROVIDERS={
+  zai:{label:'Z.ai · GLM',desc:'GLM-4.x — excellent coding-per-dollar',kind:'openai',base:'https://api.z.ai/api/paas/v4',model:'glm-4.6',keyUrl:'https://z.ai/manage-apikey/apikey-list'},
+  anthropic:{label:'Anthropic · Claude',desc:'Claude Sonnet / Opus — top-tier coding',kind:'anthropic',base:'https://api.anthropic.com',model:'claude-sonnet-4-5',keyUrl:'https://console.anthropic.com/settings/keys'},
+  openai:{label:'OpenAI · GPT',desc:'GPT-5 / Codex family (chat completions)',kind:'openai',base:'https://api.openai.com/v1',model:'gpt-5',keyUrl:'https://platform.openai.com/api-keys'},
+  openrouter:{label:'OpenRouter',desc:'One key → hundreds of models, some free',kind:'openai',base:'https://openrouter.ai/api/v1',model:'z-ai/glm-4.6',keyUrl:'https://openrouter.ai/settings/keys'},
+  gemini:{label:'Google · Gemini',desc:'Gemini 2.5 Pro / Flash — generous free tier',kind:'gemini',base:'https://generativelanguage.googleapis.com/v1beta',model:'gemini-2.5-flash',keyUrl:'https://aistudio.google.com/app/apikey'},
+  groq:{label:'Groq',desc:'Llama & friends at silly speeds',kind:'openai',base:'https://api.groq.com/openai/v1',model:'llama-3.3-70b-versatile',keyUrl:'https://console.groq.com/keys'},
+  ollama:{label:'Ollama · local',desc:'Free & private — run "ollama serve" first',kind:'openai',noKey:true,base:'http://localhost:11434/v1',model:'qwen2.5-coder:7b',keyUrl:''},
+  custom:{label:'Custom endpoint',desc:'Any OpenAI-compatible URL (LM Studio, proxy…)',kind:'openai',noKey:true,base:'',model:'',keyUrl:''},
+};
+const PROV_ORDER=['zai','anthropic','openai','openrouter','gemini','groq','ollama','custom'];
+
+/* ── nav ── */
+document.querySelectorAll('.s-nav nav button').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('.s-nav nav button').forEach(x=>x.classList.toggle('on',x===b));
+  document.querySelectorAll('.s-main>.sec').forEach(s=>s.classList.toggle('on',s.id==='sec-'+b.dataset.sec));
+}));
+
+/* ── model ── */
+let pick=S.provider||'zai';
+function paintProvFields(id){
+  pick=id; const P=PROVIDERS[id];
+  $('keyInput').value=S.keys[id]??'';
+  $('baseInput').placeholder=P.base||'http://localhost:xxxx/v1';
+  $('baseInput').value=S.bases[id]??'';
+  $('modelInput').placeholder=P.model||'model-name';
+  $('modelInput').value=S.models[id]??'';
+  let hint;
+  if(P.noKey&&id==='ollama') hint='No key needed — install Ollama, run <code>ollama serve</code>, pull a model, connect.';
+  else if(P.noKey) hint='Point at any OpenAI-compatible <code>/chat/completions</code> endpoint.';
+  else hint='Get a key from <a style="color:var(--dim)" href="'+P.keyUrl+'" target="_blank" rel="noopener">'+P.keyUrl+'</a> — paste it above.';
+  $('provHint').className='hint'; $('provHint').innerHTML=hint+' Model names are editable — newer releases usually just work.';
+  document.querySelectorAll('#provGrid .pcard').forEach(c=>c.classList.toggle('sel',c.dataset.prov===id));
+}
+function buildGrid(){
+  const g=$('provGrid'); g.innerHTML='';
+  PROV_ORDER.forEach(id=>{
+    const P=PROVIDERS[id];
+    const b=document.createElement('button'); b.type='button'; b.className='pcard'; b.dataset.prov=id;
+    const hasKey=!!S.keys[id];
+    b.innerHTML='<span class="pn">'+esc(P.label)+'</span><span class="pd">'+esc(P.desc)+(hasKey?' · 🔑':'')+'</span>';
+    b.addEventListener('click',()=>paintProvFields(id));
+    g.appendChild(b);
+  });
+}
+buildGrid(); paintProvFields(pick);
+$('btnSaveSet').onclick=()=>{
+  const id=pick, P=PROVIDERS[id];
+  const base=$('baseInput').value.trim(), model=$('modelInput').value.trim(), key=$('keyInput').value.trim();
+  S.provider=id;
+  if(P.noKey) delete S.keys[id];
+  else{ if(!key){ $('provHint').className='hint err'; $('provHint').textContent='A key is required for this provider.'; return; } S.keys[id]=key; }
+  if(base && base!==P.base) S.bases[id]=base; else delete S.bases[id];
+  if(model && model!==P.model) S.models[id]=model; else delete S.models[id];
+  S.onboarded=true;
+  persist(); renderLists();
+  $('provHint').className='hint ok'; $('provHint').textContent='✓ Saved — '+P.label+(model?' · '+model:'')+'. Return to the app tab — it refreshes automatically.';
+};
+$('btnForget').onclick=()=>{ delete S.keys[pick]; persist(); paintProvFields(pick); renderLists(); };
+$('btnTestKey').onclick=async()=>{
+  const id=pick,P=PROVIDERS[id];
+  const cfg={id,kind:P.kind,base:$('baseInput').value.trim()||P.base,model:$('modelInput').value.trim()||P.model,key:$('keyInput').value.trim()};
+  const h=$('provHint'); h.className='hint'; h.textContent='pinging '+P.label+' …';
+  try{
+    const adt=makeAdapter(cfg,[{role:'user',text:'Reply with exactly: ok'}],'You are a connection test.');
+    const r=(await sse(adt)).trim();
+    h.className='hint ok'; h.textContent='✓ connected — the model answered: '+r.slice(0,40);
+  }catch(e){ h.className='hint err'; h.innerHTML=friendlyError(e,cfg); }
+};
+function makeAdapter(cfg,msgs,sys){
+  if(cfg.kind==='anthropic') return {
+    url:cfg.base.replace(/\/+$/,'')+'/v1/messages',
+    headers:{'x-api-key':cfg.key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+    body:{model:cfg.model,max_tokens:16,stream:true,system:sys,messages:msgs.map(m=>({role:m.role,content:[{type:'text',text:m.text}]}))},
+    pick(j){ if(j.type==='error') throw new Error(j.error?.message||'API error'); return j.type==='content_block_delta'?(j.delta?.text||''):''; },
+  };
+  if(cfg.kind==='gemini') return {
+    url:cfg.base.replace(/\/+$/,'')+'/models/'+encodeURIComponent(cfg.model)+':streamGenerateContent?alt=sse',
+    headers:{'x-goog-api-key':cfg.key},
+    body:{systemInstruction:{parts:[{text:sys}]},contents:msgs.map(m=>({role:'user',parts:[{text:m.text}]}))},
+    pick(j){ if(j.promptFeedback?.blockReason) throw new Error('Blocked: '+j.promptFeedback.blockReason); const c=j?.candidates?.[0]; return c?.content?.parts?c.content.parts.map(p=>p.text||'').join(''):''; },
+  };
+  return {
+    url:cfg.base.replace(/\/+$/,'')+'/chat/completions',
+    headers:cfg.key?{'Authorization':'Bearer '+cfg.key}:{},
+    body:{model:cfg.model,stream:true,messages:[{role:'system',content:sys},...msgs.map(m=>({role:m.role,content:m.text}))]},
+    pick(j){ if(j.error) throw new Error(j.error.message||String(j.error)); return j.choices?.[0]?.delta?.content||j.choices?.[0]?.text||''; },
+  };
+}
+async function sse(adt){
+  const res=await fetch(adt.url,{method:'POST',headers:Object.assign({'Content-Type':'application/json'},adt.headers),body:JSON.stringify(adt.body)});
+  if(!res.ok){ let d=''; try{d=(await res.json()).error?.message||'';}catch(e){} throw new Error('HTTP '+res.status+(d?' — '+d:'')); }
+  const reader=res.body.getReader(); const dec=new TextDecoder(); let buf='',out='';
+  while(true){ const {done,value}=await reader.read(); if(done)break; buf+=dec.decode(value,{stream:true}); let nl;
+    while((nl=buf.indexOf('\n'))>=0){ const line=buf.slice(0,nl).trim(); buf=buf.slice(nl+1);
+      if(!line.startsWith('data:'))continue; const data=line.slice(5).trim();
+      if(data==='[DONE]')return out; let j; try{j=JSON.parse(data);}catch(e){continue;}
+      const p=adt.pick(j)||''; if(p)out+=p; } }
+  return out;
+}
+function friendlyError(err,cfg){
+  const P=PROVIDERS[cfg.id];
+  const link=P.keyUrl?' Get a key: <a style="color:var(--dim)" href="'+P.keyUrl+'" target="_blank" rel="noopener">'+P.keyUrl+'</a>.':'';
+  const m=String(err.message||err);
+  if(err instanceof TypeError&&/fetch/i.test(m)) return '<b>Could not reach '+esc(P.label)+'.</b> Usually a network/CORS block — OpenRouter, Groq, Gemini and Ollama are known to work; or point the Base URL at your own proxy.';
+  if(err.status===401||err.status===403) return '<b>Key rejected ('+err.status+').</b> Double-check your API key.'+link;
+  if(err.status===404) return '<b>Not found (404).</b> The model “'+esc(cfg.model)+'” may not exist — edit the model name.'+link;
+  if(err.status===429) return '<b>Rate limited (429).</b> Wait a bit or check your balance.'+link;
+  if(err.status>=500) return '<b>'+esc(P.label)+' server error ('+err.status+').</b> Try again shortly.';
+  return '<b>Request failed:</b> <code>'+esc(m.slice(0,240))+'</code>'+link;
+}
+
+/* ── general ── */
+function paintGeneral(){
+  const lvl=S.thinking??'balanced';
+  document.querySelectorAll('#thinkSeg [data-think]').forEach(b=>b.classList.toggle('active',b.dataset.think===lvl));
+  const f=S.editorFont??'m';
+  document.querySelectorAll('#fontSeg [data-font]').forEach(b=>b.classList.toggle('active',b.dataset.font===f));
+  $('chkAutoSave').checked=S.autoSaveDevice!==false;
+  $('bridgeBox').hidden=!!window.antrorAPI;
+  $('bridgeToken').value=(S.bridge||{}).token||'';
+  paintPickHint();
+}
+function paintPickHint(){
+  const h=$('pickHint');
+  if(window.antrorAPI){ window.antrorAPI.getWorkspace().then(d=>h.textContent='saving into '+d); }
+  else h.textContent=window.showDirectoryPicker?'(browser: pick a folder once — files are written silently after each run)':'(desktop app required for silent saving)';
+}
+document.querySelectorAll('#thinkSeg [data-think]').forEach(b=>b.addEventListener('click',()=>{ S.thinking=b.dataset.think; persist(); paintGeneral(); }));
+document.querySelectorAll('#fontSeg [data-font]').forEach(b=>b.addEventListener('click',()=>{ S.editorFont=b.dataset.font; persist(); paintGeneral(); }));
+$('chkAutoSave').addEventListener('change',(e)=>{ S.autoSaveDevice=e.target.checked; persist(); });
+$('btnPickDir').addEventListener('click',async()=>{
+  if(window.antrorAPI){ const d=await window.antrorAPI.chooseWorkspace(); if(d){ paintPickHint(); toastMsg('📁 Projects will save inside '+d); } return; }
+  if(!window.showDirectoryPicker){ toastMsg('This browser can’t pick folders — use the desktop app or Export ZIP'); return; }
+  try{ await window.showDirectoryPicker({mode:'readwrite'}); localStorage.setItem('vf.v1.pickhint','1'); paintPickHint(); toastMsg('Folder chosen — files save there after every run'); }catch(e){}
+});
+$('btnBridgeSave').onclick=()=>{ S.bridge=S.bridge||{}; S.bridge.token=$('bridgeToken').value.trim(); persist(); toastMsg(S.bridge.token?'✓ Token saved':'Token cleared'); };
+$('btnBridgeTest').onclick=async()=>{
+  const h=$('bridgeHint'); h.className='hint'; h.textContent='pinging the bridge…';
+  try{ const r=await fetch('http://127.0.0.1:8765/ping'); const j=await r.json();
+    h.className='hint ok'; h.textContent='✓ bridge running — '+j.user+'@'+j.host+' ('+j.platform+')'+((S.bridge||{}).token?'':' — paste the token and Save.');
+  }catch(e){ h.className='hint err'; h.textContent='Bridge not reachable — start it: node bridge/bridge.js'; }
+};
+
+/* ── user ── */
+function renderAcct(){
+  const box=$('acctBox');
+  if(!window.VF||!VF.configured()){
+    box.innerHTML='<div class="acct-user"><span class="avatar">?</span><span class="acct-txt"><b>No account connected</b><small>local only — connect your Supabase on the Sign in page</small></span><button class="ghost" id="uGo">Sign in</button></div>';
+    $('uGo').onclick=()=>location.href='login.html';
+    return;
+  }
+  VF.getUser().then(user=>{
+    if(!user){
+      box.innerHTML='<div class="acct-user"><span class="avatar">?</span><span class="acct-txt"><b>Supabase connected</b><small>you are signed out</small></span><button class="ghost" id="uGo">Sign in / Create account</button></div>';
+      $('uGo').onclick=()=>location.href='login.html';
+      return;
+    }
+    const meta=user.user_metadata||{};
+    const display=meta.display_name||meta.full_name||'';
+    const email=user.email||'user';
+    box.innerHTML='<div class="acct-user"><span class="avatar">'+esc((display||email)[0].toUpperCase())+'</span>'+
+      '<span class="acct-txt"><b>'+esc(display||email)+'</b><small>'+esc(email)+'</small></span>'+
+      '<button class="ghost danger" id="uOut">Sign out</button></div>'+
+      '<label class="fld" style="margin-top:16px">Display name <small>(shown on your chip &amp; to the AI)</small><input id="uName" type="text" maxlength="40" value="'+esc(display)+'" placeholder="e.g. Arpit" autocomplete="off" /></label>'+
+      '<div class="row"><button class="primary" id="uSave">Save name</button></div>';
+    $('uOut').onclick=async()=>{ await VF.signOut(); renderAcct(); };
+    $('uSave').onclick=async()=>{
+      const v=$('uName').value.trim(); if(!v){ toastMsg('Type a name first'); return; }
+      try{ await VF.updateName(v); toastMsg('✓ Name saved — '+v); renderAcct(); }
+      catch(e){ toastMsg('Could not save — '+(e.message||e)); }
+    };
+  });
+}
+
+/* ── providers / tokens / usage / workspace ── */
+function renderLists(){
+  const pl=$('provList'); pl.innerHTML='';
+  PROV_ORDER.forEach(id=>{
+    const P=PROVIDERS[id]; const hasKey=!!S.keys[id]; const active=(S.provider||'zai')===id;
+    const row=document.createElement('div'); row.className='plist-row'+(active?' cur':'');
+    row.innerHTML='<span class="dot '+(hasKey||P.noKey?'on':'off')+'"></span><span class="pl-name">'+esc(P.label)+'</span><span class="pl-sub">'+(active?'active · ':'')+(S.models[id]||P.model)+'</span>';
+    const use=document.createElement('button'); use.className='ghost'; use.textContent=active?'In use':'Use';
+    use.onclick=()=>{ S.provider=id; S.onboarded=true; persist(); renderLists(); paintProvFields(id); };
+    row.appendChild(use); pl.appendChild(row);
+  });
+  const tl=$('tokenList'); tl.innerHTML='';
+  const withKeys=PROV_ORDER.filter(id=>S.keys[id]);
+  if(!withKeys.length) tl.innerHTML='<p class="hint">No keys saved yet — pick a provider under <b>Model</b> and paste your key.</p>';
+  withKeys.forEach(id=>{
+    const k=String(S.keys[id]);
+    const row=document.createElement('div'); row.className='plist-row';
+    row.innerHTML='<span class="pl-name">'+esc(PROVIDERS[id].label)+'</span><span class="pl-sub">••••'+esc(k.slice(-4))+' · '+k.length+' chars</span>';
+    const f=document.createElement('button'); f.className='ghost danger'; f.textContent='Forget';
+    f.onclick=()=>{ delete S.keys[id]; persist(); renderLists(); paintProvFields(pick); };
+    row.appendChild(f); tl.appendChild(row);
+  });
+  const u=loadJSON(LS.u,{req:0,tin:0,tout:0,prov:{},day:{}});
+  const today=new Date().toISOString().slice(0,10);
+  const d=(u.day||{})[today]||{req:0,tin:0,tout:0};
+  const fmt=(n)=>n>=1e6?(n/1e6).toFixed(1)+'M':n>=1e3?(n/1e3).toFixed(1)+'k':String(n||0);
+  let html='<div class="usage-tot"><span><b>'+fmt(u.tin+u.tout)+'</b><small>total tokens</small></span><span><b>'+fmt(u.tin)+'</b><small>in</small></span><span><b>'+fmt(u.tout)+'</b><small>out</small></span><span><b>'+(u.req||0)+'</b><small>runs</small></span><span><b>'+fmt(d.tin+d.tout)+'</b><small>today</small></span></div>';
+  const provs=Object.entries(u.prov||{}).sort((a,b)=>(b[1].tin+b[1].tout)-(a[1].tin+a[1].tout));
+  if(provs.length){ html+=provs.map(([id,p])=>'<div class="plist-row"><span class="pl-name">'+esc(PROVIDERS[id]?.label||id)+'</span><span class="pl-sub">'+fmt(p.tin)+' in · '+fmt(p.tout)+' out · '+p.req+' runs</span></div>').join(''); }
+  else html+='<p class="hint">No runs yet — usage appears after your first AI build.</p>';
+  $('usageList').innerHTML=html;
+}
+$('btnUsageReset').onclick=()=>{ if(!confirm('Reset all usage data?'))return; save(LS.u,{req:0,tin:0,tout:0,prov:{},day:{}}); renderLists(); };
+
+let toastT=null;
+function toastMsg(m){ const el=document.createElement('div'); el.textContent=m;
+  el.style.cssText='position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#1a1a1a;border:1px solid rgba(255,255,255,.2);border-radius:10px;padding:10px 18px;font-size:12.5px;z-index:99;box-shadow:0 12px 40px rgba(0,0,0,.6)';
+  document.body.appendChild(el); clearTimeout(toastT); setTimeout(()=>el.remove(),3200); }
+
+$('btnExpAll').onclick=async()=>{
+  const proj=loadJSON(LS.p,{files:{}});
+  const paths=Object.keys(proj.files||{});
+  if(!paths.length){ toastMsg('Nothing to export yet'); return; }
+  try{
+    const mod=await import('https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm');
+    const zip=new mod.default();
+    paths.forEach(p=>zip.file(p,proj.files[p]));
+    const blob=await zip.generateAsync({type:'blob'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=((proj.name||'project').replace(/[^\w.-]+/g,'-'))+'.zip'; a.click();
+  }catch(e){ toastMsg('ZIP library unreachable (offline?)'); }
+};
+$('btnWipeChat').onclick=()=>{ if(!confirm('Clear the current project’s conversation? Files stay.'))return; save(LS.c,[]); toastMsg('Conversation cleared'); };
+$('btnWipeProj').onclick=()=>{ if(!confirm('Delete all FILES of the current project? Chat stays.'))return; const p=loadJSON(LS.p,{}); p.files={}; save(LS.p,p); toastMsg('Files deleted'); };
+$('btnWipeAll').onclick=()=>{
+  if(!confirm('Erase EVERYTHING — keys, all projects, chat and history? Cannot be undone.'))return;
+  if(!confirm('Really sure? Last chance.'))return;
+  ['vf.v1.settings','vf.v1.project','vf.v1.chat','vf.v1.checkpoints','vf.v1.projects','vf.v1.usage','vf.v1.supabase'].forEach(k=>localStorage.removeItem(k));
+  try{ indexedDB.deleteDatabase('antror'); }catch(e){}
+  location.href='index.html';
+};
+
+/* app tab picks up changes without a manual reload */
+window.addEventListener('message',(e)=>{
+  if(e.data && e.data.__antrorSettings===1){
+    Object.assign(S, loadJSON(LS.s,{}));
+    buildGrid(); paintProvFields(S.provider||'zai'); paintGeneral(); renderLists(); renderAcct();
+  }
+});
+window.opener?.focus?.();
+
+paintGeneral(); renderLists(); renderAcct();
+</script>
+</body>
+</html>

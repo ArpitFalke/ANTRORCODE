@@ -1,0 +1,56 @@
+name: desktop-build
+
+# Builds the ANTROR Code desktop app for Windows, macOS and Linux.
+# Run it by pushing a tag (v1.0.0) or from the Actions tab ("Run workflow").
+# Installers appear on:  https://github.com/<your-user>/<your-repo>/releases
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build installers
+        run: npx electron-builder --publish never
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ANTROR-Code-${{ matrix.os }}
+          path: |
+            desktop-dist/*.exe
+            desktop-dist/*.dmg
+            desktop-dist/*.AppImage
+            desktop-dist/*.deb
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+          path: artifacts
+      - name: Attach installers to the GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*

@@ -29,7 +29,7 @@ input,textarea{font:inherit;color:inherit}
 
 #app{
   display:grid;height:100vh;
-  grid-template-columns:236px minmax(360px,1fr) clamp(320px,30vw,430px);
+  grid-template-columns:236px minmax(360px,1fr) var(--chatw, clamp(320px,30vw,430px));
   grid-template-rows:minmax(0,1fr);   /* keep panels inside the viewport — fixes chat scroll + sidebar foot cut off on maximized screens */
 }
 
@@ -181,10 +181,22 @@ input,textarea{font:inherit;color:inherit}
 }
 
 /* ══════════ CHAT PANEL ══════════ */
-#chatPanel{display:flex;flex-direction:column;min-width:0;min-height:0;border-left:1px solid var(--line);background:var(--bg2)}
+#chatPanel{display:flex;flex-direction:column;min-width:0;min-height:0;position:relative;border-left:1px solid var(--line);background:var(--bg2)}
+#chatResizer{position:absolute;left:-4px;top:0;bottom:0;width:9px;cursor:col-resize;z-index:10}
+#chatResizer:hover{background:linear-gradient(90deg,transparent,rgba(255,255,255,.14))}
 body.nochat #app{grid-template-columns:236px minmax(360px,1fr)}
 body.nochat #chatPanel{display:none}
 body.nochat #chatFab{display:block}
+/* focus mode — chat takes over, everything else dims (like ZCode) */
+body.focusmode::after{
+  content:"";position:fixed;inset:0;z-index:85;background:rgba(0,0,0,.62);
+  backdrop-filter:blur(3px);animation:fadeIn .2s ease;
+}
+body.focusmode #chatPanel{
+  position:fixed;top:0;right:0;bottom:0;width:min(760px,94vw);z-index:90;
+  box-shadow:-40px 0 90px rgba(0,0,0,.75);border-left:1px solid var(--line2);
+}
+body.focusmode #chatResizer{display:none}
 .chat-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 10px}
 .chat-title{font-weight:700;font-size:13.5px;letter-spacing:.3px}
 .chat-head-btns{display:flex;gap:2px}
@@ -251,14 +263,30 @@ body.nochat #chatFab{display:block}
   border:1px dashed var(--line2);transition:.15s;
 }
 .chip:hover{color:var(--txt);border-color:rgba(255,255,255,.4);border-style:solid;background:rgba(255,255,255,.04)}
-#composerForm{display:flex;gap:8px;padding:10px 14px 14px;align-items:flex-end}
-#promptBox{
-  flex:1;resize:none;max-height:180px;background:var(--panel);border:1px solid var(--line2);border-radius:12px;
-  padding:11px 13px;font-size:13px;line-height:1.5;outline:none;transition:border-color .15s, box-shadow .15s;
+
+/* ══ ZCode-style composer: one card, textarea + toolbar inside ══ */
+#composerForm{padding:8px 14px 14px}
+.composer{
+  border:1px solid var(--line2);border-radius:18px;background:var(--panel);
+  padding:13px 14px 10px;transition:border-color .15s, box-shadow .15s;
 }
-#promptBox:focus{border-color:rgba(255,255,255,.4);box-shadow:0 0 0 3px rgba(255,255,255,.06)}
+.composer:hover{border-color:rgba(255,255,255,.28)}
+.composer:focus-within{border-color:rgba(255,255,255,.45);box-shadow:0 0 0 3px rgba(255,255,255,.06)}
+#promptBox{
+  display:block;width:100%;resize:none;max-height:200px;min-height:46px;background:transparent;border:none;outline:none;
+  padding:5px 4px;font-size:13.5px;line-height:1.55;color:var(--txt);
+}
+#promptBox::placeholder{color:var(--faint)}
+.composer-bar{display:flex;align-items:center;gap:8px;margin-top:6px}
+.pb-chip{
+  display:inline-flex;align-items:center;gap:7px;padding:6px 12px;border-radius:999px;flex:none;
+  border:1px solid var(--line2);font-size:11px;font-weight:650;color:var(--dim);transition:.15s;
+}
+.pb-chip:hover{color:var(--txt);border-color:rgba(255,255,255,.38)}
+.pb-chip.on{color:var(--txt);border-color:rgba(255,255,255,.45);background:rgba(255,255,255,.07)}
+.pb-hint{margin-left:auto;font-size:10px;color:var(--faint);flex:none}
 #sendBtn,#stopBtn{
-  width:42px;height:42px;flex:none;border-radius:10px;font-size:14px;font-weight:800;color:#0a0a0a;
+  width:36px;height:36px;flex:none;border-radius:12px;font-size:14px;font-weight:800;color:#0a0a0a;
   background:#e8e8e8;transition:.15s;
 }
 #sendBtn:hover{background:#fff;transform:scale(1.05)}
@@ -456,3 +484,91 @@ button.ghost.danger:hover{color:var(--err);border-color:rgba(224,133,133,.5)}
   font-family:var(--mono);font-size:12.5px;
 }
 #termIn::placeholder{color:var(--faint)}
+
+/* ══════════ REASONING / THINKING ══════════ */
+.thinkline{
+  font-size:11.5px;color:var(--dim);font-style:italic;padding:6px 2px 2px;
+  display:flex;align-items:center;gap:7px;
+}
+.thinkdetails{
+  margin-bottom:7px;border:1px solid var(--line);border-radius:9px;background:#101010;overflow:hidden;
+}
+.thinkdetails summary{
+  cursor:pointer;padding:8px 12px;font-size:11px;font-weight:650;color:var(--dim);list-style:none;
+  display:flex;align-items:center;gap:7px;
+}
+.thinkdetails summary::-webkit-details-marker{display:none}
+.thinkdetails summary::before{content:"▸";transition:transform .15s;color:var(--faint)}
+.thinkdetails[open] summary::before{transform:rotate(90deg)}
+.thinkdetails summary:hover{color:var(--txt)}
+.thinkdetails .thinkbody{
+  padding:2px 12px 10px;font-family:var(--mono);font-size:11px;line-height:1.6;color:var(--faint);
+  white-space:pre-wrap;word-break:break-word;max-height:220px;overflow-y:auto;
+}
+
+/* ══════════ DIFF VIEW ══════════ */
+.da{color:#9fd8a8;font-weight:700}
+.dr{color:#e08585;font-weight:700}
+.dstats{font-family:var(--mono);font-size:12px}
+.modal.diffmodal{width:min(720px,94vw)}
+#diffBody{
+  background:#0c0c0c;border:1px solid var(--line);border-radius:10px;padding:8px 0;
+  font-family:var(--mono);font-size:11.5px;line-height:1.55;max-height:56vh;overflow-y:auto;
+}
+.dl{padding:1px 14px;white-space:pre;overflow-x:auto}
+.dl.add{background:rgba(122,190,140,.10);color:#a9d8b2}
+.dl.del{background:rgba(224,133,133,.09);color:#e0a3a3;text-decoration:line-through;text-decoration-color:rgba(224,133,133,.35)}
+.dl.gap{color:var(--faint);text-align:center;padding:2px 0}
+
+/* file-card diff badges */
+.fcard .da,.fcard .dr{font-weight:700}
+
+/* ══════════ SETTINGS segmented controls (reuse .seg look) ══════════ */
+.seg button{
+  padding:6px 16px;border-radius:6px;font-size:12px;font-weight:650;color:var(--dim);transition:.15s;
+}
+.seg button:hover{color:var(--txt)}
+.seg button.active{color:#0a0a0a;background:#e8e8e8;font-weight:700}
+#thinkSeg,#fontSeg{margin-bottom:8px}
+
+/* ══════════ ACTIVITY FEED (live, before full output) ══════════ */
+.activity{display:flex;flex-direction:column;gap:4px;padding:2px 2px 8px}
+.actline{
+  font-family:var(--mono);font-size:11px;color:var(--dim);animation:pop .2s ease;
+  display:flex;align-items:center;gap:7px;
+}
+.actline.live{color:var(--txt)}
+.actline.live::after{
+  content:"";width:7px;height:7px;border-radius:50%;background:var(--dim);
+  animation:pulseW 1.2s infinite;
+}
+.actline.ok{color:#c9c9c9}
+
+/* ══════════ SETTINGS: sections, lists, usage ══════════ */
+.glab{font-size:11px;font-weight:700;color:var(--dim);margin:12px 0 6px}
+.switch-row{
+  display:flex;align-items:center;gap:9px;font-size:12px;color:var(--dim);cursor:pointer;
+  padding:9px 11px;border:1px solid var(--line);border-radius:9px;background:var(--panel);margin-bottom:8px;
+}
+.switch-row input{width:15px;height:15px;accent-color:#e8e8e8;flex:none}
+.switch-row:hover{color:var(--txt)}
+#bridgeBox[hidden]{display:none}
+.plist-row{
+  display:flex;align-items:center;gap:10px;padding:9px 11px;border:1px solid var(--line);
+  border-radius:9px;background:var(--panel);margin-bottom:6px;font-size:12px;
+}
+.plist-row.cur{border-color:rgba(255,255,255,.3)}
+.plist-row .pl-name{font-weight:650;color:var(--txt);flex:none;min-width:120px}
+.plist-row .pl-sub{flex:1;min-width:0;color:var(--faint);font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right}
+.plist-row .pl-sub.mono{font-family:var(--mono)}
+.plist-row button{flex:none;padding:5px 12px;font-size:11px}
+.usage-tot{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+.usage-tot span{
+  flex:1;min-width:84px;display:flex;flex-direction:column;align-items:center;gap:2px;
+  background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 6px;
+}
+.usage-tot b{font-size:16px;font-weight:800;color:var(--txt)}
+.usage-tot small{font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
+@media (max-width:1280px){.pb-hint{display:none}}
+#sendBtn,#stopBtn{margin-left:auto}
+@media (max-width:1280px){.pb-hint{display:none}}

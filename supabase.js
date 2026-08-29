@@ -93,6 +93,12 @@ create policy "own rows" on public.projects
     const cl = client(); if (!cl) return;
     try { await cl.auth.signOut(); } catch (e) { /* ignore */ }
   }
+  async function updateName(name) {
+    const cl = client(); if (!cl) throw new Error('Supabase not configured');
+    const { data, error } = await cl.auth.updateUser({ data: { display_name: String(name || '').trim().slice(0, 40) } });
+    if (error) throw error;
+    return data;
+  }
   function onAuthChange(fn) {
     const cl = client(); if (!cl) return () => {};
     const { data } = cl.auth.onAuthStateChange((_e, sess) => { try { fn(sess); } catch (err) {} });
@@ -137,7 +143,7 @@ create policy "own rows" on public.projects
 
   return {
     PROJECTS_SQL, cfg, configured, saveCfg, clearCfg, client,
-    getSession, getUser, signUp, resend, signIn, oauth, signOut, onAuthChange,
+    getSession, getUser, signUp, resend, signIn, oauth, signOut, onAuthChange, updateName,
     pushProject, listCloud, deleteCloud,
   };
 })();

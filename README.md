@@ -14,13 +14,29 @@ stored in `localStorage` and requests go straight from your browser to the provi
 ANTROR Code is plain HTML/CSS/JS — serve the folder with any static server:
 
 ```bash
-cd vibeforge
+cd ANTRORCODE
 python3 -m http.server 8899      # or: npx serve .
 # open http://localhost:8899
 ```
 
 (Opening `index.html` directly via double-click also works in most browsers, since there is no
 build step.)
+
+## Desktop app (like ZCode / Codex / Claude Code)
+
+The same app ships as a real desktop app with native powers: the terminal runs commands on
+your machine behind a permission dialog (no bridge needed) and every AI-generated project is
+auto-saved into `~/ANTRORCode/<project>/` (or a folder you choose).
+
+```bash
+cd ANTRORCODE
+npm install          # downloads Electron
+npm start            # run the desktop app
+npm run dist         # build installers → desktop-dist/ (.AppImage/.deb, .exe, .dmg)
+```
+
+In the browser version you get the same auto-save by picking a folder once
+(⚙ Settings → General → Choose folder…) — Chrome/Edge write the files silently after every run.
 
 1. Pick a provider and paste your API key (or choose **Ollama** to go key-free & local).
 2. Describe what to build — e.g. *"a pastel landing page for my dog-walking side hustle"*.
