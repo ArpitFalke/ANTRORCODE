@@ -2,7 +2,7 @@
   "name": "antror-code",
   "productName": "ANTROR Code",
   "version": "1.0.0",
-  "description": "ANTROR Code — describe it. ship it. A product by ANTROR.",
+  "description": "ANTROR Code \u2014 describe it. ship it. A product by ANTROR.",
   "author": "ANTROR <antror@users.noreply.github.com>",
   "license": "MIT",
   "main": "main.js",
@@ -35,7 +35,8 @@
       "supabase-config.js",
       "terminal.js",
       "assets/**",
-      "bridge/**"
+      "bridge/**",
+      "build/**"
     ],
     "directories": {
       "output": "desktop-dist"
@@ -56,7 +57,8 @@
         }
       ],
       "category": "Development",
-      "maintainer": "ANTROR <antror@users.noreply.github.com>"
+      "maintainer": "ANTROR <antror@users.noreply.github.com>",
+      "icon": "build/icon.png"
     },
     "win": {
       "target": [
@@ -66,7 +68,8 @@
             "x64"
           ]
         }
-      ]
+      ],
+      "icon": "build/icon.ico"
     },
     "mac": {
       "target": [
@@ -78,7 +81,8 @@
           ]
         }
       ],
-      "category": "public.app-category.developer-tools"
+      "category": "public.app-category.developer-tools",
+      "icon": "build/icon.png"
     },
     "artifactName": "ANTROR-Code-${os}-${arch}.${ext}",
     "deb": {

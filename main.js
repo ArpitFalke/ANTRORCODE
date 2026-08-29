@@ -82,6 +82,19 @@ function createWindow() {
   win.webContents.on('render-process-gone', (_e, details) => {
     try { if (details.reason !== 'clean-exit') win.webContents.reload(); } catch (e) {}
   });
+  // safety net: map clean URLs (/settings) and stray absolute paths to local files
+  // so no in-app navigation can ever land on a blank screen
+  win.webContents.on('will-navigate', (e, url) => {
+    if (url.startsWith('file://')) return;
+    try {
+      const u = new URL(url);
+      if (u.protocol === 'http:' || u.protocol === 'https:') { shell.openExternal(url); e.preventDefault(); return; }
+      let name = decodeURIComponent(u.pathname).replace(/^\/+/,'').replace(/\/+$/,'') || 'index';
+      if (!/\.(html?|js|css|json|png|svg|ico|webmanifest)$/i.test(name)) name += '.html';
+      e.preventDefault();
+      win.loadFile(name);
+    } catch (err) { e.preventDefault(); win.loadFile('index.html'); }
+  });
   win.loadFile(path.join(__dirname, 'index.html'));
   win.webContents.setWindowOpenHandler(({ url }) => {
     if (/^https?:\/\//.test(url)) shell.openExternal(url); // open legal/key links in the real browser
