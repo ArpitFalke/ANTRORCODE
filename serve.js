@@ -24,6 +24,8 @@ http.createServer((req, res) => {
   const candidates = [];
   if (p === '/' || p === '') {
     candidates.push('index.html');
+  } else if (p.startsWith('/p/')) {          // project deep-link → the app resolves the id
+    candidates.push('index.html');
   } else {
     candidates.push(p.replace(/^\/+/, ''));                       // exact file (assets, sw.js, .html)
     if (!path.extname(p)) candidates.push(p.replace(/^\/+/, '') + '.html'); // /settings → settings.html

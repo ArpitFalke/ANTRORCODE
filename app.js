@@ -132,6 +132,33 @@ function persistCurrentProject(){
   state.projects.sort((a,b)=>b.updatedAt-a.updatedAt);
   while(state.projects.length>24) state.projects.pop(); // keep storage sane
   saveProjects(); saveProject(); saveChat();
+  syncProjectUrl();
+}
+function syncProjectUrl(){
+  if(!location.protocol.startsWith('http') || !state.project.id) return;
+  try{ history.replaceState(null,'','/p/'+state.project.id); }catch(e){}
+}
+function openFromUrl(){
+  const m=location.pathname.match(/\/p\/([\w-]+)/);
+  if(!m) return;
+  const pid=m[1];
+  const local=state.projects.find(p=>p.id===pid);
+  if(local){ if(state.project.id!==local.id) switchToProject(clone(local)); return; }
+  (async()=>{
+    try{
+      if(!(window.VF && VF.configured())) return;
+      const rows=await VF.listCloud();
+      const r=rows.find(x=>x.cloudId===pid);
+      if(!r) return;
+      persistCurrentProject();
+      state.project=Object.assign(blankProject(r.name),{files:clone(r.files),chat:clone(r.chat||[]),cloudId:r.cloudId});
+      state.chat=clone(state.project.chat);
+      state.ui.tabs=[]; state.ui.open=null;
+      saveProject(); saveChat(); persistCurrentProject();
+      renderAll(); restoreChatLog(); showView('preview'); syncPristine(true);
+      toast('☁ Opened “'+r.name+'” from your cloud','ok');
+    }catch(e){}
+  })();
 }
 function blankProject(name){
   return { id:'p'+nowTs()+Math.floor(Math.random()*99), name:name||('untitled-'+Math.floor(Math.random()*90+10)), files:{}, chat:[], updatedAt:nowTs(), cloudId:null };
@@ -163,14 +190,17 @@ const PROV_ORDER = ['zai','anthropic','openai','openrouter','gemini','groq','nvi
 /* ── build modes (premium composer picker) ── */
 const THINK_LABEL={off:'Off',low:'Low',medium:'Medium',max:'Max'};
 const THINK_LVL={low:{a:4096,g:4096,o:'low'},medium:{a:8192,g:8192,o:'medium'},max:{a:16384,g:24576,o:'high'}};
+const ICON_WEB='<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M3 9h18M9 4v14"/></svg>';
+const ICON_STACK='<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/></svg>';
+const ICON_PAD='<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 9h12a4 4 0 0 1 4 4v3a2.5 2.5 0 0 1-4.5 1.5L16 15H8l-1.5 2.5A2.5 2.5 0 0 1 2 16v-3a4 4 0 0 1 4-4z"/><path d="M7 12h3M8.5 10.5v3"/><circle cx="16.5" cy="12" r=".6" fill="currentColor"/><circle cx="18.5" cy="14" r=".6" fill="currentColor"/></svg>';
 const MODES={
-  web: { icon:'🌐', label:'Web app',
+  web: { icon:ICON_WEB, label:'Web app',
     hint:'Sites, dashboards and tools — clean vanilla HTML/CSS/JS.',
     sys:'CURRENT MODE: WEB APP. Build polished, responsive single-page web apps with vanilla HTML/CSS/JS.' },
-  full:{ icon:'🧩', label:'Full-stack',
+  full:{ icon:ICON_STACK, label:'Full-stack',
     hint:'Frontend + backend — Node/Express API, data layer, README with run steps.',
     sys:'CURRENT MODE: FULL-STACK APP. Build the frontend (index.html/style.css/app.js) AND a real backend: server.js (Node + Express), a data layer (db.js — in-memory with JSON-file persistence), and package.json with a start script and dependencies listed. The frontend must still run standalone in the preview: wrap every fetch in try/catch and fall back to built-in demo data when the API is unreachable. Add a README.md with exact run steps (npm install && node server.js). Visually mark which parts are backend-only.' },
-  game:{ icon:'🎮', label:'Game',
+  game:{ icon:ICON_PAD, label:'Game',
     hint:'Canvas games with juice — physics, particles, sound, touch + keys.',
     sys:'CURRENT MODE: GAME. Build a complete, immediately playable browser game: index.html + game.js + style.css using <canvas> and a 60fps requestAnimationFrame loop. Include real game feel: acceleration/friction physics, particles, screen shake, hit flashes, easing, procedural sound via WebAudio (no external files), keyboard AND touch controls, score with best-score saved locally, pause and game-over/restart flow. Polish the visuals with gradients, glow and clean typography. It must run by just opening index.html.' },
 };
@@ -1486,7 +1516,6 @@ function renderStatusChip(){
   if(pbDot) pbDot.className='dot '+(ready?'on':'off');
   if(pbText) pbText.textContent = (PROVIDERS[cfg.id]?.label||'no model') +
     (ready && cfg.model ? ' · '+cfg.model.split('/').pop().slice(0,20) : '');
-  document.title = (state.project.name||'untitled')+' — ANTROR Code';
 }
 function paintThinkChip(){
   const b=$id('pbThink'); if(!b) return;
@@ -1860,7 +1889,7 @@ function bind(){
   const modePop=$id('modePop');
   const paintMode=()=>{
     const m=MODES[state.settings.mode]||MODES.web;
-    $id('pbModeIcon').textContent=m.icon; $id('pbModeText').textContent=m.label;
+    $id('pbModeIcon').innerHTML=m.icon; $id('pbModeText').textContent=m.label;
   };
   const renderModePop=()=>{
     modePop.innerHTML='';
@@ -1994,6 +2023,7 @@ function init(){
   updateCtxPill(ctxOfConversation(''));
   if(!window.antrorAPI) idbGetDir().then(h=>{ if(h) state.ui.saveDirHandle=h; });
   restoreCloudOnSignIn();
+  openFromUrl();
   if(!state.settings.onboarded) $id('welcome').hidden=false;
   try{ const d=localStorage.getItem('vf.v1.draft'); if(d){ $id('promptBox').value=d; } }catch(e){}
   autoGrow();

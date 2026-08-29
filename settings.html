@@ -103,6 +103,14 @@ button.ghost.danger:hover{color:var(--err);border-color:rgba(224,133,133,.5)}
 .dot.on{background:#e6e6e6;box-shadow:0 0 6px rgba(255,255,255,.5)}
 .dot.off{background:var(--faint)}
 
+.mchips{display:flex;flex-wrap:wrap;gap:6px;margin:-4px 0 14px}
+.mchip{
+  padding:5px 11px;border-radius:999px;font-size:11px;font-family:var(--mono);
+  background:var(--panel);border:1px solid var(--line);color:var(--dim);cursor:pointer;transition:.13s;
+}
+.mchip:hover{color:var(--txt);border-color:rgba(255,255,255,.4)}
+.mchip.on{background:#e8e8e8;color:#0a0a0a;border-color:#e8e8e8;font-weight:700}
+
 /* usage */
 .usage-tot{display:flex;gap:9px;margin-bottom:14px;flex-wrap:wrap}
 .usage-tot span{flex:1;min-width:90px;display:flex;flex-direction:column;align-items:center;gap:3px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 8px}
@@ -164,6 +172,7 @@ button.ghost.danger:hover{color:var(--err);border-color:rgba(224,133,133,.5)}
           <label class="fld">API key<input id="keyInput" type="password" placeholder="paste your API key…" autocomplete="off" /></label>
           <label class="fld">Base URL <small>(optional — proxy / local endpoint)</small><input id="baseInput" type="text" placeholder="https://…" autocomplete="off" spellcheck="false" /></label>
           <label class="fld">Model<input id="modelInput" type="text" placeholder="" autocomplete="off" spellcheck="false" /></label>
+          <div id="modelChips" class="mchips"></div>
           <p id="provHint" class="hint"></p>
         </div>
         <div class="row">
@@ -364,7 +373,9 @@ function paintProvFields(id){
   else hint='Get a key from <a style="color:var(--dim)" href="'+P.keyUrl+'" target="_blank" rel="noopener">'+P.keyUrl+'</a> — paste it above.';
   $('provHint').className='hint'; $('provHint').innerHTML=hint+' Model names are editable — newer releases usually just work.';
   document.querySelectorAll('#provGrid .pcard').forEach(c=>c.classList.toggle('sel',c.dataset.prov===id));
+  renderModelChips();
 }
+$('modelInput').addEventListener('input',renderModelChips);
 function buildGrid(){
   const g=$('provGrid'); g.innerHTML='';
   PROV_ORDER.forEach(id=>{
@@ -376,7 +387,7 @@ function buildGrid(){
     g.appendChild(b);
   });
 }
-buildGrid(); paintProvFields(pick);
+buildGrid(); paintProvFields(pick); renderModelChips();
 $('btnSaveSet').onclick=()=>{
   const id=pick, P=PROVIDERS[id];
   const base=$('baseInput').value.trim(), model=$('modelInput').value.trim(), key=$('keyInput').value.trim();
@@ -389,7 +400,7 @@ $('btnSaveSet').onclick=()=>{
   persist(); renderLists();
   $('provHint').className='hint ok'; $('provHint').textContent='✓ Saved — '+P.label+(model?' · '+model:'')+'. Return to the app tab — it refreshes automatically.';
 };
-$('btnForget').onclick=()=>{ delete S.keys[pick]; persist(); paintProvFields(pick); renderLists(); };
+$('btnForget').onclick=()=>{ delete S.keys[pick]; persist(); paintProvFields(pick); renderModelChips(); renderLists(); };
 $('btnTestKey').onclick=async()=>{
   const id=pick,P=PROVIDERS[id];
   const cfg={id,kind:P.kind,base:$('baseInput').value.trim()||P.base,model:$('modelInput').value.trim()||P.model,key:$('keyInput').value.trim()};
@@ -534,7 +545,7 @@ function renderLists(){
     const row=document.createElement('div'); row.className='plist-row';
     row.innerHTML='<span class="pl-name">'+esc(PROVIDERS[id].label)+'</span><span class="pl-sub">••••'+esc(k.slice(-4))+' · '+k.length+' chars</span>';
     const f=document.createElement('button'); f.className='ghost danger'; f.textContent='Forget';
-    f.onclick=()=>{ delete S.keys[id]; persist(); renderLists(); paintProvFields(pick); };
+    f.onclick=()=>{ delete S.keys[id]; persist(); renderLists(); paintProvFields(pick); renderModelChips(); };
     row.appendChild(f); tl.appendChild(row);
   });
   const u=loadJSON(LS.u,{req:0,tin:0,tout:0,prov:{},day:{}});
@@ -580,7 +591,33 @@ $('btnWipeAll').onclick=()=>{
 window.addEventListener('message',(e)=>{
   if(e.data && e.data.__antrorSettings===1){
     Object.assign(S, loadJSON(LS.s,{}));
-    buildGrid(); paintProvFields(S.provider||'zai'); /* ── extensions: plugins / skills / mcp ── */
+    buildGrid(); paintProvFields(S.provider||'zai'); /* ── model catalog: every provider, every model ── */
+const MODELS={
+  zai:['glm-4.6','glm-4.5','glm-4.5-air','glm-4.5-flash','glm-4-32b-0414-128k','glm-4-0520','glm-4-plus','glm-4-air','glm-4-flash'],
+  anthropic:['claude-opus-4-1','claude-opus-4-0','claude-sonnet-4-5','claude-sonnet-4-0','claude-3-7-sonnet-latest','claude-3-5-sonnet-latest','claude-3-5-haiku-latest','claude-3-opus-latest','claude-3-haiku-20240307'],
+  openai:['gpt-5','gpt-5-mini','gpt-5-nano','gpt-4.1','gpt-4.1-mini','gpt-4.1-nano','gpt-4o','gpt-4o-mini','chatgpt-4o-latest','o3','o4-mini','o1','o1-mini'],
+  openrouter:['z-ai/glm-4.6','anthropic/claude-sonnet-4.5','anthropic/claude-opus-4.1','openai/gpt-5','openai/gpt-4.1','google/gemini-2.5-pro','google/gemini-2.5-flash','deepseek/deepseek-chat-v3.1','deepseek/deepseek-r1','meta-llama/llama-3.3-70b-instruct','qwen/qwen3-coder','mistralai/mistral-large-2411','x-ai/grok-4'],
+  gemini:['gemini-2.5-pro','gemini-2.5-flash','gemini-2.5-flash-lite','gemini-2.0-flash','gemini-2.0-flash-lite','gemini-1.5-pro','gemini-1.5-flash'],
+  groq:['llama-3.3-70b-versatile','llama-3.1-8b-instant','openai/gpt-oss-120b','openai/gpt-oss-20b','qwen/qwen3-32b','moonshotai/kimi-k2-instruct','gemma2-9b-it'],
+  nvidia:['meta/llama-3.3-70b-instruct','meta/llama-3.1-405b-instruct','meta/llama-3.1-70b-instruct','nvidia/llama-3.3-nemotron-super-49b-v1','nvidia/llama-3.1-nemotron-70b-instruct','deepseek-ai/deepseek-r1','deepseek-ai/deepseek-v3','qwen/qwen2.5-coder-32b-instruct','qwen/qwen2.5-72b-instruct','mistralai/mixtral-8x22b-instruct-v0.1','microsoft/phi-4'],
+  ollama:['qwen2.5-coder:7b','qwen2.5-coder:14b','llama3.2:3b','llama3.1:8b','deepseek-coder-v2:16b','codellama:13b','mistral:7b','gemma2:9b','phi4:14b'],
+  custom:[],
+};
+function renderModelChips(){
+  const box=$('modelChips'); if(!box) return;
+  const list=MODELS[pick]||[];
+  box.innerHTML='';
+  if(!list.length){ box.innerHTML='<p class="hint">Any OpenAI-compatible model name works here.</p>'; return; }
+  const cur=$('modelInput').value.trim()||PROVIDERS[pick].model;
+  list.forEach(m=>{
+    const c=document.createElement('button'); c.type='button'; c.className='mchip'+(m===cur?' on':'');
+    c.textContent=m;
+    c.onclick=()=>{ $('modelInput').value=m; renderModelChips(); };
+    box.appendChild(c);
+  });
+}
+
+/* ── extensions: plugins / skills / mcp ── */
 const PLUGINS=[
   ['tailwind','Tailwind CSS','Utility-first styling via CDN for everything'],
   ['motion','Motion & animation','Transitions, keyframes and micro-interactions everywhere'],
@@ -638,6 +675,32 @@ paintGeneral(); renderLists(); renderAcct(); renderExt();
   }
 });
 window.opener?.focus?.();
+
+/* ── model catalog: every provider, every model ── */
+const MODELS={
+  zai:['glm-4.6','glm-4.5','glm-4.5-air','glm-4.5-flash','glm-4-32b-0414-128k','glm-4-0520','glm-4-plus','glm-4-air','glm-4-flash'],
+  anthropic:['claude-opus-4-1','claude-opus-4-0','claude-sonnet-4-5','claude-sonnet-4-0','claude-3-7-sonnet-latest','claude-3-5-sonnet-latest','claude-3-5-haiku-latest','claude-3-opus-latest','claude-3-haiku-20240307'],
+  openai:['gpt-5','gpt-5-mini','gpt-5-nano','gpt-4.1','gpt-4.1-mini','gpt-4.1-nano','gpt-4o','gpt-4o-mini','chatgpt-4o-latest','o3','o4-mini','o1','o1-mini'],
+  openrouter:['z-ai/glm-4.6','anthropic/claude-sonnet-4.5','anthropic/claude-opus-4.1','openai/gpt-5','openai/gpt-4.1','google/gemini-2.5-pro','google/gemini-2.5-flash','deepseek/deepseek-chat-v3.1','deepseek/deepseek-r1','meta-llama/llama-3.3-70b-instruct','qwen/qwen3-coder','mistralai/mistral-large-2411','x-ai/grok-4'],
+  gemini:['gemini-2.5-pro','gemini-2.5-flash','gemini-2.5-flash-lite','gemini-2.0-flash','gemini-2.0-flash-lite','gemini-1.5-pro','gemini-1.5-flash'],
+  groq:['llama-3.3-70b-versatile','llama-3.1-8b-instant','openai/gpt-oss-120b','openai/gpt-oss-20b','qwen/qwen3-32b','moonshotai/kimi-k2-instruct','gemma2-9b-it'],
+  nvidia:['meta/llama-3.3-70b-instruct','meta/llama-3.1-405b-instruct','meta/llama-3.1-70b-instruct','nvidia/llama-3.3-nemotron-super-49b-v1','nvidia/llama-3.1-nemotron-70b-instruct','deepseek-ai/deepseek-r1','deepseek-ai/deepseek-v3','qwen/qwen2.5-coder-32b-instruct','qwen/qwen2.5-72b-instruct','mistralai/mixtral-8x22b-instruct-v0.1','microsoft/phi-4'],
+  ollama:['qwen2.5-coder:7b','qwen2.5-coder:14b','llama3.2:3b','llama3.1:8b','deepseek-coder-v2:16b','codellama:13b','mistral:7b','gemma2:9b','phi4:14b'],
+  custom:[],
+};
+function renderModelChips(){
+  const box=$('modelChips'); if(!box) return;
+  const list=MODELS[pick]||[];
+  box.innerHTML='';
+  if(!list.length){ box.innerHTML='<p class="hint">Any OpenAI-compatible model name works here.</p>'; return; }
+  const cur=$('modelInput').value.trim()||PROVIDERS[pick].model;
+  list.forEach(m=>{
+    const c=document.createElement('button'); c.type='button'; c.className='mchip'+(m===cur?' on':'');
+    c.textContent=m;
+    c.onclick=()=>{ $('modelInput').value=m; renderModelChips(); };
+    box.appendChild(c);
+  });
+}
 
 /* ── extensions: plugins / skills / mcp ── */
 const PLUGINS=[

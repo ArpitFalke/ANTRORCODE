@@ -57,11 +57,11 @@ One link to share anywhere: **[antrorcode.vercel.app/download](https://antrorcod
 
 | | | |
 |---|---|---|
-| <img src="https://cdn.jsdelivr.net/npm/simple-icons@9/icons/windows.svg" width="34" alt="Windows"/> | **Windows** | `.exe` installer (64-bit). Windows may show *"Windows protected your PC"* for unsigned apps — click **More info → Run anyway**. Verify against the release's `SHA256SUMS.txt`. |
-| <img src="https://cdn.jsdelivr.net/npm/simple-icons@13/icons/apple.svg" width="34" alt="macOS"/> | **macOS** | `.dmg` for Apple Silicon & Intel. If Gatekeeper hesitates: right-click the app → **Open** (first launch only). |
-| <img src="https://cdn.jsdelivr.net/npm/simple-icons@13/icons/linux.svg" width="34" alt="Linux"/> | **Linux** | `.AppImage` — `chmod +x` and run, no install needed. Or `.deb` for Debian/Ubuntu/Mint (`sudo dpkg -i`). x64. |
-| <img src="https://cdn.jsdelivr.net/npm/simple-icons@13/icons/android.svg" width="34" alt="Android"/> | **Android** | Installable app — open the site in Chrome → menu → **Install app**. Or build a signed `.apk` via PWABuilder from the download page. |
-| <img src="https://cdn.jsdelivr.net/npm/simple-icons@13/icons/googlechrome.svg" width="34" alt="Web"/> | **Web** | Nothing to install — [open the studio](https://antrorcode.vercel.app). Works offline after your first visit (PWA). |
+| <img src="https://skillicons.dev/icons?i=windows" width="42" alt="Windows"/> | **Windows** | `.exe` installer (64-bit). Windows may show *"Windows protected your PC"* for unsigned apps — click **More info → Run anyway**. Verify against the release's `SHA256SUMS.txt`. |
+| <img src="https://skillicons.dev/icons?i=apple" width="42" alt="macOS"/> | **macOS** | `.dmg` for Apple Silicon & Intel. If Gatekeeper hesitates: right-click the app → **Open** (first launch only). |
+| <img src="https://skillicons.dev/icons?i=linux" width="42" alt="Linux"/> | **Linux** | `.AppImage` — `chmod +x` and run, no install needed. Or `.deb` for Debian/Ubuntu/Mint (`sudo dpkg -i`). x64. |
+| <img src="https://skillicons.dev/icons?i=android" width="42" alt="Android"/> | **Android** | Installable app — open the site in Chrome → menu → **Install app**. Or build a signed `.apk` via PWABuilder from the download page. |
+| <img src="https://skillicons.dev/icons?i=chrome" width="42" alt="Web"/> | **Web** | Nothing to install — [open the studio](https://antrorcode.vercel.app). Works offline after your first visit (PWA). |
 
 </div>
 
