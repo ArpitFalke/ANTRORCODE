@@ -2,8 +2,8 @@
   "name": "antror-code",
   "productName": "ANTROR Code",
   "version": "1.0.0",
-  "description": "ANTROR Code — describe it. ship it. A product by ANTROR.",
-  "author": "ANTROR",
+  "description": "ANTROR Code \u2014 describe it. ship it. A product by ANTROR.",
+  "author": "ANTROR <antror@users.noreply.github.com>",
   "license": "MIT",
   "main": "main.js",
   "scripts": {
@@ -37,17 +37,52 @@
       "assets/**",
       "bridge/**"
     ],
-    "directories": { "output": "desktop-dist" },
+    "directories": {
+      "output": "desktop-dist"
+    },
     "linux": {
-      "target": ["AppImage", "deb"],
-      "category": "Development"
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "category": "Development",
+      "maintainer": "ANTROR <antror@users.noreply.github.com>"
     },
     "win": {
-      "target": ["nsis"]
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
     },
     "mac": {
-      "target": ["dmg"],
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
       "category": "public.app-category.developer-tools"
+    },
+    "artifactName": "ANTROR-Code-${os}-${arch}.${ext}",
+    "deb": {
+      "artifactName": "ANTROR-Code-linux-${arch}.deb"
     }
   }
 }
