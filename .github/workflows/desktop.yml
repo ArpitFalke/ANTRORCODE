@@ -50,6 +50,11 @@ jobs:
         with:
           merge-multiple: true
           path: artifacts
+      - name: Generate SHA256 checksums
+        run: |
+          cd artifacts
+          sha256sum * > SHA256SUMS.txt || true
+          cat SHA256SUMS.txt
       - name: Attach installers to the GitHub Release
         uses: softprops/action-gh-release@v2
         with:

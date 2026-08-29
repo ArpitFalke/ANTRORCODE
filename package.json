@@ -83,6 +83,8 @@
     "artifactName": "ANTROR-Code-${os}-${arch}.${ext}",
     "deb": {
       "artifactName": "ANTROR-Code-linux-${arch}.deb"
-    }
+    },
+    "compression": "maximum",
+    "asar": true
   }
 }

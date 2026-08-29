@@ -54,6 +54,7 @@ function createWindow() {
     minHeight: 620,
     backgroundColor: '#0a0a0a',
     autoHideMenuBar: true,
+    show: false,   // avoids the blank first paint; shown on ready-to-show
     title: 'ANTROR Code',
     icon: path.join(__dirname, 'assets', 'logo.png'),
     webPreferences: {
@@ -63,6 +64,7 @@ function createWindow() {
       sandbox: false,
     },
   });
+  win.once('ready-to-show', () => win.show());   // paint only when ready — no white flash
   win.loadFile(path.join(__dirname, 'index.html'));
   win.webContents.setWindowOpenHandler(({ url }) => {
     if (/^https?:\/\//.test(url)) shell.openExternal(url); // open legal/key links in the real browser
