@@ -9,6 +9,9 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="styles.css" />
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#0a0a0a" />
+<link rel="apple-touch-icon" href="assets/logo.png" />
 </head>
 <body>
 
@@ -56,7 +59,7 @@
         <span id="provDot" class="dot off"></span>
         <span id="provChipText">no provider</span>
       </button>
-      <div class="legal-link"><a href="legal.html" target="_blank" rel="noopener">Terms · Privacy</a> — © ANTROR</div>
+      <div class="legal-link"><a href="download.html">Get the app</a> · <a href="legal.html" target="_blank" rel="noopener">Terms · Privacy</a> — © ANTROR</div>
     </div>
   </aside>
 
@@ -217,5 +220,8 @@
 <script src="supabase.js"></script>
 <script src="app.js"></script>
 <script src="terminal.js"></script>
+<script>
+if('serviceWorker' in navigator){ addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{})); }
+</script>
 </body>
 </html>

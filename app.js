@@ -690,7 +690,7 @@ async function sendPrompt(rawText){
       renderTreeSoon(); refreshSoon();
       fresh.forEach(w=>{
         if(!carded.has(w.path)){ carded.add(w.path); fcard(ui.root,w.path,w.lines); }
-        // ZCode-style live activity: what changed, where
+        // live activity: what changed, where
         const before=beforeFiles[w.path];
         const d=lineDiff(before, state.project.files[w.path]);
         let badge='';
@@ -889,7 +889,7 @@ function setChatOpen(v){
   $id('chatFab').title = v ? 'Chat with the ANTROR Assistant' : 'Show the chat panel';
 }
 
-/* ─────────────── device save: projects land on disk like ZCode ─────────────── */
+/* ─────────────── device save: projects land on disk ─────────────── */
 function idbSetDir(handle){
   return new Promise((res)=>{ try{
     const r=indexedDB.open('antror',1);

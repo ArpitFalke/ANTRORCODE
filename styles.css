@@ -187,7 +187,7 @@ input,textarea{font:inherit;color:inherit}
 body.nochat #app{grid-template-columns:236px minmax(360px,1fr)}
 body.nochat #chatPanel{display:none}
 body.nochat #chatFab{display:block}
-/* focus mode — chat takes over, everything else dims (like ZCode) */
+/* focus mode — chat takes over, everything else dims */
 body.focusmode::after{
   content:"";position:fixed;inset:0;z-index:85;background:rgba(0,0,0,.62);
   backdrop-filter:blur(3px);animation:fadeIn .2s ease;
@@ -264,7 +264,7 @@ body.focusmode #chatResizer{display:none}
 }
 .chip:hover{color:var(--txt);border-color:rgba(255,255,255,.4);border-style:solid;background:rgba(255,255,255,.04)}
 
-/* ══ ZCode-style composer: one card, textarea + toolbar inside ══ */
+/* ══ composer: one card, textarea + toolbar inside ══ */
 #composerForm{padding:8px 14px 14px}
 .composer{
   border:1px solid var(--line2);border-radius:18px;background:var(--panel);
