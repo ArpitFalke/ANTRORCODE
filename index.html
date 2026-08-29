@@ -37,6 +37,7 @@
       <input type="file" id="importInput" webkitdirectory multiple hidden />
       <button id="btnHistory" class="sbtn" title="Restore an earlier snapshot"><span>⏱</span><span class="slbl">History</span></button>
       <button id="btnTerm" class="sbtn" title="ANTROR CLI — terminal over your project + AI in the loop (Ctrl+`)"><span>&gt;_</span><span class="slbl">Terminal</span></button>
+      <button id="btnGetApp" class="sbtn" title="Get ANTROR Code for your device"><span>📥</span><span class="slbl">Get the app</span></button>
       <button id="btnSettings" class="sbtn accent" title="Settings — model, keys, data, legal"><span>⚙</span><span class="slbl">Settings</span></button>
     </div>
 
@@ -195,21 +196,41 @@
 <!-- ══════════ FIRST-RUN HERO ══════════ -->
 <div id="welcome" class="overlay hero" hidden>
   <div class="hero-card">
-    <img class="hero-logo" src="assets/logo.png" alt="ANTROR" />
-    <h1>ANTROR <span>Code</span></h1>
-    <div class="hero-co">a product by ANTROR</div>
-    <p class="tagline">describe it. ship it.</p>
-    <p class="sub">Tell an AI what you want in plain words. It writes the files. You watch them come alive.
-      Bring your own API key — it never leaves your browser.</p>
-    <div id="heroProv" class="pick-grid"></div>
-    <div class="hero-keyrow">
-      <input id="heroKey" type="password" placeholder="paste API key (or pick Ollama to go keyless)…" autocomplete="off" />
-      <button id="heroStart" class="primary big">Start building</button>
+    <div class="hero-dots"><span class="hd on" id="hd1"></span><span class="hd" id="hd2"></span></div>
+
+    <div class="hero-step" id="hstep1">
+      <img class="hero-logo" src="assets/logo.png" alt="ANTROR" />
+      <h1>ANTROR <span>Code</span></h1>
+      <div class="hero-co">a product by ANTROR</div>
+      <p class="tagline">describe it. ship it.</p>
+      <ul class="hero-feats">
+        <li><span>💬</span><span><b>Describe it</b> — plain words in, real files out. No setup, no boilerplate.</span></li>
+        <li><span>⚡</span><span><b>Watch it live</b> — the preview comes alive while the code is still streaming.</span></li>
+        <li><span>🔒</span><span><b>Your keys stay yours</b> — stored only in this browser, never sent to ANTROR.</span></li>
+      </ul>
+      <div class="hero-btns">
+        <button id="btnHeroNext" class="primary big">Get started&nbsp; →</button>
+        <button id="heroSkip" class="ghost-btn">Continue as guest</button>
+      </div>
+      <p class="hero-alt">Already have an account? <a href="#" id="heroSignin">Sign in</a></p>
     </div>
-    <p id="heroErr" class="hint err" hidden></p>
-    <button id="heroSkip" class="linklike">just let me look around first →</button>
+
+    <div class="hero-step" id="hstep2" hidden>
+      <h2 class="hero-h2">Connect a model</h2>
+      <p class="hero-p">Pick a provider and paste your API key — or choose <b>Ollama</b> to go key-free &amp; local.
+        You can change this anytime in Settings.</p>
+      <div id="heroProv" class="pick-grid"></div>
+      <div class="hero-keyrow">
+        <input id="heroKey" type="password" placeholder="paste API key (or pick Ollama to go keyless)…" autocomplete="off" />
+        <button id="heroStart" class="primary big">Start building</button>
+      </div>
+      <p id="heroErr" class="hint err" hidden></p>
+      <button id="heroBack" class="linklike">← back</button>
+    </div>
   </div>
 </div>
+
+
 
 <button id="chatFab" title="Chat with the ANTROR Assistant">💬</button>
 
@@ -220,6 +241,7 @@
 <script src="supabase.js"></script>
 <script src="app.js"></script>
 <script src="terminal.js"></script>
+<script src="cleanlinks.js"></script>
 <script>
 if('serviceWorker' in navigator){ addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{})); }
 </script>

@@ -253,8 +253,8 @@ const COMMANDS = {
              : 'supabase connected, signed out — anonymous (local only)');
     } else line('anonymous — local only. sign in: login', 'dim');
   },
-  login(){ location.href='login.html'; },
-  register(){ location.href='register.html'; },
+  login(){ go('login'); },
+  register(){ go('register'); },
   logout(){
     if(window.VF && VF.configured()){ VF.signOut(); line('signed out — projects stay on this device', 'ok'); }
     else line('not signed in', 'dim');

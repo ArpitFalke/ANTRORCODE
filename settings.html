@@ -3,6 +3,8 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="referrer" content="strict-origin-when-cross-origin" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://*.supabase.co https://cdn.jsdelivr.net http://127.0.0.1:8765; base-uri 'none'; form-action 'self' https://*.supabase.co" />
 <title>Settings — ANTROR Code</title>
 <link rel="icon" href="assets/logo.png" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -459,7 +461,16 @@ function renderAcct(){
       '<button class="ghost danger" id="uOut">Sign out</button></div>'+
       '<label class="fld" style="margin-top:16px">Display name <small>(shown on your chip &amp; to the AI)</small><input id="uName" type="text" maxlength="40" value="'+esc(display)+'" placeholder="e.g. Arpit" autocomplete="off" /></label>'+
       '<div class="row"><button class="primary" id="uSave">Save name</button></div>';
-    $('uOut').onclick=async()=>{ await VF.signOut(); renderAcct(); };
+    $('uOut').onclick=async()=>{
+      if(!confirm('Sign out?\n\nYour projects are pushed to your cloud first, then erased from this browser. Sign back in to get everything back.')) return;
+      try{
+        const list=loadJSON(LS.pr,[]);
+        for(const p of list){ try{ await VF.pushProject({name:p.name,files:p.files||{},chat:p.chat||[],cloudId:p.cloudId}); }catch(e){} }
+      }catch(e){}
+      try{ ['vf.v1.project','vf.v1.chat','vf.v1.checkpoints','vf.v1.projects','vf.v1.usage'].forEach(k=>localStorage.removeItem(k)); }catch(e){}
+      await VF.signOut();
+      location.href= (location.hostname==='localhost'||location.hostname==='127.0.0.1'||location.protocol==='file:') ? 'index.html' : '/';
+    };
     $('uSave').onclick=async()=>{
       const v=$('uName').value.trim(); if(!v){ toastMsg('Type a name first'); return; }
       try{ await VF.updateName(v); toastMsg('✓ Name saved — '+v); renderAcct(); }
@@ -540,5 +551,6 @@ window.opener?.focus?.();
 
 paintGeneral(); renderLists(); renderAcct();
 </script>
+<script src="cleanlinks.js"></script>
 </body>
 </html>

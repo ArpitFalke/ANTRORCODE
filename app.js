@@ -17,6 +17,10 @@ const linesOf = (s) => s.split('\n').length;
 const nowTs = () => Date.now();
 const fmtTime = (ts) => new Date(ts).toLocaleString([], {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
 
+/* navigate between pages — clean URLs on the live site, .html on plain local servers */
+function isLocalHost(){ return location.hostname==='localhost' || location.hostname==='127.0.0.1' || location.protocol==='file:'; }
+function go(page){ location.href = isLocalHost() ? page+'.html' : '/'+page; }
+
 function toast(msg, kind='', ms=3400){
   const box = $id('toasts');
   const t = document.createElement('div');
@@ -1292,7 +1296,7 @@ function applyEditorFont(){
   if(ta) ta.style.fontSize=px;
   if(g) g.style.fontSize=px;
 }
-function openSettings(){ location.href='settings.html'; }
+function openSettings(){ go('settings'); }
 function renderStatusChip(){
   const cfg=activeConfig();
   const ready = cfg.noKey ? !!cfg.base || !!cfg.model : !!cfg.key;
@@ -1447,14 +1451,14 @@ async function renderAcctBox(){
   if(!window.VF || !VF.configured()){
     box.innerHTML='<div class="acct-soon"><span><b>Accounts</b> — sign in to sync projects across devices (Supabase).</span>'+
       '<button class="ghost" id="acctSetup">Connect</button></div>';
-    $id('acctSetup').addEventListener('click',()=>location.href='login.html');
+    $id('acctSetup').addEventListener('click',()=>go('login'));
     return;
   }
   const user=await VF.getUser();
   if(!user){
     box.innerHTML='<div class="acct-soon"><span><b>Supabase connected</b> — you are signed out.</span>'+
       '<button class="ghost" id="acctGo2">Sign in / Create account</button></div>';
-    $id('acctGo2').addEventListener('click',()=>location.href='login.html');
+    $id('acctGo2').addEventListener('click',()=>go('login'));
     return;
   }
   const email=user.email||'user';
@@ -1480,6 +1484,43 @@ async function renderAcctBox(){
       renderAcctBox(); renderUserChip();
     }catch(e){ toast('Could not save — '+(e.message||e),'err',4500); }
   });
+}
+
+/* ─────────────── sign out: cloud-first, then wipe local ─────────────── */
+async function signOutAndWipe(){
+  if(!confirm('Sign out?\n\n• Your projects are pushed to your cloud first\n• Then they are erased from this browser\n• Sign back in and everything returns')) return;
+  try{ persistCurrentProject(); }catch(e){}
+  let pushed=0;
+  if(window.VF && VF.configured()){
+    for(const p of state.projects){
+      try{ await VF.pushProject({name:p.name, files:p.files, chat:p.chat||[], cloudId:p.cloudId}); pushed++; }catch(e){ /* keep going */ }
+    }
+  }
+  if(pushed) toast('☁ Pushed '+pushed+' project(s) to your cloud — signing out…','ok');
+  try{ ['vf.v1.project','vf.v1.chat','vf.v1.checkpoints','vf.v1.projects','vf.v1.usage'].forEach(k=>localStorage.removeItem(k)); }catch(e){}
+  if(window.VF) await VF.signOut();
+  location.href = isLocalHost() ? 'index.html' : '/';
+}
+
+/* ─────────────── sign in: restore cloud projects on a fresh browser ─────────────── */
+async function restoreCloudOnSignIn(){
+  if(!(window.VF && VF.configured())) return;
+  let user=null; try{ user=await VF.getUser(); }catch(e){ return; }
+  if(!user) return;
+  // only when this browser has no local work (e.g. right after a sign-out wipe)
+  if(state.projects.length || Object.keys(state.project.files||{}).length) return;
+  try{
+    const rows=await VF.listCloud();
+    if(!rows.length) return;
+    state.projects=rows.map(r=>({ id:'p'+r.cloudId, cloudId:r.cloudId, name:r.name, files:r.files||{}, chat:r.chat||[], updatedAt:new Date(r.updatedAt).getTime()||nowTs() }));
+    saveProjects();
+    const first=state.projects[0];
+    state.project={ id:first.id, cloudId:first.cloudId, name:first.name, files:first.files||{}, chat:first.chat||[], updatedAt:first.updatedAt };
+    state.chat=clone(state.project.chat);
+    saveProject(); saveChat(); persistCurrentProject();
+    renderAll(); restoreChatLog();
+    toast('☁ Welcome back, '+(user.user_metadata?.display_name||user.email||'friend')+' — '+state.projects.length+' project(s) restored from your cloud','ok',5000);
+  }catch(e){ /* silent — local-first still works */ }
 }
 
 /* ─────────────── sidebar user chip (footer) ─────────────── */
@@ -1512,15 +1553,11 @@ function bindUserChip(){
       $id('umSignout').hidden = !state.ui.signedIn;
     }
   });
-  $id('umAccount').addEventListener('click',()=>{ menu.hidden=true; location.href='login.html'; });
+  $id('umAccount').addEventListener('click',()=>{ menu.hidden=true; go('login'); });
   $id('umSettings').addEventListener('click',()=>{ menu.hidden=true; openSettings(); });
   $id('umSignout').addEventListener('click',async()=>{
     menu.hidden=true;
-    if(window.VF && VF.configured()){
-      await VF.signOut();
-      toast('Signed out — projects stay on this device');
-      renderUserChip(); renderAcctBox();
-    }
+    await signOutAndWipe();
   });
   document.addEventListener('click',(e)=>{
     if(!menu.hidden && !$id('userRow').contains(e.target)) menu.hidden=true;
@@ -1571,6 +1608,7 @@ function bind(){
   $id('btnNew').addEventListener('click',newProject);
   $id('btnZip').addEventListener('click',exportZip);
   $id('btnImport').addEventListener('click',importFolder);
+  $id('btnGetApp').addEventListener('click',()=>go('download'));
   $id('importInput').addEventListener('change',(e)=>{ handleImportFiles(e.target.files); e.target.value=''; });
   $id('btnHistory').addEventListener('click',()=>{ renderHistory(); $id('historyDrawer').hidden=false; });
   $id('histClose').addEventListener('click',()=>$id('historyDrawer').hidden=true);
@@ -1625,12 +1663,22 @@ function bind(){
     $id('stage').appendChild(pop);
   });
   document.querySelectorAll('[data-sample]').forEach(b=>b.addEventListener('click',()=>loadSample(b.dataset.sample)));
-  // hero
+  // onboarding wizard
   state.ui.heroSel=activeProviderId();
   heroPaint(state.ui.heroSel);
+  const showStep=(n)=>{
+    $id('hstep1').hidden = n!==1;
+    $id('hstep2').hidden = n!==2;
+    $id('hd1').classList.toggle('on', n===1);
+    $id('hd2').classList.toggle('on', n>=2);
+  };
+  state.ui.heroStep=showStep;
+  $id('btnHeroNext').addEventListener('click',()=>{ showStep(2); $id('heroKey').focus(); });
+  $id('heroBack').addEventListener('click',()=>showStep(1));
+  $id('heroSignin').addEventListener('click',(e)=>{ e.preventDefault(); go('login'); });
   $id('heroStart').addEventListener('click',heroGo);
   $id('heroKey').addEventListener('keydown',(e)=>{ if(e.key==='Enter')heroGo(); });
-  $id('heroSkip').addEventListener('click',()=>{ $id('welcome').hidden=true; state.settings.onboarded=true; saveSettings(); });
+  $id('heroSkip').addEventListener('click',()=>{ $id('welcome').hidden=true; state.settings.onboarded=true; saveSettings(); toast('Explore freely — connect a model anytime from the ⚙ chip below'); });
   // chat head: collapse + clear
   $id('btnChatToggle').addEventListener('click',()=>setChatOpen(false));
   // mobile fab — reopens the panel when collapsed, toggles the overlay on small screens
@@ -1677,6 +1725,7 @@ function init(){
   applyEditorFont();
   paintThinkChip();
   if(!window.antrorAPI) idbGetDir().then(h=>{ if(h) state.ui.saveDirHandle=h; });
+  restoreCloudOnSignIn();
   if(!state.settings.onboarded) $id('welcome').hidden=false;
   autoGrow();
   renderAcctBox();
