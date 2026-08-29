@@ -29,7 +29,7 @@ input,textarea{font:inherit;color:inherit}
 
 #app{
   display:grid;height:100vh;
-  grid-template-columns:220px minmax(360px,1fr) var(--chatw, clamp(320px,30vw,430px));
+  grid-template-columns:220px minmax(340px,44%) minmax(0,1fr);
   grid-template-rows:minmax(0,1fr);   /* keep panels inside the viewport — fixes chat scroll + sidebar foot cut off on maximized screens */
 }
 
@@ -189,7 +189,9 @@ input,textarea{font:inherit;color:inherit}
 #chatPanel{display:flex;flex-direction:column;min-width:0;min-height:0;position:relative;border-left:1px solid var(--line);background:var(--bg2)}
 #chatResizer{position:absolute;left:-4px;top:0;bottom:0;width:9px;cursor:col-resize;z-index:10}
 #chatResizer:hover{background:linear-gradient(90deg,transparent,rgba(255,255,255,.14))}
-body.nochat #app{grid-template-columns:220px minmax(360px,1fr)}
+body.nochat #app{grid-template-columns:220px minmax(0,1fr)}
+body.pristine #app{grid-template-columns:220px minmax(0,1fr)}
+body.pristine #stage{display:none}
 body.nochat #chatPanel{display:none}
 body.nochat #chatFab{display:block}
 /* focus mode — chat takes over, everything else dims */
@@ -706,3 +708,48 @@ button.ghost.danger:hover{color:var(--err);border-color:rgba(224,133,133,.5)}
 .proj-act:hover{border-color:rgba(255,255,255,.4);background:rgba(255,255,255,.06)}
 .proj-act.primary-act{background:#e8e8e8;color:#0a0a0a;border-color:#e8e8e8;font-weight:750}
 .proj-act.primary-act:hover{background:#fff}
+
+/* ══════════ SIDEBAR MINIMIZE ══════════ */
+#sbToggle{
+  margin-left:auto;color:var(--faint);font-size:13px;font-weight:700;padding:2px 7px;border-radius:6px;transition:.15s;flex:none;
+}
+#sbToggle:hover{color:var(--txt);background:rgba(255,255,255,.07)}
+body.sbmin #app{grid-template-columns:56px minmax(0,1fr) minmax(0,1fr)}
+body.sbmin .logo-text,body.sbmin .byline,body.sbmin .proj-row,body.sbmin .side-sec,
+body.sbmin .sbtn .slbl,body.sbmin #userChip .uchip-txt,body.sbmin #provChipText,body.sbmin .legal-link,
+body.sbmin .tree-head{display:none}
+body.sbmin #sbToggle{display:block;margin-left:0}
+body.sbmin .sbtn{justify-content:center;padding:9px 0}
+body.sbmin #userChip{justify-content:center;padding:8px 4px}
+body.sbmin .logo-row{justify-content:center;gap:0}
+body.sbmin .side-actions{gap:3px}
+
+/* ══════════ SIDE PANELS (anchored to the sidebar, never center-screen) ══════════ */
+.sidepanel{
+  position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.5);animation:fadeIn .18s ease;
+}
+.sidepanel[hidden]{display:none}
+.sidepanel .panel{
+  position:absolute;left:0;top:0;bottom:0;width:400px;max-width:88vw;
+  background:var(--panel2);border-right:1px solid var(--line2);
+  box-shadow:24px 0 70px rgba(0,0,0,.55);
+  padding:18px;overflow-y:auto;
+  animation:panelL .22s cubic-bezier(.2,.9,.3,1);
+}
+@keyframes panelL{from{transform:translateX(-24px);opacity:0}}
+.sidepanel .modal-head{margin-bottom:4px}
+.sidepanel .modal-sub{margin-bottom:14px}
+
+/* ══════════ PREMIUM WORKING INDICATORS ══════════ */
+.eq{display:inline-flex;gap:2.5px;align-items:flex-end;height:12px;margin-right:3px}
+.eq i{width:3px;background:#e8e8e8;border-radius:1.5px;animation:eq 1s ease-in-out infinite}
+.eq i:nth-child(2){animation-delay:.14s}
+.eq i:nth-child(3){animation-delay:.28s}
+.eq i:nth-child(4){animation-delay:.42s}
+@keyframes eq{0%,100%{height:3px;opacity:.5}50%{height:12px;opacity:1}}
+.spk{display:inline-block;animation:spin 2.4s linear infinite;margin-right:2px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* composer textarea smooth */
+#promptBox{scrollbar-width:thin}
+.composer{transition:border-color .15s, box-shadow .15s, height .12s ease}

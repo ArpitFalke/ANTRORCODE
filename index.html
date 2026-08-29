@@ -22,6 +22,7 @@
     <div class="logo-row">
       <img class="logo3d" src="assets/logo.png" alt="ANTROR" />
       <span class="logo-text">ANTROR<b> Code</b></span>
+      <button id="sbToggle" title="Minimize sidebar" aria-label="Minimize sidebar">«</button>
     </div>
     <div class="byline">a product by ANTROR</div>
     <div class="proj-row">
@@ -65,6 +66,52 @@
   </aside>
 
   <!-- ══════════ CENTER STAGE : preview / code ══════════ -->
+  <!-- ══════════ AI CHAT : beside the sidebar ══════════ -->
+  <aside id="chatPanel">
+    <div id="chatResizer" title="Drag to resize the chat panel"></div>
+    <div class="chat-head">
+      <span class="chat-title">ANTROR Assistant</span>
+      <span class="chat-right">
+        <div id="ctxPill" title="Context window — how much of the model's memory this conversation uses">
+          <div class="ctxbar"><i id="ctxFill"></i></div><span id="ctxText">0 / 128k</span>
+        </div>
+        <button id="btnChatFocus" title="Focus mode — dim everything else, chat takes over (Esc exits)">⤢</button>
+        <button id="btnClearChat" title="Clear conversation">🗑</button>
+        <button id="btnChatToggle" title="Hide chat (bring it back with the chat button, bottom-right)">»</button>
+      </span>
+      </span>
+    </div>
+    <div id="chatLogWrap">
+      <div id="chatLog"></div>
+      <button id="jumpLatest" hidden title="Jump to latest">↓ latest</button>
+    </div>
+    <div id="chipsRow">
+      <button class="chip" data-fill="Build me ">✦ Build…</button>
+      <button class="chip" data-fill="Add a feature: ">➕ Add feature…</button>
+      <button class="chip" data-fill="Something is broken: ">🐛 Fix…</button>
+      <button class="chip" data-fill="Make it prettier — better colors, spacing and animations.">🎨 Polish</button>
+      <button class="chip" data-fill="Explain how this project works in simple words.">🧠 Explain</button>
+    </div>
+    <form id="composerForm">
+      <div class="composer">
+        <textarea id="promptBox" rows="2"
+          placeholder="Describe what you want to build…  (Enter to send)"></textarea>
+        <div id="modePop" hidden></div>
+        <div class="composer-bar">
+          <button type="button" id="pbMode" class="pb-chip" title="Build mode — what kind of thing you're building">
+            <span id="pbModeIcon">🌐</span><span id="pbModeText">Web app</span><span class="crt">▾</span>
+          </button>
+          <button type="button" id="pbModel" class="pb-chip" title="Change model & key">
+            <span id="pbDot" class="dot off"></span><span id="pbModelText">no model</span>
+          </button>
+          <button type="button" id="pbThink" class="pb-chip" title="Toggle AI reasoning depth">🧠 Thinking</button>
+          <button type="submit" id="sendBtn" title="Send">➤</button>
+          <button type="button" id="stopBtn" title="Stop generating" hidden>■</button>
+        </div>
+      </div>
+    </form>
+  </aside>
+
   <main id="stage">
     <div id="stagebar">
       <div class="seg" role="tablist">
@@ -125,56 +172,12 @@
     </section>
   </main>
 
-  <!-- ══════════ RIGHT PANEL : chat ══════════ -->
-  <aside id="chatPanel">
-    <div id="chatResizer" title="Drag to resize the chat panel"></div>
-    <div class="chat-head">
-      <span class="chat-title">ANTROR Assistant</span>
-      <span class="chat-right">
-        <div id="ctxPill" title="Context window — how much of the model's memory this conversation uses">
-          <div class="ctxbar"><i id="ctxFill"></i></div><span id="ctxText">0 / 128k</span>
-        </div>
-        <button id="btnChatFocus" title="Focus mode — dim everything else, chat takes over (Esc exits)">⤢</button>
-        <button id="btnClearChat" title="Clear conversation">🗑</button>
-        <button id="btnChatToggle" title="Hide chat (bring it back with the chat button, bottom-right)">»</button>
-      </span>
-      </span>
-    </div>
-    <div id="chatLogWrap">
-      <div id="chatLog"></div>
-      <button id="jumpLatest" hidden title="Jump to latest">↓ latest</button>
-    </div>
-    <div id="chipsRow">
-      <button class="chip" data-fill="Build me ">✦ Build…</button>
-      <button class="chip" data-fill="Add a feature: ">➕ Add feature…</button>
-      <button class="chip" data-fill="Something is broken: ">🐛 Fix…</button>
-      <button class="chip" data-fill="Make it prettier — better colors, spacing and animations.">🎨 Polish</button>
-      <button class="chip" data-fill="Explain how this project works in simple words.">🧠 Explain</button>
-    </div>
-    <form id="composerForm">
-      <div class="composer">
-        <textarea id="promptBox" rows="2"
-          placeholder="Describe what you want to build…  (Enter to send)"></textarea>
-        <div id="modePop" hidden></div>
-        <div class="composer-bar">
-          <button type="button" id="pbMode" class="pb-chip" title="Build mode — what kind of thing you're building">
-            <span id="pbModeIcon">🌐</span><span id="pbModeText">Web app</span><span class="crt">▾</span>
-          </button>
-          <button type="button" id="pbModel" class="pb-chip" title="Change model & key">
-            <span id="pbDot" class="dot off"></span><span id="pbModelText">no model</span>
-          </button>
-          <button type="button" id="pbThink" class="pb-chip" title="Toggle AI reasoning depth">🧠 Thinking</button>
-          <button type="submit" id="sendBtn" title="Send">➤</button>
-          <button type="button" id="stopBtn" title="Stop generating" hidden>■</button>
-        </div>
-      </div>
-    </form>
-  </aside>
+
 </div>
 
 <!-- ══════════ TASKS DRAWER ══════════ -->
-<div id="tasksDrawer" class="overlay" hidden>
-  <div class="modal slim">
+<div id="tasksDrawer" class="sidepanel" hidden>
+  <div class="panel">
     <div class="modal-head"><h3>☑ Tasks</h3><button class="x" id="tasksClose">✕</button></div>
     <p class="modal-sub">Every AI run is a task — its status, duration, and the exact lines it added or removed.</p>
     <div id="tasksList" style="max-height:56vh;overflow-y:auto"></div>
@@ -192,8 +195,8 @@
 </div>
 
 <!-- ══════════ HISTORY DRAWER ══════════ -->
-<div id="historyDrawer" class="overlay" hidden>
-  <div class="modal slim">
+<div id="historyDrawer" class="sidepanel" hidden>
+  <div class="panel">
     <div class="modal-head"><h3>⏱ Checkpoints</h3><button class="x" id="histClose">✕</button></div>
     <p class="modal-sub">A snapshot of every file is saved before each AI run. Restore any point in time.</p>
     <div id="histList"></div>
@@ -201,8 +204,8 @@
 </div>
 
 <!-- ══════════ PROJECTS DRAWER ══════════ -->
-<div id="projectsDrawer" class="overlay" hidden>
-  <div class="modal slim">
+<div id="projectsDrawer" class="sidepanel" hidden>
+  <div class="panel">
     <div class="modal-head"><h3>🗂 Projects</h3><button class="x" id="projClose">✕</button></div>
     <p class="modal-sub">Every project keeps its own files and chat. Switch freely — <b>nothing is erased</b>.
        The project you're working on is snapshotted the moment you switch away.</p>

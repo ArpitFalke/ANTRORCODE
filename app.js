@@ -25,6 +25,12 @@ function go(page){
   location.href='/'+page;
 }
 
+/* preview column appears only when there is something to show (first prompt / files) */
+function syncPristine(){
+  const has=(state.chat && state.chat.length) || Object.keys(state.project.files||{}).length;
+  document.body.classList.toggle('pristine',!has);
+}
+
 function toast(msg, kind='', ms=3400){
   const box = $id('toasts');
   const t = document.createElement('div');
@@ -740,6 +746,7 @@ async function sendPrompt(rawText){
   const cfg=ensureConfigured(); if(!cfg) return;
 
   state.chat.push({role:'user',text,t:nowTs()});
+  document.body.classList.remove('pristine');   // the preview takes its place from here on
   addUserMsg(text); saveChat();
   $id('promptBox').value=''; autoGrow();
 
@@ -760,16 +767,18 @@ async function sendPrompt(rawText){
   // working timer (like ZCode's "Working for 1m 28s")
   const t0=Date.now();
   const fmtDur=(ms)=>{ const sec=Math.round(ms/1000); return sec<60 ? sec+'s' : Math.floor(sec/60)+'m '+(sec%60)+'s'; };
-  const timerEl=actLine('⏳ building…','live build');
-  const workTick=setInterval(()=>{ timerEl.textContent='⏳ building · '+written.length+' file'+(written.length===1?'':'s')+' · '+fmtDur(Date.now()-t0); },900);
+  const timerEl=actLine('','live build');
+  const timerPaint=()=>{ timerEl.innerHTML='<span class="eq"><i></i><i></i><i></i><i></i></span> building · '+written.length+' file'+(written.length===1?'':'s')+' · '+fmtDur(Date.now()-t0); };
+  timerPaint();
+  const workTick=setInterval(timerPaint,900);
   const endTimer=(ok)=>{ clearInterval(workTick); timerEl.textContent=(ok?'✓ completed in ':'⚠ stopped after ')+fmtDur(Date.now()-t0); timerEl.className='actline'; };
 
   // live "thinking" line while the model reasons (replaced by real output)
   let thinkEl=null, thinkTxt='';
   const onThinking=(t)=>{
     thinkTxt+=t;
-    if(!thinkEl){ thinkEl=actLine('🧠 thinking','live think'); }
-    else thinkEl.textContent='🧠 thinking · '+Math.max(1,Math.round(thinkTxt.length/4))+' tokens';
+    if(!thinkEl){ thinkEl=actLine('','live think'); }
+    thinkEl.innerHTML='<span class="spk">✦</span> thinking · '+Math.max(1,Math.round(thinkTxt.length/4))+' tokens';
   };
 
   let raw=''; let stopped=false; const written=[]; const carded=new Set();
@@ -993,7 +1002,7 @@ async function handleImportFiles(fileList){
     try{ state.project.files[rel]=await f.text(); n++; }catch(e){ /* unreadable — skip */ }
   }
   saveProject(); saveChat(); persistCurrentProject();
-  renderAll(); restoreChatLog(); showView('preview');
+  renderAll(); restoreChatLog(); showView('preview'); syncPristine();
   setChatOpen(true);
   toast('📂 Imported '+n+' file(s) from “'+root+'” — ask the AI to change anything','ok');
 }
@@ -1292,7 +1301,7 @@ function loadSample(key){
   state.checkpoints=[]; saveChecks();
   state.ui.tabs=['index.html']; state.ui.open='index.html';
   persistCurrentProject();
-  renderAll(); openInEditor('index.html'); showView('preview');
+  renderAll(); openInEditor('index.html'); showView('preview'); syncPristine();
   toast('Sample loaded — edit files or tell the AI what to change','ok');
 }
 
@@ -1468,7 +1477,7 @@ function newProject(){
   state.checkpoints=[]; saveChecks();
   state.ui.tabs=[]; state.ui.open=null;
   saveProject(); saveChat(); persistCurrentProject();
-  renderAll(); toast('Fresh canvas — describe what to build');
+  renderAll(); syncPristine(); toast('Fresh canvas — describe what to build');
   $id('promptBox').focus();
 }
 function deleteProjectLocal(id){
@@ -1678,7 +1687,7 @@ function bindUserChip(){
 /* ─────────────── wiring / init ─────────────── */
 function autoGrow(){
   const tb=$id('promptBox'); tb.style.height='auto';
-  tb.style.height=Math.min(tb.scrollHeight,180)+'px';
+  tb.style.height=Math.min(tb.scrollHeight,220)+'px';
 }
 function renderAll(){
   renderTree(); renderTabs(); loadEditor(); renderStatusChip(); refreshPreview();
@@ -1726,7 +1735,17 @@ function bind(){
   $id('histClose').addEventListener('click',()=>$id('historyDrawer').hidden=true);
   $id('btnProjects').addEventListener('click',()=>{ persistCurrentProject(); renderProjectsDrawer(); $id('projectsDrawer').hidden=false; });
   $id('btnTasks').addEventListener('click',()=>{ renderTasks(); $id('tasksDrawer').hidden=false; });
+  // sidebar minimize / expand (persisted)
+  const applySb=()=>{ document.body.classList.toggle('sbmin',!!state.settings.sbMin);
+    $id('sbToggle').textContent=state.settings.sbMin?'»':'«';
+    $id('sbToggle').title=state.settings.sbMin?'Expand sidebar':'Minimize sidebar'; };
+  $id('sbToggle').addEventListener('click',()=>{ state.settings.sbMin=!state.settings.sbMin; saveSettings(); applySb(); });
+  applySb();
   $id('tasksClose').addEventListener('click',()=>$id('tasksDrawer').hidden=true);
+  ['projectsDrawer','tasksDrawer','historyDrawer'].forEach(id=>{
+    const el=$id(id);
+    el.addEventListener('click',(e)=>{ if(e.target===el) el.hidden=true; });   // backdrop click
+  });
   $id('projClose').addEventListener('click',()=>$id('projectsDrawer').hidden=true);
   $id('btnSettings').addEventListener('click',openSettings);
   $id('provChip').addEventListener('click',openSettings);
@@ -1865,6 +1884,7 @@ function init(){
   }
   renderAll();
   restoreChatLog();
+  syncPristine();
   applyEditorFont();
   paintThinkChip();
   updateCtxPill(ctxOfConversation(''));
