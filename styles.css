@@ -644,3 +644,48 @@ button.ghost.danger:hover{color:var(--err);border-color:rgba(224,133,133,.5)}
 .actline.think{font-style:italic}
 .actline.build{letter-spacing:.2px}
 @keyframes shimmer{to{background-position:-200% 0}}
+
+/* ══════════ CHAT FINAL POLISH ══════════ */
+.chat-head{padding:13px 16px 9px}
+.chat-right{display:flex;align-items:center;gap:10px}
+#ctxPill{display:flex;align-items:center;gap:7px;font-size:10px;color:var(--faint);font-family:var(--mono);cursor:default}
+.ctxbar{width:52px;height:4px;border-radius:4px;background:var(--line);overflow:hidden;flex:none}
+.ctxbar i{display:block;height:100%;width:2%;background:#e8e8e8;border-radius:4px;transition:width .4s ease,background .4s ease}
+#chatLog{gap:15px;padding:4px 15px 14px}
+.msg .bubble{border-radius:13px;padding:11px 14px;box-shadow:0 1px 2px rgba(0,0,0,.25)}
+.msg.ai .bubble{background:linear-gradient(180deg,#161616,#131313);border-color:var(--line)}
+.composer{box-shadow:0 8px 24px rgba(0,0,0,.35)}
+.pb-chip .crt{color:var(--faint);font-size:9px;margin-left:-2px}
+
+/* build mode popup */
+#modePop{
+  position:absolute;left:14px;right:14px;bottom:calc(100% + 6px);z-index:30;
+  background:var(--panel2);border:1px solid var(--line2);border-radius:15px;padding:6px;
+  box-shadow:0 -14px 50px rgba(0,0,0,.65);animation:pop .18s ease;
+}
+#modePop[hidden]{display:none}
+.modeopt{
+  display:flex;align-items:flex-start;gap:12px;width:100%;text-align:left;padding:11px 12px;
+  border-radius:11px;transition:.13s;position:relative;
+}
+.modeopt:hover{background:rgba(255,255,255,.06)}
+.modeopt.sel{background:rgba(255,255,255,.05)}
+.modeopt .mi{font-size:19px;flex:none;margin-top:1px}
+.modeopt b{display:block;font-size:12.5px;font-weight:700;color:var(--txt)}
+.modeopt small{display:block;color:var(--faint);font-size:11px;line-height:1.55;margin-top:2px}
+.modeopt .mck{position:absolute;right:14px;top:12px;color:var(--txt);font-weight:800}
+.modeopt.sel{outline:1px solid rgba(255,255,255,.22)}
+
+/* tasks drawer */
+.taskitem{
+  display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:10px;margin-bottom:7px;
+  border:1px solid var(--line);background:var(--panel);font-size:12.5px;transition:.15s;
+}
+.taskitem:hover{border-color:var(--line2)}
+.taskitem.run{border-color:rgba(255,255,255,.3)}
+.taskitem .htxt{flex:1;min-width:0}
+.taskitem .hl{font-weight:650;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.taskitem .hd{font-size:10.5px;color:var(--faint);font-family:var(--mono)}
+.ts-ok{color:#a8d8b0;font-weight:800}
+.ts-run{animation:pulseW 1.2s infinite}
+.ts-stop,.ts-err{color:var(--dim)}

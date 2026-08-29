@@ -31,13 +31,14 @@
 
     <div class="side-actions">
       <button id="btnProjects" class="sbtn" title="All projects — switch without losing anything"><span>🗂</span><span class="slbl">Projects</span></button>
+      <button id="btnTasks" class="sbtn" title="Tasks — every AI run with status, duration and lines changed"><span>☑</span><span class="slbl">Tasks</span></button>
       <button id="btnNew" class="sbtn" title="Start a fresh project"><span>✦</span><span class="slbl">New</span></button>
       <button id="btnZip" class="sbtn" title="Download the whole project as a .zip"><span>⬇</span><span class="slbl">Export ZIP</span></button>
       <button id="btnImport" class="sbtn" title="Open an existing project folder from your computer"><span>📂</span><span class="slbl">Import folder</span></button>
       <input type="file" id="importInput" webkitdirectory multiple hidden />
       <button id="btnHistory" class="sbtn" title="Restore an earlier snapshot"><span>⏱</span><span class="slbl">History</span></button>
       <button id="btnTerm" class="sbtn" title="ANTROR CLI — terminal over your project + AI in the loop (Ctrl+`)"><span>&gt;_</span><span class="slbl">Terminal</span></button>
-      <button id="btnGetApp" class="sbtn" title="Get ANTROR Code for your device"><span>📥</span><span class="slbl">Get the app</span></button>
+      <button id="btnGetApp" class="sbtn" title="Get ANTROR Code for your device"><span>⤓</span><span class="slbl">Get the app</span></button>
       <button id="btnSettings" class="sbtn accent" title="Settings — model, keys, data, legal"><span>⚙</span><span class="slbl">Settings</span></button>
     </div>
 
@@ -130,10 +131,14 @@
     <div id="chatResizer" title="Drag to resize the chat panel"></div>
     <div class="chat-head">
       <span class="chat-title">ANTROR Assistant</span>
-      <span class="chat-head-btns">
+      <span class="chat-right">
+        <div id="ctxPill" title="Context window — how much of the model's memory this conversation uses">
+          <div class="ctxbar"><i id="ctxFill"></i></div><span id="ctxText">0 / 128k</span>
+        </div>
         <button id="btnChatFocus" title="Focus mode — dim everything else, chat takes over (Esc exits)">⤢</button>
         <button id="btnClearChat" title="Clear conversation">🗑</button>
         <button id="btnChatToggle" title="Hide chat (bring it back with the chat button, bottom-right)">»</button>
+      </span>
       </span>
     </div>
     <div id="chatLogWrap">
@@ -151,7 +156,11 @@
       <div class="composer">
         <textarea id="promptBox" rows="2"
           placeholder="Describe what you want to build…  (Enter to send)"></textarea>
+        <div id="modePop" hidden></div>
         <div class="composer-bar">
+          <button type="button" id="pbMode" class="pb-chip" title="Build mode — what kind of thing you're building">
+            <span id="pbModeIcon">🌐</span><span id="pbModeText">Web app</span><span class="crt">▾</span>
+          </button>
           <button type="button" id="pbModel" class="pb-chip" title="Change model & key">
             <span id="pbDot" class="dot off"></span><span id="pbModelText">no model</span>
           </button>
@@ -162,6 +171,15 @@
       </div>
     </form>
   </aside>
+</div>
+
+<!-- ══════════ TASKS DRAWER ══════════ -->
+<div id="tasksDrawer" class="overlay" hidden>
+  <div class="modal slim">
+    <div class="modal-head"><h3>☑ Tasks</h3><button class="x" id="tasksClose">✕</button></div>
+    <p class="modal-sub">Every AI run is a task — its status, duration, and the exact lines it added or removed.</p>
+    <div id="tasksList" style="max-height:56vh;overflow-y:auto"></div>
+  </div>
 </div>
 
 <!-- ══════════ DIFF VIEWER ══════════ -->

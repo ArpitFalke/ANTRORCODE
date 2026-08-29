@@ -41,7 +41,7 @@ function downloadBlob(name, blob){
 }
 
 /* ─────────────── persistence ─────────────── */
-const LS = { s:'vf.v1.settings', p:'vf.v1.project', c:'vf.v1.chat', h:'vf.v1.checkpoints', pr:'vf.v1.projects', u:'vf.v1.usage' };
+const LS = { s:'vf.v1.settings', p:'vf.v1.project', c:'vf.v1.chat', h:'vf.v1.checkpoints', pr:'vf.v1.projects', u:'vf.v1.usage', t:'vf.v1.tasks' };
 const loadJSON=(k,d)=>{ try{ const v=localStorage.getItem(k); return v==null ? d : JSON.parse(v);}catch(e){ return d; } };
 let quotaWarned=false;
 function save(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }
@@ -69,6 +69,7 @@ const state = {
   checkpoints: loadJSON(LS.h, []),
   projects: migrateProjects(),
   usage: loadJSON(LS.u, { req:0, tin:0, tout:0, prov:{}, day:{} }),
+  tasks: loadJSON(LS.t, {}),
   ui: { tabs:[], open:null, view:'preview', busy:false, chatSticky:true, phoneW:false },
 };
 function usageAdd(pid, tin, tout){
@@ -134,6 +135,78 @@ const PROVIDERS = {
                base:'',                                                model:'',                 keyUrl:'' },
 };
 const PROV_ORDER = ['zai','anthropic','openai','openrouter','gemini','groq','nvidia','ollama','custom'];
+
+/* ── build modes (premium composer picker) ── */
+const MODES={
+  web: { icon:'🌐', label:'Web app',
+    hint:'Sites, dashboards and tools — clean vanilla HTML/CSS/JS.',
+    sys:'CURRENT MODE: WEB APP. Build polished, responsive single-page web apps with vanilla HTML/CSS/JS.' },
+  full:{ icon:'🧩', label:'Full-stack',
+    hint:'Frontend + backend — Node/Express API, data layer, README with run steps.',
+    sys:'CURRENT MODE: FULL-STACK APP. Build the frontend (index.html/style.css/app.js) AND a real backend: server.js (Node + Express), a data layer (db.js — in-memory with JSON-file persistence), and package.json with a start script and dependencies listed. The frontend must still run standalone in the preview: wrap every fetch in try/catch and fall back to built-in demo data when the API is unreachable. Add a README.md with exact run steps (npm install && node server.js). Visually mark which parts are backend-only.' },
+  game:{ icon:'🎮', label:'Game',
+    hint:'Canvas games with juice — physics, particles, sound, touch + keys.',
+    sys:'CURRENT MODE: GAME. Build a complete, immediately playable browser game: index.html + game.js + style.css using <canvas> and a 60fps requestAnimationFrame loop. Include real game feel: acceleration/friction physics, particles, screen shake, hit flashes, easing, procedural sound via WebAudio (no external files), keyboard AND touch controls, score with best-score saved locally, pause and game-over/restart flow. Polish the visuals with gradients, glow and clean typography. It must run by just opening index.html.' },
+};
+const MODE_ORDER=['web','full','game'];
+
+/* ── context window sizes (rough, per provider) ── */
+const CTX_LIMIT={zai:128000,anthropic:200000,openai:400000,openrouter:128000,gemini:1000000,groq:128000,nvidia:128000,ollama:32768,custom:128000};
+const est=(t)=>Math.ceil(String(t||'').length/4);
+function fmtK(n){ return n>=1000 ? Math.round(n/1000)+'k' : String(n); }
+function ctxLimit(){ return CTX_LIMIT[activeProviderId()] || 128000; }
+function updateCtxPill(total){
+  const lim=ctxLimit(); const t=Math.min(total||0,lim);
+  const fill=$id('ctxFill'), txt=$id('ctxText');
+  if(fill){ fill.style.width=Math.max(2,Math.min(100,Math.round(t/lim*100)))+'%';
+    fill.style.background = t/lim>0.85 ? 'var(--err)' : '#e8e8e8'; }
+  if(txt) txt.textContent=fmtK(t)+' / '+fmtK(lim);
+}
+function ctxOfConversation(extra){
+  let t=est(VIBE_SYSTEM)+est(extra||'');
+  state.chat.forEach(m=>{ t+=est(m.display ?? m.text ?? ''); });
+  return t;
+}
+
+/* ── tasks: every AI run is a task ── */
+function taskList(){
+  const id=state.project.id||'local';
+  if(!state.tasks[id]) state.tasks[id]=[];
+  return state.tasks[id];
+}
+function saveTasks(){ save(LS.t, state.tasks); }
+function taskAdd(label){
+  const t={ id:'t'+nowTs()+Math.floor(Math.random()*99), t:nowTs(), label:String(label).slice(0,80), status:'running', dur:0, files:0, add:0, del:0, changed:[] };
+  const L=taskList(); L.unshift(t); while(L.length>25) L.pop();
+  saveTasks(); return t;
+}
+function taskDone(task, status, dur, dsum){
+  task.status=status; task.dur=dur;
+  let a=0,d=0,n=0; Object.keys(dsum||{}).forEach(p=>{ n++; a+=dsum[p].added; d+=dsum[p].removed; task.changed.push(p); });
+  task.files=n; task.add=a; task.del=d;
+  saveTasks();
+}
+function timeAgo(ts){ const s=Math.round((nowTs()-ts)/1000); if(s<60)return s+'s ago'; const m=Math.floor(s/60); if(m<60)return m+'m ago'; const h=Math.floor(m/60); if(h<24)return h+'h ago'; return Math.floor(h/24)+'d ago'; }
+function renderTasks(){
+  const list=$id('tasksList'); if(!list) return;
+  const L=taskList();
+  list.innerHTML='';
+  if(!L.length){ list.innerHTML='<div class="hist-empty">No tasks yet — every AI run appears here with its status and diff stats.</div>'; return; }
+  const ICON={running:'<span class="ts-run">⏳</span>', done:'<span class="ts-ok">✓</span>', stopped:'<span class="ts-stop">⏹</span>', error:'<span class="ts-err">⚠</span>'};
+  L.forEach(t=>{
+    const d=document.createElement('div'); d.className='taskitem'+(t.status==='running'?' run':'');
+    const st = t.status==='done' ? '<span class="da">+'+t.add+'</span> <span class="dr">−'+t.del+'</span> · '+t.files+' file'+(t.files===1?'':'s')
+             : t.status==='running' ? 'running…' : t.status;
+    d.innerHTML=ICON[t.status]+'<span class="htxt"><span class="hl">'+esc(t.label)+'</span>'+
+      '<span class="hd">'+st+' · '+fmtTime(t.t)+' · '+timeAgo(t.t)+(t.dur?' · took '+(t.dur<60000?Math.round(t.dur/1000)+'s':Math.round(t.dur/60000)+'m'):'')+'</span></span>';
+    if(t.changed && t.changed.length){
+      d.style.cursor='pointer';
+      d.title='Open '+t.changed[0];
+      d.addEventListener('click',()=>{ if(state.project.files[t.changed[0]]!=null) openInEditor(t.changed[0]); $id('tasksDrawer').hidden=true; });
+    }
+    list.appendChild(d);
+  });
+}
 
 function activeProviderId(){ return state.settings.provider || 'zai'; }
 function activeConfig(){
@@ -672,6 +745,8 @@ async function sendPrompt(rawText){
 
   pushCheckpoint(text);
   const beforeFiles = clone(state.project.files);   // for the +/− diff after the run
+  const runTask = taskAdd(text);                    // every run is a task
+  const runStart = nowTs();
   const ui=newAiMsg();
   setBusy(true);
   controller=new AbortController();
@@ -717,11 +792,13 @@ async function sendPrompt(rawText){
     }
     const ts=window.__vfTermSink; if(ts&&ts.delta) try{ts.delta(raw,written.length);}catch(e){}
   };
+  const mode=MODES[state.settings.mode]||MODES.web;
   try{
-    const sys=VIBE_SYSTEM+'\n\n=====\n'+manifestBlock();
+    const sys=VIBE_SYSTEM+'\n\n'+mode.sys+'\n\n=====\n'+manifestBlock();
     const msgs=buildMessages();
     const adt=makeAdapter(cfg,msgs,sys,{});
     await sseStream(adt,controller.signal,onDelta,onThinking);
+    updateCtxPill(ctxOfConversation(mode.sys)+est(raw));
   }catch(err){
     if(err.name==='AbortError'){ stopped=true; }
     else{
@@ -731,6 +808,7 @@ async function sendPrompt(rawText){
       state.chat.push({role:'assistant',display:disp,files:written.map(w=>w.path),error:true,t:nowTs()});
       saveChat(); saveProject(); renderTree(); persistCurrentProject();
       endTimer(false);
+      taskDone(runTask,'error',nowTs()-runStart,null);
       errorCard(ui,friendlyError(err,cfg));
       const te=window.__vfTermSink; if(te&&te.error) try{te.error(err);}catch(e){}
       setBusy(false); return;
@@ -742,6 +820,7 @@ async function sendPrompt(rawText){
   const dsum=diffSummary(beforeFiles, state.project.files);
   lastRunDiff={before:beforeFiles, after:clone(state.project.files)};
   endTimer(!stopped);
+  taskDone(runTask, stopped?'stopped':(written.length||disp?'done':'done'), nowTs()-runStart, dsum);
   finalizeBubble(ui,disp,written,stopped,dsum,thinkTxt);
   // ZCode-style summary chip: how many lines added / removed + undo
   let nCh=0,add=0,del=0;
@@ -1649,6 +1728,8 @@ function bind(){
   $id('btnHistory').addEventListener('click',()=>{ renderHistory(); $id('historyDrawer').hidden=false; });
   $id('histClose').addEventListener('click',()=>$id('historyDrawer').hidden=true);
   $id('btnProjects').addEventListener('click',()=>{ persistCurrentProject(); renderProjectsDrawer(); $id('projectsDrawer').hidden=false; });
+  $id('btnTasks').addEventListener('click',()=>{ renderTasks(); $id('tasksDrawer').hidden=false; });
+  $id('tasksClose').addEventListener('click',()=>$id('tasksDrawer').hidden=true);
   $id('projClose').addEventListener('click',()=>$id('projectsDrawer').hidden=true);
   $id('btnSettings').addEventListener('click',openSettings);
   $id('provChip').addEventListener('click',openSettings);
@@ -1683,6 +1764,35 @@ function bind(){
   });
   // prompt-box chips
   $id('pbModel').addEventListener('click',openSettings);
+  // build mode picker
+  const modePop=$id('modePop');
+  const paintMode=()=>{
+    const m=MODES[state.settings.mode]||MODES.web;
+    $id('pbModeIcon').textContent=m.icon; $id('pbModeText').textContent=m.label;
+  };
+  const renderModePop=()=>{
+    modePop.innerHTML='';
+    MODE_ORDER.forEach(k=>{
+      const M=MODES[k];
+      const b=document.createElement('button'); b.type='button'; b.className='modeopt'+((state.settings.mode||'web')===k?' sel':'');
+      b.innerHTML='<span class="mi">'+M.icon+'</span><span><b>'+esc(M.label)+'</b><small>'+esc(M.hint)+'</small></span>'+
+        ((state.settings.mode||'web')===k?'<span class="mck">✓</span>':'');
+      b.addEventListener('click',()=>{
+        state.settings.mode=k; saveSettings(); paintMode();
+        modePop.hidden=true;
+        toast(M.icon+' '+M.label+' mode — the AI now builds for this');
+      });
+      modePop.appendChild(b);
+    });
+  };
+  $id('pbMode').addEventListener('click',()=>{
+    if(modePop.hidden){ renderModePop(); modePop.hidden=false; }
+    else modePop.hidden=true;
+  });
+  document.addEventListener('click',(e)=>{
+    if(!modePop.hidden && !modePop.contains(e.target) && e.target!==$id('pbMode') && !$id('pbMode').contains(e.target)) modePop.hidden=true;
+  });
+  paintMode();
   $id('pbThink').addEventListener('click',()=>{
     const order=['off','balanced','deep'];
     const cur=state.settings.thinking??'balanced';
@@ -1744,7 +1854,7 @@ function bind(){
   if(state.settings.chatWidth) document.documentElement.style.setProperty('--chatw', state.settings.chatWidth);
   // esc closes overlays
   addEventListener('keydown',(e)=>{
-    if(e.key==='Escape'){ ['historyDrawer','diffModal'].forEach(id=>{ const el=$id(id); if(el) el.hidden=true; }); document.body.classList.remove('focusmode'); $id('chatPanel').classList.remove('open'); }
+    if(e.key==='Escape'){ ['historyDrawer','diffModal','tasksDrawer'].forEach(id=>{ const el=$id(id); if(el) el.hidden=true; }); const mp=$id('modePop'); if(mp) mp.hidden=true; document.body.classList.remove('focusmode'); $id('chatPanel').classList.remove('open'); }
   });
 }
 
@@ -1760,6 +1870,7 @@ function init(){
   restoreChatLog();
   applyEditorFont();
   paintThinkChip();
+  updateCtxPill(ctxOfConversation(''));
   if(!window.antrorAPI) idbGetDir().then(h=>{ if(h) state.ui.saveDirHandle=h; });
   restoreCloudOnSignIn();
   if(!state.settings.onboarded) $id('welcome').hidden=false;
