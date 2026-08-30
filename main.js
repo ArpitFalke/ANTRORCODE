@@ -170,10 +170,12 @@ app.whenReady().then(() => {
     });
   });
 
-  /* ── in-app web browser: real Chromium child window with a slim toolbar ── */
+  /* ── in-app web browser: ONE persistent Chromium window, reused like a real browser ── */
+  let appBrowser = null;
   ipcMain.handle('antror:openBrowser', (_e, url) => {
     let u = String(url || '');
     if (!/^https?:\/\//i.test(u)) u = 'https://' + u;
+    if (appBrowser && !appBrowser.isDestroyed()) { appBrowser.loadURL(u); appBrowser.focus(); return true; }
     const bw = new BrowserWindow({
       width: 1280, height: 860, autoHideMenuBar: true, backgroundColor: '#ffffff',
       title: 'ANTROR Browser',
@@ -194,6 +196,8 @@ app.whenReady().then(() => {
       } catch (e) {}
     };
     bw.webContents.on('did-finish-load', paint);
+    bw.on('closed', () => { if (appBrowser === bw) appBrowser = null; });
+    appBrowser = bw;
     bw.loadURL(u);
     return true;
   });

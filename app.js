@@ -898,8 +898,9 @@ async function sendPrompt(rawText){
   const text=rawText.trim(); if(!text) return;
   const cfg=ensureConfigured(); if(!cfg) return;
   sendPrompt.lastPrompt=text;
+  setBusy(true);    // swap to Stop instantly — before anything else runs
   try{
-  return await sendPromptCore(text,cfg,rawText);
+    return await sendPromptCore(text,cfg,rawText);
   } finally {
     setBusy(false);   // never leave the buttons dead, even if something throws
   }
@@ -942,7 +943,9 @@ async function sendPromptCore(text,cfg,rawText){
   const t0=Date.now();
   const fmtDur=(ms)=>{ const sec=Math.round(ms/1000); return sec<60 ? sec+'s' : Math.floor(sec/60)+'m '+(sec%60)+'s'; };
   const timerEl=actLine('','live build');
-  const timerPaint=()=>{ timerEl.innerHTML='<span class="eq"><i></i><i></i><i></i><i></i></span>Working for '+fmtDur(Date.now()-t0)+(written.length?' · '+written.length+' file'+(written.length===1?'':'s'):''); };
+  timerEl.innerHTML='<span class="eq"><i></i><i></i><i></i><i></i></span><span class="tt">Working…</span>';
+  const timerTxt=timerEl.querySelector('.tt');
+  const timerPaint=()=>{ timerTxt.textContent='Working for '+fmtDur(Date.now()-t0)+(written.length?' · '+written.length+' file'+(written.length===1?'':'s'):''); };
   timerPaint();
   const workTick=setInterval(timerPaint,900);
   const endTimer=(ok)=>{ clearInterval(workTick); timerEl.textContent=(ok?'✓ completed in ':'⚠ stopped after ')+fmtDur(Date.now()-t0); timerEl.className='actline'; };
@@ -951,8 +954,11 @@ async function sendPromptCore(text,cfg,rawText){
   let thinkEl=null, thinkTxt='';
   const onThinking=(t)=>{
     thinkTxt+=t;
-    if(!thinkEl){ thinkEl=actLine('','live think'); }
-    thinkEl.innerHTML='<span class="spk">✦</span> Thinking · '+Math.max(1,Math.round(thinkTxt.length/4))+' tokens';
+    if(!thinkEl){
+      thinkEl=actLine('','live think');
+      thinkEl.innerHTML='<span class="spk">✦</span><span class="tt">Thinking…</span>';
+    }
+    thinkEl.querySelector('.tt').textContent='Thinking · '+Math.max(1,Math.round(thinkTxt.length/4))+' tokens';
   };
   const onDelta=(chunk)=>{
     raw+=chunk;
