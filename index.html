@@ -169,16 +169,6 @@
       </div>
     </div>
 
-    <div id="localBar" hidden>
-      <button id="navBack" class="bnav" title="Back">◀</button>
-      <button id="navFwd" class="bnav" title="Forward">▶</button>
-      <button id="navRel" class="bnav" title="Reload">⟳</button>
-      <span class="lb-dot"></span>
-      <input id="localUrl" placeholder="http://localhost:3000" spellcheck="false" />
-      <button id="localGo" class="ghost">Go</button>
-      <button id="navWeb" class="ghost" title="Search the web / open external site">🌐</button>
-      <button id="localExit" class="ghost" title="Back to the built-in preview">✕</button>
-    </div>
     <section id="previewWrap">
       <div id="frameHolder">
         <iframe id="previewFrame" title="Live preview"
@@ -205,6 +195,7 @@
         <button id="navHome" class="bnav" title="Home (Google)">⌂</button>
         <input id="localUrl" placeholder="Search Google or type a URL — http://localhost:3000 for your apps" spellcheck="false" />
         <button id="localGo" class="bgo">Go</button>
+        <button id="navWeb" class="bnav" title="Search the web / open external site">🌐</button>
       </div>
       <iframe id="browserFrame" title="ANTROR Browser"
         sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-pointer-lock"></iframe>
@@ -241,8 +232,12 @@
 <div id="tasksDrawer" class="sidepanel" hidden>
   <div class="panel">
     <div class="modal-head"><h3>☑ Tasks</h3><button class="x" id="tasksClose">✕</button></div>
-    <p class="modal-sub">Every AI run is a task — its status, duration, and the exact lines it added or removed.</p>
-    <div id="tasksList" style="max-height:56vh;overflow-y:auto"></div>
+    <p class="modal-sub">Every AI run is a <b>task</b> — status, duration, and the exact lines it added or removed.
+       For bigger work use <b>Projects</b>: each project keeps its own files and conversation memory.</p>
+    <div class="proj-actions">
+      <button id="btnQuickChat" class="proj-act primary-act"><span>✦</span> New quick chat</button>
+    </div>
+    <div id="tasksList" style="max-height:52vh;overflow-y:auto"></div>
   </div>
 </div>
 
