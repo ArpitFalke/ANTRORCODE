@@ -82,8 +82,15 @@
       </span>
       </span>
     </div>
+    <div id="todoPanel" hidden>
+      <div class="tp-head"><span class="tp-ic">☑</span><b>Plan</b><span id="tpCount">0/0</span><button id="tpMin" title="Collapse">–</button></div>
+      <div id="tpList"></div>
+    </div>
     <div id="chatLogWrap">
       <div id="chatLog"></div>
+      <button id="jumpLatest" hidden title="Jump to latest">↓ latest</button>
+    </div>
+    <div id="composerDock">
       <div id="chatEmpty">
         <img src="assets/logo.png" alt="" />
         <h3>What should we build, <span id="ceName">friend</span>?</h3>
@@ -95,9 +102,8 @@
           <button data-ce="A premium landing page for a startup: hero, features, pricing, testimonials"><span><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19l3-3M14 4c3 0 6 3 6 6l-8 8-6-6 8-8z"/><circle cx="14.5" cy="9.5" r="1.4"/></svg></span><b>Startup landing</b><small>hero · pricing · vibe</small></button>
         </div>
       </div>
-      <button id="jumpLatest" hidden title="Jump to latest">↓ latest</button>
-    </div>
-    <div id="chipsRow">
+      <div id="slashPop" hidden></div>
+      <div id="chipsRow">
       <button class="chip" data-fill="Build me ">✦ Build…</button>
       <button class="chip" data-fill="Add a feature: ">➕ Add feature…</button>
       <button class="chip" data-fill="Something is broken: ">🐛 Fix…</button>
@@ -140,16 +146,24 @@
         <button id="segCode" class="segbtn">&lt;/&gt; Code</button>
       </div>
       <div class="bar-right">
-        <div class="seg" id="widthSeg" title="Preview width">
-          <button id="wFull" class="segbtn wbtn active" title="Full width">Full</button>
-          <button id="wPhone" class="segbtn wbtn" title="Phone width (390px)">390</button>
+        <div class="seg" id="widthSeg" title="Preview device">
+          <button id="wFull" class="segbtn wbtn active" title="Desktop width">🖥 Desktop</button>
+          <button id="wTab" class="segbtn wbtn" title="Tablet width (768px)">▢ Tablet</button>
+          <button id="wPhone" class="segbtn wbtn" title="Phone width (390px)">▯ Phone</button>
         </div>
+        <button id="btnLocal" title="Preview a local server (e.g. http://localhost:3000) — runs via the desktop app or bridge">⛓ Local</button>
         <button id="consBadgeBtn" hidden title="Runtime errors from your app">⚠ <b id="consCount">0</b></button>
         <button id="btnRefresh" title="Re-run the preview">↻ Run</button>
         <button id="btnOpenTab" title="Open the preview in a new tab">↗ New tab</button>
       </div>
     </div>
 
+    <div id="localBar" hidden>
+      <span class="lb-dot"></span>
+      <input id="localUrl" placeholder="http://localhost:3000" spellcheck="false" />
+      <button id="localGo" class="ghost">Open</button>
+      <button id="localExit" class="ghost" title="Back to the built-in preview">✕ Exit local</button>
+    </div>
     <section id="previewWrap">
       <div id="frameHolder">
         <iframe id="previewFrame" title="Live preview"

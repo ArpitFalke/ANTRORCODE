@@ -49,6 +49,9 @@ function renderAttachTray(){
   });
 }
 
+function gitRepoSafe(){ try{ return window.__gitRepo && window.__gitRepo(); }catch(e){ return null; } }
+function gitTokenSafe(){ try{ return (state.settings.gitToken||''); }catch(e){ return ''; } }
+
 function toast(msg, kind='', ms=3400){
   const box = $id('toasts');
   const t = document.createElement('div');
@@ -242,6 +245,34 @@ function taskDone(task, status, dur, dsum){
   task.files=n; task.add=a; task.del=d;
   saveTasks();
 }
+/* ── plan todos: parsed live from the stream, shown upper-right ── */
+let todoTimer=null;
+function parseTodos(raw){
+  const out=[];
+  const re=/<todo\s+done="(true|false)"\s*>([\s\S]*?)<\/todo>|<todo\s*>([\s\S]*?)<\/todo>/g;
+  let m;
+  while((m=re.exec(raw))!==null){
+    const done=m[1]==='true';
+    out.push({label:(m[2]||m[3]||'').trim().slice(0,90),done});
+  }
+  return out;
+}
+function renderTodos(items){
+  const panel=$id('todoPanel'), list=$id('tpList'), count=$id('tpCount');
+  if(!panel) return;
+  if(!items.length){ panel.hidden=true; return; }
+  panel.hidden=false;
+  const done=items.filter(i=>i.done).length;
+  count.textContent=done+'/'+items.length;
+  list.innerHTML='';
+  items.forEach(it=>{
+    const d=document.createElement('div'); d.className='todo-it'+(it.done?' done':'');
+    d.innerHTML='<span class="bx">'+(it.done?'✓':'')+'</span><span>'+esc(it.label)+'</span>';
+    list.appendChild(d);
+  });
+  list.scrollTop=list.scrollHeight;
+}
+
 function timeAgo(ts){ const s=Math.round((nowTs()-ts)/1000); if(s<60)return s+'s ago'; const m=Math.floor(s/60); if(m<60)return m+'m ago'; const h=Math.floor(m/60); if(h<24)return h+'h ago'; return Math.floor(h/24)+'d ago'; }
 function renderTasks(){
   const list=$id('tasksList'); if(!list) return;
@@ -303,6 +334,18 @@ const VIBE_SYSTEM = [
 '- Default to clean vanilla HTML/CSS/JS. CDN imports are fine; frameworks/build-tools only if explicitly asked. Everything must run in the browser with zero install steps.',
 '- Prefer compact-but-polished code: nice colors, spacing, hover states, mobile-friendly. Vibe coders love something that feels finished.',
 '- Do not invent binary assets; use emoji, CSS art, gradients, or SVG you write yourself.',
+'',
+'HOW TO PLAN (important):',
+'- For ANY non-trivial task, START your reply with a short <plan> block:',
+'  <plan>',
+'  <todo>set up the files</todo>',
+'  <todo>build the core feature</todo>',
+'  <todo>handle edge cases</todo>',
+'  </plan>',
+'- 3 to 8 todos. Cover setup, implementation, edge cases and testing. As you finish each part, RE-EMIT the plan with that todo marked: <todo done="true">…</todo>.',
+'- Trivial one-line changes can skip the plan.',
+'',
+'FILE ACCESS: You can request the contents of any project file by writing <read path="js/app.js"/> on its own line (one per file). The files will be provided to you, then continue the task. Use it when the manifest is not enough.',
 '',
 'HOW TO TALK:',
 '- After any code blocks, add a SHORT friendly explanation of what you built/changed and how to try it. Plain language, minimal jargon.',
@@ -796,7 +839,12 @@ function pushCheckpoint(label){
 
 function stripTags(s){
   s=s.replace(/<file\s[\s\S]*?<\/file>/g,'');
+  s=s.replace(/<read\s[^>]*\/>/g,'');
+  s=s.replace(/<plan>[\s\S]*?<\/plan>/g,'');
+  s=s.replace(/<\/?plan>/g,'').replace(/<\/?todo[^>]*>/g,'');
   const i=s.indexOf('<file'); if(i>=0)s=s.slice(0,i);
+  const j=s.indexOf('<read'); if(j>=0)s=s.slice(0,j);
+  const k=s.indexOf('<plan'); if(k>=0)s=s.slice(0,k);
   return s;
 }
 function extractWritten(raw, written){
@@ -843,6 +891,8 @@ async function sendPrompt(rawText){
   controller=new AbortController();
   persistCurrentProject(); // user turn is never lost, even mid-run
 
+  $id('todoPanel').hidden=true;   // fresh plan panel for this run
+
   // live activity feed — what the AI is doing, visible before the full output
   const act=document.createElement('div'); act.className='activity';
   ui.root.insertBefore(act, ui.bubble);
@@ -869,6 +919,8 @@ async function sendPrompt(rawText){
   const onDelta=(chunk)=>{
     raw+=chunk;
     ui.txt.textContent = stripTags(raw);
+    const todos=parseTodos(raw);
+    if(todos.length){ renderTodos(todos); timerEl.textContent=''; }
     softScroll();
     const fresh=extractWritten(raw, written);   // files land (and preview refreshes) as they finish streaming
     if(fresh.length){
@@ -891,6 +943,28 @@ async function sendPrompt(rawText){
     const msgs=buildMessages();
     const adt=makeAdapter(cfg,msgs,sys,{});
     await sseStream(adt,controller.signal,onDelta,onThinking);
+
+    // file-inspection loop: if the model asked for files (<read path/>), provide them and let it continue
+    let round=0;
+    while(round<2){
+      const reads=[...raw.matchAll(/<read\s+path="([^"]+)"\s*\/?>(?:<\/read>)?/g)];
+      if(!reads.length) break;
+      round++;
+      actLine('📂 providing '+reads.length+' file(s) the AI asked for…','dim');
+      const contents=reads.map(r=>{
+        const p=r[1];
+        return state.project.files[p]!=null
+          ? '----- '+p+' -----\n'+state.project.files[p]
+          : '----- '+p+' ----- (file not found)';
+      }).join('\n\n');
+      const msgs2=[
+        ...buildMessages(),
+        {role:'assistant',text:stripTags(raw)},
+        {role:'user',text:'FILE CONTENTS YOU REQUESTED:\n\n'+contents+'\n\nContinue and complete the task now using these files. Do not ask for them again.'},
+      ];
+      const adt2=makeAdapter(cfg,msgs2,sys,{});
+      await sseStream(adt2,controller.signal,onDelta,onThinking);
+    }
     updateCtxPill(ctxOfConversation(mode.sys)+est(raw));
   }catch(err){
     if(err.name==='AbortError'){ stopped=true; }
@@ -946,6 +1020,16 @@ async function sendPrompt(rawText){
   usageAdd(cfg.id, u.in!=null?u.in:Math.round(text.length/4), u.out!=null?u.out:Math.round(raw.length/4));
   // auto-save the project to the device (desktop: native · browser: chosen folder)
   dsAutoSave();
+  // auto-push to GitHub (opt-in): needs git connect + token in the terminal
+  if(state.settings.autoPush && window.__gitPush){
+    try{
+      const repo=gitRepoSafe();
+      if(repo && repo.remote && state.settings.gitToken){
+        toast('☁ Auto-pushing to GitHub…','ok');
+        setTimeout(()=>{ try{ window.__gitPush([], 'auto: '+text.slice(0,50)); }catch(e){} }, 900);
+      }
+    }catch(e){}
+  }
   const td=window.__vfTermSink; if(td&&td.done) try{td.done(written);}catch(e){}
   setBusy(false);
 }
@@ -1866,6 +1950,36 @@ function bind(){
   $id('segPreview').addEventListener('click',()=>showView('preview'));
   $id('segCode').addEventListener('click',()=>showView('code'));
   $id('btnRefresh').addEventListener('click',()=>refreshPreview());
+  // local server preview (desktop app / bridge): http://localhost:PORT in the workspace
+  let localOn=false;
+  function openLocal(){
+    const u=($id('localUrl').value||'').trim();
+    if(!/^https?:\/\/localhost(:\d+)?|^http:\/\/127\.0\.0\.1(:\d+)?/.test(u)){ toast('Enter a local URL like http://localhost:3000','err'); return; }
+    localOn=true;
+    $id('frameHolder').classList.remove('phone','tablet');
+    const f=$id('previewFrame');
+    const nf=f.cloneNode(false);
+    nf.removeAttribute('srcdoc');
+    nf.setAttribute('sandbox','allow-scripts allow-same-origin allow-forms allow-popups allow-pointer-lock');
+    f.replaceWith(nf);
+    nf.src=u;
+    state.settings.localUrl=u; saveSettings();
+    toast('⛓ Local preview — full-stack apps need the API running (desktop app or bridge)','ok',5000);
+  }
+  function exitLocal(){
+    localOn=false; $id('localBar').hidden=true;
+    refreshPreview();
+  }
+  $id('btnLocal').addEventListener('click',()=>{
+    const bar=$id('localBar');
+    bar.hidden=!bar.hidden;
+    if(!bar.hidden){ $id('localUrl').value=state.settings.localUrl||'http://localhost:3000'; $id('localUrl').focus(); }
+    else if(localOn) exitLocal();
+  });
+  $id('localGo').addEventListener('click',openLocal);
+  $id('localUrl').addEventListener('keydown',(e)=>{ if(e.key==='Enter')openLocal(); });
+  $id('localExit').addEventListener('click',exitLocal);
+
   $id('btnOpenTab').addEventListener('click',()=>{
     const doc=buildPreviewDoc();
     if(doc==null){ toast('Nothing to open yet — the workspace is empty','err'); return; }
@@ -1874,15 +1988,18 @@ function bind(){
     setTimeout(()=>URL.revokeObjectURL(url),60000);
   });
   // preview width
-  const setW=(phone)=>{
-    state.ui.phoneW=phone;
-    $id('frameHolder').classList.toggle('phone',phone);
-    $id('wFull').classList.toggle('active',!phone);
-    $id('wPhone').classList.toggle('active',phone);
+  const setW=(mode)=>{
+    state.ui.device=mode;
+    $id('frameHolder').classList.toggle('phone',mode==='phone');
+    $id('frameHolder').classList.toggle('tablet',mode==='tablet');
+    $id('wFull').classList.toggle('active',mode==='desktop');
+    $id('wTab').classList.toggle('active',mode==='tablet');
+    $id('wPhone').classList.toggle('active',mode==='phone');
     refreshPreview();
   };
-  $id('wFull').addEventListener('click',()=>setW(false));
-  $id('wPhone').addEventListener('click',()=>setW(true));
+  $id('wFull').addEventListener('click',()=>setW('desktop'));
+  $id('wTab').addEventListener('click',()=>setW('tablet'));
+  $id('wPhone').addEventListener('click',()=>setW('phone'));
   // prompt-box chips
   $id('pbModel').addEventListener('click',openSettings);
   // build mode picker
@@ -1912,6 +2029,51 @@ function bind(){
     const tb=$id('promptBox'); tb.value=b.dataset.ce; autoGrow(); tb.focus();
     tb.setSelectionRange(tb.value.length,tb.value.length);
   }));
+  // slash commands — type "/" in the prompt box (Claude Code style)
+  const slashPop=$id('slashPop');
+  const SLASH=[
+    {cmd:'/plan', desc:'Ask the AI to plan with todos first', act:(tb)=>{ tb.value='Plan this carefully with a todo list first: '; tb.focus(); }},
+    {cmd:'/undo', desc:'Undo the last AI run (restores files)', act:()=>{ const u=document.querySelector('.changesum .ghost'); if(u)u.click(); else toast('Nothing to undo in this session'); }},
+    {cmd:'/preview', desc:'Show or hide the workspace', act:()=>$id('btnPrevToggle').click()},
+    {cmd:'/new', desc:'Start a fresh project', act:()=>newProject()},
+    {cmd:'/export', desc:'Download the project as .zip', act:()=>exportZip()},
+    {cmd:'/clear', desc:'Clear this conversation (files stay)', act:()=>{ state.chat=[]; $id('chatLog').innerHTML=''; saveChat(); syncPristine(); }},
+  ];
+  function renderSlash(filter){
+    slashPop.innerHTML='';
+    const items=[
+      ...SLASH.filter(s=>s.cmd.startsWith(filter)),
+      ...(state.settings.skills||[]).filter(sk=>('/'+sk.name.toLowerCase()).startsWith(filter)||filter==='/').map(sk=>({
+        cmd:'/'+sk.name, desc:'Use skill: '+sk.text.slice(0,70)+'…',
+        act:(tb)=>{ tb.value=sk.text+'\n\n'+(tb.value.replace(/^\/\S*\s*/,'')||''); tb.focus(); },
+      })),
+    ];
+    if(!items.length){ slashPop.hidden=true; return; }
+    items.slice(0,8).forEach(it=>{
+      const b=document.createElement('button'); b.type='button'; b.className='slash-it';
+      b.innerHTML='<b>'+esc(it.cmd)+'</b><small>'+esc(it.desc)+'</small>';
+      b.addEventListener('click',()=>{ slashPop.hidden=true; it.act($id('promptBox')); });
+      slashPop.appendChild(b);
+    });
+    slashPop.hidden=false;
+  }
+  $id('promptBox').addEventListener('input',()=>{
+    const v=$id('promptBox').value;
+    if(v.startsWith('/') && !v.includes('\n')) renderSlash(v.trim().toLowerCase());
+    else if(!slashPop.hidden) slashPop.hidden=true;
+  });
+  $id('promptBox').addEventListener('keydown',(e)=>{
+    const slashPop2=$id('slashPop');
+    if(!slashPop2.hidden && e.key==='Enter' && !e.shiftKey){
+      const first=slashPop2.querySelector('.slash-it');
+      if(first){ e.preventDefault(); first.click(); }
+    }
+    if(e.key==='Escape' && !slashPop2.hidden){ slashPop2.hidden=true; e.stopPropagation(); }
+  });
+  document.addEventListener('click',(e)=>{
+    if(!slashPop.hidden && !slashPop.contains(e.target) && e.target!==$id('promptBox')) slashPop.hidden=true;
+  });
+
   const paintCeName=async()=>{
     let name='friend';
     try{ if(window.VF&&VF.configured()){ const u=await VF.getUser(); if(u) name=(u.user_metadata?.display_name||u.email||'friend').split('@')[0]; } }catch(e){}
@@ -1937,6 +2099,7 @@ function bind(){
     if(!tp.hidden && !tp.contains(e.target) && !$id('pbThink').contains(e.target)) tp.hidden=true;
   });
   // preview show/hide from the chat header
+  $id('tpMin').addEventListener('click',()=>{ const l=$id('tpList'); l.style.display = l.style.display==='none'?'':'none'; });
   $id('btnPrevToggle').addEventListener('click',()=>{
     if(document.body.classList.contains('pristine')) syncPristine(true);
     else { document.body.classList.add('pristine'); showView('preview'); }

@@ -671,6 +671,11 @@ $('mcpAdd').onclick=()=>{
   persist(); renderExt(); toastMsg('✓ MCP server connected — declared to the AI on every run');
 };
 
+function renderAutoPush(){
+  const c=$('chkAutoPush'); if(c) c.checked=!!S.autoPush;
+}
+$('chkAutoPush').addEventListener('change',(e)=>{ S.autoPush=e.target.checked; persist(); toastMsg(e.target.checked?'☁ Auto-push on':'Auto-push off'); });
+renderAutoPush();
 paintGeneral(); renderLists(); renderAcct(); renderExt();
   }
 });
@@ -756,6 +761,11 @@ $('mcpAdd').onclick=()=>{
   persist(); renderExt(); toastMsg('✓ MCP server connected — declared to the AI on every run');
 };
 
+function renderAutoPush(){
+  const c=$('chkAutoPush'); if(c) c.checked=!!S.autoPush;
+}
+$('chkAutoPush').addEventListener('change',(e)=>{ S.autoPush=e.target.checked; persist(); toastMsg(e.target.checked?'☁ Auto-push on':'Auto-push off'); });
+renderAutoPush();
 paintGeneral(); renderLists(); renderAcct(); renderExt();
 </script>
 <script src="cleanlinks.js"></script>

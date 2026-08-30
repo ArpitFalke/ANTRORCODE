@@ -255,7 +255,7 @@ body.nochat #chatFab{display:block}
 .errcard a{color:var(--dim);text-decoration:underline;text-underline-offset:3px}
 .typeline{font-size:11.5px;color:var(--faint);display:flex;gap:6px;align-items:center}
 
-#chipsRow{display:flex;gap:6px;padding:8px 14px 2px;flex-wrap:wrap}
+#chipsRow{display:flex;gap:6px;padding:6px 14px 2px;flex-wrap:wrap}
 .chip{
   padding:5px 11px;border-radius:999px;font-size:11px;font-weight:600;color:var(--dim);
   border:1px dashed var(--line2);transition:.15s;
@@ -701,6 +701,8 @@ button.ghost.danger:hover{color:var(--err);border-color:rgba(224,133,133,.5)}
 }
 #sbToggle:hover{color:var(--txt);background:rgba(255,255,255,.07)}
 body.sbmin #app{grid-template-columns:56px minmax(340px,44%) minmax(0,1fr)}
+body.sbmin.pristine #app{grid-template-columns:56px minmax(0,1fr)}
+body.nochat #app{grid-template-columns:56px minmax(0,1fr)}
 body.sbmin .logo-text,body.sbmin .byline,body.sbmin .proj-row,body.sbmin .side-sec,
 body.sbmin .sbtn .slbl,body.sbmin #userChip .uchip-txt,body.sbmin #provChipText,body.sbmin .legal-link,
 body.sbmin .tree-head{display:none}
@@ -782,36 +784,36 @@ body.sbmin .side-actions{gap:3px}
 
 
 /* ══════════ GEMINI-STYLE GLOW BORDER (prompt box) ══════════ */
-@property --ang{syntax:'<angle>';initial-value:0deg;inherits:false}
 .composer::after{
   content:"";position:absolute;inset:-1.5px;border-radius:19px;padding:1.5px;
-  background:linear-gradient(115deg, rgba(224,144,107,0) 30%, rgba(224,144,107,.35) 46%, rgba(242,234,216,.4) 50%, rgba(224,144,107,.35) 54%, rgba(224,144,107,0) 70%);
-  background-size:240% 100%;
+  background:linear-gradient(115deg,
+    rgba(224,144,107,0) 34%, rgba(224,144,107,.38) 46%,
+    rgba(242,234,216,.45) 50%, rgba(224,144,107,.38) 54%, rgba(224,144,107,0) 66%);
+  background-size:260% 100%;
   -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
   -webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
   mask-composite:exclude;
   opacity:0;transition:opacity .5s ease;pointer-events:none;
-  animation:sweep 7s ease-in-out infinite;
+  animation:sweep 8s ease-in-out infinite;
 }
 .composer::before{
   content:"";position:absolute;inset:-1.5px;border-radius:19px;padding:1.5px;
-  background:repeating-linear-gradient(115deg,
-    rgba(242,234,216,0) 0px, rgba(242,234,216,0) 26px,
-    rgba(242,234,216,.9) 26px, rgba(224,144,107,.95) 30px,
-    rgba(107,114,128,.75) 34px, rgba(242,234,216,0) 40px,
-    rgba(242,234,216,0) 62px);
-  background-size:280% 100%;
+  background:linear-gradient(115deg,
+    rgba(242,234,216,0) 42%, rgba(242,234,216,.75) 49%,
+    rgba(224,144,107,.8) 52%, rgba(107,114,128,.55) 55%,
+    rgba(242,234,216,0) 62%);
+  background-size:260% 100%;
   -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
   -webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
   mask-composite:exclude;
   opacity:0;transition:opacity .35s ease;pointer-events:none;
 }
-.composer:focus-within::after{opacity:.5}
-.composer:focus-within::before{opacity:.85;animation:streaks 5s linear infinite}
+.composer:focus-within::after{opacity:.45}
+.composer:focus-within::before{opacity:.85;animation:flow 6s ease-in-out infinite}
 .composer:focus-within{box-shadow:0 0 0 1px rgba(242,234,216,.1),0 0 34px rgba(224,144,107,.14)}
-#chatPanel.generating .composer::after{opacity:.8}
-#chatPanel.generating .composer::before{opacity:1;animation:streaks 2.2s linear infinite}
-@keyframes streaks{to{background-position:-280% 0}}
+#chatPanel.generating .composer::after{opacity:.7}
+#chatPanel.generating .composer::before{opacity:1;animation:flow 2.8s ease-in-out infinite}
+@keyframes flow{0%{background-position:130% 0}50%{background-position:-30% 0}100%{background-position:130% 0}}
 @keyframes sweep{0%,100%{background-position:120% 0}50%{background-position:-120% 0}}
 
 /* warm touches on the live indicators */
@@ -829,24 +831,26 @@ body.sbmin .side-actions{gap:3px}
 
 
 /* ══════════ CHAT EMPTY STATE (Claude-style) ══════════ */
+#composerDock{display:flex;flex-direction:column;flex:none}
+body.pristine #chatLogWrap{display:none}
+body.pristine #composerDock{flex:1;justify-content:center;padding:0 18px 7vh}
 #chatEmpty{
-  position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
-  text-align:center;padding:24px;z-index:2;
+  display:flex;flex-direction:column;align-items:center;text-align:center;margin-bottom:20px;
 }
 #chatEmpty[hidden]{display:none}
-#chatEmpty img{width:52px;height:52px;border-radius:13px;margin-bottom:16px;opacity:.95;
-  box-shadow:0 14px 40px rgba(0,0,0,.5)}
-#chatEmpty h3{font-size:19px;font-weight:800;letter-spacing:-.3px}
-#chatEmpty p{color:var(--dim);font-size:12.5px;margin:7px 0 20px}
-.ce-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;width:100%;max-width:380px}
+#chatEmpty img{width:44px;height:44px;border-radius:11px;margin-bottom:13px;opacity:.95;
+  box-shadow:0 12px 34px rgba(0,0,0,.5)}
+#chatEmpty h3{font-size:16px;font-weight:800;letter-spacing:-.2px}
+#chatEmpty p{color:var(--dim);font-size:11.5px;margin:6px 0 14px}
+.ce-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%;max-width:330px}
 .ce-grid button{
-  display:flex;flex-direction:column;align-items:flex-start;gap:3px;padding:13px 14px;border-radius:12px;
+  display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:10px 12px;border-radius:10px;
   background:var(--panel);border:1px solid var(--line);transition:.15s;text-align:left;
 }
 .ce-grid button:hover{border-color:rgba(255,255,255,.35);background:rgba(255,255,255,.05);transform:translateY(-2px)}
-.ce-grid span{font-size:17px}
-.ce-grid b{font-size:12.5px;color:var(--txt)}
-.ce-grid small{font-size:10.5px;color:var(--faint)}
+.ce-grid span{font-size:15px}
+.ce-grid b{font-size:11.5px;color:var(--txt)}
+.ce-grid small{font-size:10px;color:var(--faint)}
 
 /* FILES header + empty tree */
 .tree-head::first-letter{color:var(--dim)}
@@ -860,3 +864,50 @@ body.sbmin .side-actions{gap:3px}
 .bar-right button{padding:5px 10px;font-size:11.5px;border-radius:8px}
 
 .logo-row .logo-text{line-height:1.15}
+
+
+/* ══════════ PLAN / TODO PANEL (upper right) ══════════ */
+#todoPanel{
+  position:absolute;top:52px;right:12px;z-index:25;width:248px;
+  background:rgba(20,20,20,.96);border:1px solid var(--line2);border-radius:13px;
+  box-shadow:0 18px 50px rgba(0,0,0,.6);overflow:hidden;backdrop-filter:blur(6px);
+}
+#todoPanel[hidden]{display:none}
+.tp-head{display:flex;align-items:center;gap:7px;padding:9px 12px;border-bottom:1px solid var(--line);font-size:11.5px}
+.tp-head b{color:var(--txt);font-weight:700;flex:1}
+.tp-ic{color:var(--cream)}
+#tpCount{font-family:var(--mono);font-size:10.5px;color:var(--dim)}
+#tpMin{color:var(--faint);padding:1px 6px;border-radius:5px;font-size:12px}
+#tpMin:hover{color:var(--txt);background:rgba(255,255,255,.07)}
+#tpList{padding:7px 10px;max-height:200px;overflow-y:auto}
+.todo-it{display:flex;gap:8px;align-items:flex-start;padding:4px 0;font-size:11.5px;color:var(--dim);line-height:1.5}
+.todo-it .bx{flex:none;width:13px;height:13px;border-radius:4px;border:1px solid var(--line2);margin-top:2px;display:flex;align-items:center;justify-content:center;font-size:9px}
+.todo-it.done{color:var(--faint);text-decoration:line-through;text-decoration-color:rgba(255,255,255,.25)}
+.todo-it.done .bx{background:rgba(242,234,216,.15);border-color:transparent;color:var(--cream)}
+
+/* ══════════ TABLET DEVICE + LOCAL BAR + SLASH POPUP ══════════ */
+#frameHolder.tablet #previewFrame{width:768px;max-width:100%;box-shadow:0 0 0 1px var(--line2)}
+#localBar{
+  display:flex;align-items:center;gap:9px;padding:8px 12px;background:var(--bg2);
+  border-bottom:1px solid var(--line);flex:none;
+}
+#localBar[hidden]{display:none}
+.lb-dot{width:8px;height:8px;border-radius:50%;background:#a8d8b0;box-shadow:0 0 8px rgba(168,216,176,.6);flex:none}
+#localUrl{
+  flex:1;min-width:0;padding:8px 12px;border-radius:9px;font-size:12px;font-family:var(--mono);
+  background:var(--panel);border:1px solid var(--line2);outline:none;color:var(--txt);
+}
+#localUrl:focus{border-color:rgba(255,255,255,.4)}
+#slashPop{
+  position:absolute;left:18px;right:18px;bottom:calc(100% + 8px);z-index:35;
+  background:var(--panel2);border:1px solid var(--line2);border-radius:14px;padding:6px;
+  box-shadow:0 -14px 50px rgba(0,0,0,.65);animation:pop .18s ease;max-height:280px;overflow-y:auto;
+}
+#slashPop[hidden]{display:none}
+.slash-it{
+  display:flex;align-items:baseline;gap:12px;width:100%;text-align:left;padding:10px 12px;
+  border-radius:9px;transition:.12s;
+}
+.slash-it:hover{background:rgba(255,255,255,.06)}
+.slash-it b{font-family:var(--mono);font-size:12px;color:var(--txt);flex:none;min-width:90px}
+.slash-it small{font-size:11px;color:var(--faint);line-height:1.5}

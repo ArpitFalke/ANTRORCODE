@@ -174,6 +174,32 @@ const COMMANDS = {
       line('wrote '+m[2], 'ok'); return; }
     line(args.join(' '));
   },
+  tree(){
+    const paths=Object.keys(state.project.files).sort();
+    if(!paths.length){ line('(empty project)','dim'); return; }
+    const dirs={};
+    paths.forEach(p=>{
+      const parts=p.split('/');
+      let prefix='';
+      parts.forEach((seg,i)=>{
+        const parent=prefix; prefix=prefix?prefix+'/'+seg:seg;
+        if(i<parts.length-1) dirs[parent]=dirs[parent]||new Set(), dirs[parent].add(seg);
+      });
+    });
+    const drawn=new Set();
+    const walk=(prefix,depth)=>{
+      Object.keys(state.project.files).filter(p=>p.startsWith(prefix?prefix+'/':'')).sort().forEach(p=>{
+        const rest=p.slice(prefix?prefix.length+1:0);
+        const top=rest.split('/')[0];
+        const isDir=rest.includes('/');
+        const key=(prefix?prefix+'/':'')+top;
+        if(isDir){ if(!drawn.has(key)){ drawn.add(key); line('  '.repeat(depth)+'📁 '+top+'/'); walk(key,depth+1); } }
+        else line('  '.repeat(depth)+'  '+top+'  '+fmtBytes(state.project.files[p].length));
+      });
+    };
+    walk('',0);
+    line(paths.length+' file(s)','dim');
+  },
   grep(args){
     const q=args.join(' ').toLowerCase();
     if(!q){ line('usage: grep <text>', 'err'); return; }
@@ -661,4 +687,6 @@ if(document.readyState==='loading') document.addEventListener('DOMContentLoaded'
 else bindTerm();
 
 window.TermCLI={ toggle, isOpen:()=>open, exec };
+window.__gitRepo=()=>gitRepo(false);
+window.__gitPush=(args,raw)=>gitPush(args,raw);
 })();
