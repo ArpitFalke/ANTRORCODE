@@ -170,7 +170,35 @@ app.whenReady().then(() => {
     });
   });
 
-  /* ── device commands: always behind a native permission dialog ──
+  /* ── in-app web browser: real Chromium child window with a slim toolbar ── */
+  ipcMain.handle('antror:openBrowser', (_e, url) => {
+    let u = String(url || '');
+    if (!/^https?:\/\//i.test(u)) u = 'https://' + u;
+    const bw = new BrowserWindow({
+      width: 1280, height: 860, autoHideMenuBar: true, backgroundColor: '#ffffff',
+      title: 'ANTROR Browser',
+      webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true },
+    });
+    const paint = () => {
+      try {
+        const inject = '<div style="display:flex;gap:8px;align-items:center;padding:8px 10px;background:#0e0e0e;position:sticky;top:0;z-index:9;font-family:system-ui">' +
+          '<button onclick="history.back()" style="all:unset;cursor:pointer;color:#9a9a9a;padding:4px 10px;border-radius:8px;background:#181818">&#9664;</button>' +
+          '<button onclick="history.forward()" style="all:unset;cursor:pointer;color:#9a9a9a;padding:4px 10px;border-radius:8px;background:#181818">&#9654;</button>' +
+          '<button onclick="location.reload()" style="all:unset;cursor:pointer;color:#9a9a9a;padding:4px 10px;border-radius:8px;background:#181818">&#10227;</button>' +
+          '<input id="u" style="flex:1;padding:7px 12px;border-radius:9px;border:1px solid rgba(255,255,255,.16);background:#141414;color:#ececec;font-size:12.5px" onkeydown="if(event.key===\'Enter\')location.href=this.value.startsWith(\'http\')?this.value:\'https://\'+this.value"/>' +
+          '<button onclick="location.href=\'https://www.google.com/search?q=\'+encodeURIComponent(document.getElementById(\'u\').value)" style="all:unset;cursor:pointer;color:#9a9a9a;padding:4px 12px;border-radius:8px;background:#181818;font-size:12px">Search</button></div>';
+        bw.webContents.executeJavaScript(
+          'document.body.insertAdjacentHTML("afterbegin", ' + JSON.stringify(inject) + ');' +
+          'var i=document.getElementById("u"); if(i) i.value=' + JSON.stringify(bw.webContents.getURL()) + '; 0;'
+        ).catch(function(){});
+      } catch (e) {}
+    };
+    bw.webContents.on('did-finish-load', paint);
+    bw.loadURL(u);
+    return true;
+  });
+
+  /* ── device commands: always behind a native permission dialog ── */
   ipcMain.handle('antror:runCommand', async (_e, cmd) => {
     const c = String(cmd || '').slice(0, 2000).trim();
     if (!c) return { code: 1, stdout: '', stderr: 'no command' };

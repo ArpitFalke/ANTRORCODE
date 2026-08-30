@@ -1827,7 +1827,7 @@ async function restoreCloudOnSignIn(){
     state.project={ id:first.id, cloudId:first.cloudId, name:first.name, files:first.files||{}, chat:first.chat||[], updatedAt:first.updatedAt };
     state.chat=clone(state.project.chat);
     saveProject(); saveChat(); persistCurrentProject();
-    renderAll(); restoreChatLog(); syncPristine(true);
+    renderAll(); restoreChatLog(); syncPristine();
     toast('☁ Welcome back, '+(user.user_metadata?.display_name||user.email||'friend')+' — '+state.projects.length+' project(s) restored from your cloud','ok',5000);
   }catch(e){ /* silent — local-first still works */ }
 }
@@ -2013,6 +2013,18 @@ function bind(){
   $id('localGo').addEventListener('click',openLocal);
   $id('localUrl').addEventListener('keydown',(e)=>{ if(e.key==='Enter')openLocal(); });
   $id('localExit').addEventListener('click',exitLocal);
+  // real web browsing from the address bar
+  $id('navWeb').addEventListener('click',()=>{
+    let q=($id('localUrl').value||'').trim();
+    if(!q){ toast('Type a URL or a search','err'); return; }
+    const isUrl=/^https?:\/\//i.test(q)||/^([\w-]+\.)+[a-z]{2,}(\/|$)/i.test(q);
+    let target;
+    if(isUrl){ target=/^https?:\/\//i.test(q)?q:'https://'+q; }
+    else { target='https://www.google.com/search?q='+encodeURIComponent(q); }
+    if(/localhost|127\.0\.0\.1/.test(target)){ openLocal(); return; }
+    if(window.antrorAPI && window.antrorAPI.openBrowser){ window.antrorAPI.openBrowser(target); toast('🌐 Opened in the in-app browser','ok'); }
+    else { window.open(target,'_blank'); toast('External sites open in a new tab on the web version','ok',4500); }
+  });
   // back / forward / reload operate on the framed site (same-origin localhost)
   $id('navBack').addEventListener('click',()=>{ const f=$id('previewFrame'); try{ f.contentWindow.history.back(); }catch(e){} });
   $id('navFwd').addEventListener('click',()=>{ const f=$id('previewFrame'); try{ f.contentWindow.history.forward(); }catch(e){} });
@@ -2216,7 +2228,7 @@ function init(){
   }
   renderAll();
   restoreChatLog();
-  document.body.classList.add('pristine');   // fresh load: chat first — the ▤ Preview button opens it
+  syncPristine();   // empty → greeting centered · conversation → chat visible · workspace on demand
   applyEditorFont();
   if(state.settings.thinking==='balanced') state.settings.thinking='medium';
   if(state.settings.thinking==='deep') state.settings.thinking='max';

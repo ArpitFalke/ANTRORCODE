@@ -13,5 +13,6 @@ contextBridge.exposeInMainWorld('antrorAPI', {
   /* in-app page navigation + in-app OAuth */
   goPage: (page) => ipcRenderer.invoke('antror:go', page),
   oauthStart: (url) => ipcRenderer.invoke('antror:oauth', url),
+  openBrowser: (url) => ipcRenderer.invoke('antror:openBrowser', url),
   onOAuthResult: (cb) => ipcRenderer.on('antror:oauth-result', (_e, hash) => cb(hash)),
 });
