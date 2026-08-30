@@ -144,14 +144,25 @@ function persistCurrentProject(){
   saveProjects(); saveProject(); saveChat();
   syncProjectUrl();
 }
+/* Project deep-links — universal: ?p=<id> works on every host and survives reload.
+   /p/<id> and #p=<id> are accepted too. The id matches a local project or a cloud project. */
 function syncProjectUrl(){
   if(!location.protocol.startsWith('http') || !state.project.id) return;
-  try{ history.replaceState(null,'','/p/'+state.project.id); }catch(e){}
+  try{
+    const want='?p='+state.project.id;
+    if(location.search!==want) history.replaceState(null,'','/'+want);
+  }catch(e){}
 }
-function openFromUrl(){
-  const m=location.pathname.match(/\/p\/([\w-]+)/);
-  if(!m) return;
-  const pid=m[1];
+function urlProjectId(){
+  const q=new URLSearchParams(location.search).get('p');
+  if(q) return q;
+  const hm=location.hash.match(/p=([\w-]+)/); if(hm) return hm[1];
+  const pm=location.pathname.match(/\/p\/([\w-]+)/); if(pm) return pm[1];
+  return null;
+}
+async function openFromUrl(){
+  const pid=urlProjectId();
+  if(!pid) return false;
   const attempt=async()=>{
     const local=state.projects.find(p=>p.id===pid);
     if(local){ if(state.project.id!==local.id) switchToProject(clone(local)); return true; }
@@ -173,11 +184,10 @@ function openFromUrl(){
     }
     return false;
   };
-  (async()=>{
-    let ok=await attempt();
-    if(!ok){ await new Promise(res=>setTimeout(res,400)); ok=await attempt(); }   // retry once (late storage)
-    if(!ok) toast('Project link opened, but this project is not on this device — sign in with the same account to pull it from the cloud','err',7000);
-  })();
+  let ok=await attempt();
+  if(!ok){ await new Promise(res=>setTimeout(res,400)); ok=await attempt(); }   // retry once (late storage)
+  if(!ok) toast('This project link is not on this device — sign in with the same account to pull it from the cloud','err',7000);
+  return ok;
 }
 function blankProject(name){
   return { id:'p'+nowTs()+Math.floor(Math.random()*99), name:name||('untitled-'+Math.floor(Math.random()*90+10)), files:{}, chat:[], updatedAt:nowTs(), cloudId:null };
@@ -2274,8 +2284,10 @@ function init(){
   paintThinkChip();
   updateCtxPill(ctxOfConversation(''));
   if(!window.antrorAPI) idbGetDir().then(h=>{ if(h) state.ui.saveDirHandle=h; });
-  restoreCloudOnSignIn();
-  openFromUrl();
+  (async()=>{
+    try{ await restoreCloudOnSignIn(); }catch(e){}
+    try{ await openFromUrl(); }catch(e){}
+  })();
   if(!state.settings.onboarded) $id('welcome').hidden=false;
   try{ const d=localStorage.getItem('vf.v1.draft'); if(d){ $id('promptBox').value=d; } }catch(e){}
   autoGrow();
