@@ -190,6 +190,7 @@ input,textarea{font:inherit;color:inherit}
 #chatResizer{position:absolute;left:-4px;top:0;bottom:0;width:9px;cursor:col-resize;z-index:10}
 #chatResizer:hover{background:linear-gradient(90deg,transparent,rgba(255,255,255,.14))}
 body.nochat #app{grid-template-columns:220px minmax(0,1fr)}
+body.nochat.conv #app{grid-template-columns:220px minmax(0,1fr)}
 body.pristine #app{grid-template-columns:220px minmax(0,1fr)}
 body.pristine #stage{display:none}
 body.nochat #chatPanel{display:none}
@@ -702,6 +703,7 @@ button.ghost.danger:hover{color:var(--err);border-color:rgba(224,133,133,.5)}
 #sbToggle:hover{color:var(--txt);background:rgba(255,255,255,.07)}
 body.sbmin #app{grid-template-columns:56px minmax(340px,44%) minmax(0,1fr)}
 body.sbmin.pristine #app{grid-template-columns:56px minmax(0,1fr)}
+body.sbmin.conv #app{grid-template-columns:56px minmax(0,1fr)}
 body.nochat #app{grid-template-columns:56px minmax(0,1fr)}
 body.sbmin .logo-text,body.sbmin .byline,body.sbmin .proj-row,body.sbmin .side-sec,
 body.sbmin .sbtn .slbl,body.sbmin #userChip .uchip-txt,body.sbmin #provChipText,body.sbmin .legal-link,
@@ -831,8 +833,13 @@ body.sbmin .side-actions{gap:3px}
 
 
 /* ══════════ CHAT EMPTY STATE (Claude-style) ══════════ */
-#composerDock{display:flex;flex-direction:column;flex:none}
+#composerDock{display:flex;flex-direction:column;flex:none;position:relative}
 body.pristine #chatLogWrap{display:none}
+body.conv #chatLogWrap{display:flex}
+body.conv #stage{display:none}
+body.conv #app{grid-template-columns:220px minmax(0,1fr)}
+body.pristine #stage{display:none}
+body.pristine #app{grid-template-columns:220px minmax(0,1fr)}
 body.pristine #composerDock{flex:1;justify-content:center;padding:0 18px 7vh}
 #chatEmpty{
   display:flex;flex-direction:column;align-items:center;text-align:center;margin-bottom:20px;
@@ -888,9 +895,12 @@ body.pristine #composerDock{flex:1;justify-content:center;padding:0 18px 7vh}
 /* ══════════ TABLET DEVICE + LOCAL BAR + SLASH POPUP ══════════ */
 #frameHolder.tablet #previewFrame{width:768px;max-width:100%;box-shadow:0 0 0 1px var(--line2)}
 #localBar{
-  display:flex;align-items:center;gap:9px;padding:8px 12px;background:var(--bg2);
+  display:flex;align-items:center;gap:7px;padding:7px 10px;background:var(--bg2);
   border-bottom:1px solid var(--line);flex:none;
 }
+#localBar .bnav{width:30px;height:30px;flex:none;border-radius:8px;border:1px solid transparent;color:var(--dim);font-size:13px}
+#localBar .bnav:hover{color:var(--txt);background:rgba(255,255,255,.06);border-color:var(--line2)}
+#localBar .bnav:disabled{opacity:.35;cursor:default}
 #localBar[hidden]{display:none}
 .lb-dot{width:8px;height:8px;border-radius:50%;background:#a8d8b0;box-shadow:0 0 8px rgba(168,216,176,.6);flex:none}
 #localUrl{

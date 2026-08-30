@@ -88,6 +88,7 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
+      webSecurity: false,   // lets the in-app browser frame http://localhost servers built by the AI
     },
   });
   win.once('ready-to-show', () => {

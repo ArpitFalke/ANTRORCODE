@@ -31,7 +31,11 @@
       "assets/**",
       "build/**",
       "bridge/**",
-      "favicon-3d.png"
+      "favicon-3d.png",
+      "favicon.ico",
+      "favicon-192.png",
+      "favicon-512.png",
+      "apple-touch-icon.png"
     ],
     "directories": {
       "output": "desktop-dist"

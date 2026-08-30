@@ -27,11 +27,18 @@ function go(page){
 
 /* preview column appears only when there is something to show (first prompt / files) */
 function syncPristine(open){
-  // opening old content via a user action → show the preview; otherwise chat-only
-  const has=(state.chat && state.chat.length) || Object.keys(state.project.files||{}).length;
-  const pristine = open===true ? false : (open===false ? true : !has);
-  document.body.classList.toggle('pristine',pristine);
-  const ce=$id('chatEmpty'); if(ce) ce.hidden = !pristine || (state.chat && state.chat.length>0);
+  /* three layout states:
+     pristine   → empty project: greeting centered, composer centered, no preview
+     conv       → conversation exists: chat visible, composer docked, preview hidden
+     workspace  → prompt sent or Workspace button: chat + preview side by side */
+  const hasConv = state.chat && state.chat.length>0;
+  let mode;
+  if(open===true) mode='workspace';
+  else if(open===false) mode = hasConv ? 'conv' : 'pristine';
+  else mode = hasConv ? 'conv' : 'pristine';
+  document.body.classList.toggle('pristine', mode==='pristine');
+  document.body.classList.toggle('conv', mode==='conv');
+  const ce=$id('chatEmpty'); if(ce) ce.hidden = mode!=='pristine';
 }
 
 /* pending image attachments (tray chips → assets/ on send) */
@@ -878,7 +885,7 @@ async function sendPrompt(rawText){
   }
   state.chat.push({role:'user',text:sendText,t:nowTs()});
   try{ localStorage.removeItem('vf.v1.draft'); }catch(e){}
-  syncPristine(true);                           // empty state clears, preview takes its place
+  syncPristine(true);                           // workspace opens: chat + preview
   addUserMsg(text); saveChat();
   $id('promptBox').value=''; autoGrow();
 
@@ -1889,8 +1896,29 @@ function restoreChatLog(){
 }
 function bind(){
   // composer
-  $id('composerForm').addEventListener('submit',(e)=>{ e.preventDefault(); sendPrompt($id('promptBox').value); });
+  $id('composerForm').addEventListener('submit',(e)=>{
+    e.preventDefault();
+    const sp=$id('slashPop'); if(sp && !sp.hidden) return;   // picking a slash command, not sending
+    sendPrompt($id('promptBox').value);
+  });
   $id('promptBox').addEventListener('keydown',(e)=>{
+    const sp=$id('slashPop');
+    if(sp && !sp.hidden && (e.key==='Enter'||e.key==='ArrowUp'||e.key==='ArrowDown'||e.key==='Escape'||e.key==='Tab')){
+      e.preventDefault();
+      const items=[...sp.querySelectorAll('.slash-it')];
+      let idx=items.findIndex(b=>b.classList.contains('sel'));
+      if(e.key==='Escape'){ sp.hidden=true; return; }
+      if(e.key==='ArrowDown'||e.key==='ArrowUp'){
+        if(!items.length) return;
+        idx = e.key==='ArrowDown' ? (idx+1)%items.length : (idx-1+items.length)%items.length;
+        items.forEach((b,i)=>b.classList.toggle('sel',i===idx));
+        items[idx].scrollIntoView({block:'nearest'});
+        return;
+      }
+      if(e.key==='Tab'){ if(items.length){items.forEach((b,i)=>b.classList.toggle('sel',i===0)); } return; }
+      if(items.length){ (items[Math.max(0,idx)]||items[0]).click(); }
+      return;
+    }
     if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); sendPrompt($id('promptBox').value); }
   });
   $id('promptBox').addEventListener('input',()=>{ autoGrow(); try{ localStorage.setItem('vf.v1.draft',$id('promptBox').value); }catch(e){} });
@@ -1950,21 +1978,25 @@ function bind(){
   $id('segPreview').addEventListener('click',()=>showView('preview'));
   $id('segCode').addEventListener('click',()=>showView('code'));
   $id('btnRefresh').addEventListener('click',()=>refreshPreview());
-  // local server preview (desktop app / bridge): http://localhost:PORT in the workspace
+  // in-app browser: navigate the preview to any URL (localhost servers, local apps)
   let localOn=false;
-  function openLocal(){
-    const u=($id('localUrl').value||'').trim();
-    if(!/^https?:\/\/localhost(:\d+)?|^http:\/\/127\.0\.0\.1(:\d+)?/.test(u)){ toast('Enter a local URL like http://localhost:3000','err'); return; }
+  function navFrame(url){
     localOn=true;
+    $id('localUrl').value=url;
     $id('frameHolder').classList.remove('phone','tablet');
     const f=$id('previewFrame');
     const nf=f.cloneNode(false);
     nf.removeAttribute('srcdoc');
     nf.setAttribute('sandbox','allow-scripts allow-same-origin allow-forms allow-popups allow-pointer-lock');
     f.replaceWith(nf);
-    nf.src=u;
-    state.settings.localUrl=u; saveSettings();
-    toast('⛓ Local preview — full-stack apps need the API running (desktop app or bridge)','ok',5000);
+    nf.src=url;
+    state.settings.localUrl=url; saveSettings();
+  }
+  function openLocal(){
+    let u=($id('localUrl').value||'').trim();
+    if(!u){ toast('Type a URL — e.g. http://localhost:3000','err'); return; }
+    if(!/^https?:\/\//i.test(u)) u='http://'+u;
+    navFrame(u);
   }
   function exitLocal(){
     localOn=false; $id('localBar').hidden=true;
@@ -1973,12 +2005,18 @@ function bind(){
   $id('btnLocal').addEventListener('click',()=>{
     const bar=$id('localBar');
     bar.hidden=!bar.hidden;
-    if(!bar.hidden){ $id('localUrl').value=state.settings.localUrl||'http://localhost:3000'; $id('localUrl').focus(); }
-    else if(localOn) exitLocal();
+    if(!bar.hidden){
+      $id('localUrl').value=state.settings.localUrl||'http://localhost:3000';
+      $id('localUrl').focus(); $id('localUrl').select();
+    } else if(localOn) exitLocal();
   });
   $id('localGo').addEventListener('click',openLocal);
   $id('localUrl').addEventListener('keydown',(e)=>{ if(e.key==='Enter')openLocal(); });
   $id('localExit').addEventListener('click',exitLocal);
+  // back / forward / reload operate on the framed site (same-origin localhost)
+  $id('navBack').addEventListener('click',()=>{ const f=$id('previewFrame'); try{ f.contentWindow.history.back(); }catch(e){} });
+  $id('navFwd').addEventListener('click',()=>{ const f=$id('previewFrame'); try{ f.contentWindow.history.forward(); }catch(e){} });
+  $id('navRel').addEventListener('click',()=>{ const f=$id('previewFrame'); if(localOn){ try{ f.contentWindow.location.reload(); }catch(e){ navFrame($id('localUrl').value.trim()); } } else refreshPreview(); });
 
   $id('btnOpenTab').addEventListener('click',()=>{
     const doc=buildPreviewDoc();
@@ -2101,8 +2139,8 @@ function bind(){
   // preview show/hide from the chat header
   $id('tpMin').addEventListener('click',()=>{ const l=$id('tpList'); l.style.display = l.style.display==='none'?'':'none'; });
   $id('btnPrevToggle').addEventListener('click',()=>{
-    if(document.body.classList.contains('pristine')) syncPristine(true);
-    else { document.body.classList.add('pristine'); showView('preview'); }
+    if(document.body.classList.contains('pristine') || document.body.classList.contains('conv')) syncPristine(true);
+    else syncPristine(false);   // back to chat-only (conversation stays visible)
   });
   // image attach (+) — images land in assets/ and can be used by the preview & AI
   $id('btnAttach').addEventListener('click',()=>$id('attachInput').click());
