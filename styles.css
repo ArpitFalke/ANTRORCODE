@@ -937,3 +937,9 @@ body.pristine #composerDock{flex:1;justify-content:center;padding:0 18px 7vh}
 #browserBar .bgo{padding:7px 16px;border-radius:999px;background:#e8e8e8;color:#0a0a0a;font-weight:750;font-size:12px}
 #browserBar .bgo:hover{background:#fff}
 #browserFrame{flex:1;min-height:0;width:100%;border:none;background:#fff}
+
+
+/* single send/stop button */
+#sendBtn.stop{background:#3a3a3a;color:#e8c9c9;border:1px solid rgba(224,133,133,.4)}
+#sendBtn.stop:hover{transform:scale(1.05);background:#4a2a2a}
+#extView{flex:1;min-height:0;width:100%;border:none;background:#fff;display:block}

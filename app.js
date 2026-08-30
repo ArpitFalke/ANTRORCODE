@@ -373,6 +373,12 @@ const VIBE_SYSTEM = [
 '',
 'FILE ACCESS: You can request the contents of any project file by writing <read path="js/app.js"/> on its own line (one per file). The files will be provided to you, then continue the task. Use it when the manifest is not enough.',
 '',
+'DEVICE COMMANDS: You can run commands on the user\'s device by writing <run>npm install</run> (one per line). The user is asked for permission first, then you receive the output and continue. Use for installs, builds, git operations and tests.',
+'',
+'PROJECT NAMING: On the FIRST turn of a new project, the very first line of your reply must be the project name in a tag: <name>neon-snake</name> — short, lowercase, kebab-case, reflecting the main goal. Skip the tag on later turns or when the project already has a real name.',
+'',
+'PROJECT MEMORY (ANTROR.md): If the project contains ANTROR.md, its contents are provided in the manifest. Keep it updated with durable facts: the goal, chosen stack, conventions and decisions. Update it whenever important decisions are made.',
+'',
 'HOW TO TALK:',
 '- After any code blocks, add a SHORT friendly explanation of what you built/changed and how to try it. Plain language, minimal jargon.',
 '- If a request is vague, make tasteful assumptions and briefly say what you assumed instead of asking many questions.',
@@ -381,6 +387,8 @@ const VIBE_SYSTEM = [
 
 function buildSystem(){
   let sys=VIBE_SYSTEM;
+  const mem=state.project.files['ANTROR.md'];
+  if(mem) sys+='\n\nPROJECT MEMORY — ANTROR.md (durable facts about this project; keep it updated):\n'+mem;
   const P=state.settings.plugins||{};
   if(P.tailwind) sys+='\n\nPLUGIN — TAILWIND: Style everything with Tailwind CSS via <script src="https://cdn.tailwindcss.com"></script> and utility classes; keep a <style> block only for custom keyframes.';
   if(P.motion) sys+='\n\nPLUGIN — MOTION: Add tasteful life to the UI — transitions on every interactive element, keyframe entrances, scroll reveals, micro-interactions. Smooth, never gimmicky.';
@@ -871,11 +879,15 @@ function pushCheckpoint(label){
 function stripTags(s){
   s=s.replace(/<file\s[\s\S]*?<\/file>/g,'');
   s=s.replace(/<read\s[^>]*\/>/g,'');
+  s=s.replace(/<run>[\s\S]*?<\/run>/g,'');
+  s=s.replace(/<name>[\s\S]*?<\/name>/g,'');
   s=s.replace(/<plan>[\s\S]*?<\/plan>/g,'');
   s=s.replace(/<\/?plan>/g,'').replace(/<\/?todo[^>]*>/g,'');
   const i=s.indexOf('<file'); if(i>=0)s=s.slice(0,i);
   const j=s.indexOf('<read'); if(j>=0)s=s.slice(0,j);
   const k=s.indexOf('<plan'); if(k>=0)s=s.slice(0,k);
+  const r=s.indexOf('<run'); if(r>=0)s=s.slice(0,r);
+  const nm=s.indexOf('<name'); if(nm>=0)s=s.slice(0,nm);
   return s;
 }
 function extractWritten(raw, written){
@@ -988,23 +1000,43 @@ async function sendPromptCore(text,cfg,rawText){
     const adt=makeAdapter(cfg,msgs,sys,{});
     await sseStream(adt,controller.signal,onDelta,onThinking);
 
-    // file-inspection loop: if the model asked for files (<read path/>), provide them and let it continue
+    // agentic loop: provide <read> files, execute <run> commands (with permission), let the AI continue
     let round=0;
-    while(round<2){
-      const reads=[...raw.matchAll(/<read\s+path="([^"]+)"\s*\/?>(?:<\/read>)?/g)];
-      if(!reads.length) break;
+    while(round<3){
       round++;
-      actLine('📂 providing '+reads.length+' file(s) the AI asked for…','dim');
-      const contents=reads.map(r=>{
-        const p=r[1];
-        return state.project.files[p]!=null
-          ? '----- '+p+' -----\n'+state.project.files[p]
-          : '----- '+p+' ----- (file not found)';
-      }).join('\n\n');
+      const reads=[...raw.matchAll(/<read\s+path="([^"]+)"\s*\/?>(?:<\/read>)?/g)].map(m=>m[1]);
+      const runs=[...raw.matchAll(/<run>([\s\S]*?)<\/run>/g)].map(m=>m[1].trim());
+      if(!reads.length && !runs.length) break;
+
+      let payload='';
+      if(reads.length){
+        actLine('📂 providing '+reads.length+' file(s) the AI asked for…','dim');
+        payload+='FILE CONTENTS YOU REQUESTED:\n\n'+reads.map(p=>(
+          state.project.files[p]!=null ? '----- '+p+' -----\n'+state.project.files[p] : '----- '+p+' ----- (file not found)'
+        )).join('\n\n')+'\n\n';
+      }
+      if(runs.length){
+        const outs=[];
+        for(const cmd of runs.slice(0,5)){
+          actLine('▮ running: '+cmd,'dim');
+          let out;
+          try{
+            if(window.antrorAPI){ const r=await window.antrorAPI.runCommand(cmd);
+              out = r.denied ? '(user denied this command)' : ('$ '+cmd+'\nexit '+r.code+'\n'+(r.stdout||'')+(r.stderr?'\n[stderr]\n'+r.stderr:''));
+            } else if(window.__vfBridgeRun){
+              out = await window.__vfBridgeRun(cmd);
+            } else out='(device commands need the desktop app, or the browser bridge with a token)';
+          }catch(e){ out='(failed: '+(e.message||e)+')'; }
+          outs.append? null : outs.push(out);
+        }
+        payload+='DEVICE COMMAND OUTPUTS:\n\n'+outs.join('\n\n')+'\n\n';
+      }
+      if(!payload) break;
+
       const msgs2=[
         ...buildMessages(),
         {role:'assistant',text:stripTags(raw)},
-        {role:'user',text:'FILE CONTENTS YOU REQUESTED:\n\n'+contents+'\n\nContinue and complete the task now using these files. Do not ask for them again.'},
+        {role:'user',text:payload+'\nContinue and complete the task now with what you have. Do not request the same things again.'},
       ];
       const adt2=makeAdapter(cfg,msgs2,sys,{});
       await sseStream(adt2,controller.signal,onDelta,onThinking);
@@ -1028,6 +1060,14 @@ async function sendPromptCore(text,cfg,rawText){
 
   const disp=stripTags(raw);
   extractWritten(raw, written);
+  // the AI names the project from the goal (first turn only)
+  const nm=raw.match(/<name>([\s\S]*?)<\/name>/);
+  if(nm && /^(untitled|quick-\d+)$/i.test(state.project.name||'untitled')){
+    const clean=nm[1].trim().toLowerCase().replace(/[^\w-]+/g,'-').replace(/^-+|-+$/g,'').slice(0,32);
+    if(clean){ state.project.name=clean; $id('projName').textContent=clean;
+      persistCurrentProject(); renderStatusChip();
+      actLine('🏷 project named: '+clean,'ok'); }
+  }
   const dsum=diffSummary(beforeFiles, state.project.files);
   lastRunDiff={before:beforeFiles, after:clone(state.project.files)};
   endTimer(!stopped);
@@ -1096,8 +1136,11 @@ function finalizeBubble(ui,disp,written,stopped,dsum,thinkTxt){
 }
 function setBusy(b){
   state.ui.busy=b;
-  $id('sendBtn').disabled=b;
-  $id('stopBtn').hidden=!b;
+  const btn=$id('sendBtn');
+  btn.disabled=false;                 // never disabled — it IS the stop button while busy
+  btn.classList.toggle('stop',b);
+  btn.textContent=b?'■':'➤';
+  btn.title=b?'Stop generating':'Send';
   if(b) $id('chatPanel').classList.add('generating'); else $id('chatPanel').classList.remove('generating');
 }
 
@@ -1936,6 +1979,15 @@ function bind(){
   $id('composerForm').addEventListener('submit',(e)=>{
     e.preventDefault();
     const sp=$id('slashPop'); if(sp && !sp.hidden) return;   // picking a slash command, not sending
+    if(state.ui.busy){                                        // the send button is a stop button now
+      if(controller){ try{ controller.abort(); }catch(err){} }
+      setBusy(false);
+      if($id('promptBox').value.trim()==='' && sendPrompt.lastPrompt){
+        $id('promptBox').value=sendPrompt.lastPrompt; autoGrow(); $id('promptBox').focus();
+        toast('⏹ Stopped — your prompt is back in the box, edit it and resend','ok');
+      } else toast('⏹ Stopped');
+      return;
+    }
     sendPrompt($id('promptBox').value);
   });
   $id('promptBox').addEventListener('keydown',(e)=>{
@@ -1959,15 +2011,7 @@ function bind(){
     if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); sendPrompt($id('promptBox').value); }
   });
   $id('promptBox').addEventListener('input',()=>{ autoGrow(); try{ localStorage.setItem('vf.v1.draft',$id('promptBox').value); }catch(e){} });
-  $id('stopBtn').addEventListener('click',()=>{
-    if(!controller) return;
-    try{ controller.abort(); }catch(e){}
-    setBusy(false);
-    if($id('promptBox').value.trim()==='' && sendPrompt.lastPrompt){
-      $id('promptBox').value=sendPrompt.lastPrompt; autoGrow(); $id('promptBox').focus();
-      toast('⏹ Stopped — your prompt is back in the box, edit it and resend','ok');
-    } else toast('⏹ Stopped');
-  });
+
   document.querySelectorAll('.chip[data-fill]').forEach(c=>{
     c.addEventListener('click',()=>{
       const tb=$id('promptBox'); tb.value=c.dataset.fill; tb.focus();
@@ -2049,19 +2093,29 @@ function bind(){
     const isUrl=/^https?:\/\//i.test(q)||/^([\w-]+\.)+[a-z]{2,}(\/|:|$)/i.test(q);
     const target=isUrl ? (/^https?:\/\//i.test(q)?q:'https://'+q)
                        : 'https://www.google.com/search?q='+encodeURIComponent(q);
+    $id('localUrl').value=target;
     if(/localhost|127\.0\.0\.1/.test(target)){
       navFrame(target);
       toast('⛓ Local app — make sure the server is running (desktop app or bridge)','ok',4500);
       return;
     }
-    $id('localUrl').value=target;
-    if(window.antrorAPI && window.antrorAPI.openBrowser){ window.antrorAPI.openBrowser(target); }
-    else { window.open(target,'_blank'); toast('🌐 External sites open in a new tab on the web version','ok',4500); }
+    if(window.antrorAPI){
+      // real in-app browsing: Electron <webview> inside the Browser tab
+      showRightTab('browser');
+      const f=$id('browserFrame'), wv=$id('extView');
+      f.hidden=true; wv.hidden=false;
+      if(wv.src!==target) wv.src=target;
+      state.settings.localUrl=target; saveSettings();
+    } else {
+      window.open(target,'_blank');
+      toast('🌐 External sites open in a new tab on the web version','ok',4500);
+    }
   }
   function navFrame(url){
     browserOn=true; showRightTab('browser');
     $id('localUrl').value=url;
-    const f=$id('browserFrame');
+    const f=$id('browserFrame'), wv=$id('extView');
+    f.hidden=false; if(wv) wv.hidden=true;
     f.src=url;
     state.settings.localUrl=url; saveSettings();
   }
@@ -2204,9 +2258,9 @@ function bind(){
   // preview show/hide from the chat header
   $id('tpMin').addEventListener('click',()=>{ const l=$id('tpList'); l.style.display = l.style.display==='none'?'':'none'; });
   $id('btnPrevToggle').addEventListener('click',()=>{
-    const wsVisible = !$id('stage').hidden && $id('stagebar') && !$id('stagebar').hidden;
-    if(wsVisible){ syncPristine(false); }   // back to chat-only (conversation stays)
-    else { syncPristine(true); try{ showRightTab('workspace'); }catch(e){} }
+    const closed = document.body.classList.contains('pristine') || document.body.classList.contains('conv');
+    if(closed){ syncPristine(true); showRightTab('workspace'); }
+    else syncPristine(false);   // back to chat-only (conversation stays)
   });
   // image attach (+) — images land in assets/ and can be used by the preview & AI
   $id('btnAttach').addEventListener('click',()=>$id('attachInput').click());
@@ -2282,7 +2336,7 @@ function init(){
   }
   renderAll();
   restoreChatLog();
-  $id('sendBtn').disabled=false; $id('stopBtn').hidden=true;   // never inherit dead buttons
+  setBusy(false);   // never inherit dead buttons — also resets the send/stop face
   syncPristine();   // empty → greeting centered · conversation → chat visible · workspace on demand
   applyEditorFont();
   if(state.settings.thinking==='balanced') state.settings.thinking='medium';

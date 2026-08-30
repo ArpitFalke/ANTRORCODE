@@ -133,8 +133,7 @@
             <span id="pbThinkText">Medium</span><span class="crt">▾</span>
           </button>
           <div id="thinkPop" hidden></div>
-          <button type="submit" id="sendBtn" title="Send">➤</button>
-          <button type="button" id="stopBtn" title="Stop generating" hidden>■</button>
+          <button type="submit" id="sendBtn" title="Send — click again while building to stop">➤</button>
         </div>
       </div>
     </form>
@@ -197,8 +196,9 @@
         <button id="localGo" class="bgo">Go</button>
         <button id="navWeb" class="bnav" title="Search the web / open external site">🌐</button>
       </div>
-      <iframe id="browserFrame" title="ANTROR Browser"
+      <iframe id="browserFrame" title="ANTROR Browser — local apps"
         sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-pointer-lock"></iframe>
+      <webview id="extView" title="ANTROR Browser" partition="persist:antrorweb" hidden></webview>
     </section>
     <section id="editorWrap" hidden>
       <div id="tabsRow"></div>

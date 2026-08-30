@@ -687,6 +687,18 @@ if(document.readyState==='loading') document.addEventListener('DOMContentLoaded'
 else bindTerm();
 
 window.TermCLI={ toggle, isOpen:()=>open, exec };
+/* silent bridge runner for the agentic <run> loop (returns output instead of printing) */
+window.__vfBridgeRun=async function(cmd){
+  const tok=(state.settings.bridge||{}).token;
+  if(!tok) throw new Error('bridge not configured');
+  const r=await fetch('http://127.0.0.1:8765/run',{
+    method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},
+    body:JSON.stringify({cmd}),
+  });
+  const j=await r.json();
+  if(j.error) throw new Error(j.error);
+  return '$ '+cmd+'\nexit '+j.code+'\n'+(j.stdout||'')+(j.stderr?'\n[stderr]\n'+j.stderr:'');
+};
 window.__gitRepo=()=>gitRepo(false);
 window.__gitPush=(args,raw)=>gitPush(args,raw);
 })();
