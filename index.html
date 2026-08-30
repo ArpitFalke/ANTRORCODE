@@ -141,6 +141,17 @@
   </aside>
 
   <main id="stage">
+    <div id="wsTabs">
+      <button id="tabWorkspace" class="wtab on" title="Live preview & code editor of this project">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M3 9h18M9 4v14"/></svg>
+        Workspace
+      </button>
+      <button id="tabBrowser" class="wtab" title="Browse the web — localhost apps, search, anything">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18z"/></svg>
+        Browser
+      </button>
+      <button id="wsClose" class="wtab-x" title="Close this column">✕</button>
+    </div>
     <div id="stagebar">
       <div class="seg" role="tablist">
         <button id="segPreview" class="segbtn active">▶ Preview</button>
@@ -152,7 +163,6 @@
           <button id="wTab" class="segbtn wbtn" title="Tablet width (768px)">▢ Tablet</button>
           <button id="wPhone" class="segbtn wbtn" title="Phone width (390px)">▯ Phone</button>
         </div>
-        <button id="btnLocal" title="Preview a local server (e.g. http://localhost:3000) — runs via the desktop app or bridge">⛓ Local</button>
         <button id="consBadgeBtn" hidden title="Runtime errors from your app">⚠ <b id="consCount">0</b></button>
         <button id="btnRefresh" title="Re-run the preview">↻ Run</button>
         <button id="btnOpenTab" title="Open the preview in a new tab">↗ New tab</button>
@@ -187,6 +197,18 @@
       </div>
     </section>
 
+    <section id="browserWrap" hidden>
+      <div id="browserBar">
+        <button id="navBack" class="bnav" title="Back">◀</button>
+        <button id="navFwd" class="bnav" title="Forward">▶</button>
+        <button id="navRel" class="bnav" title="Reload">⟳</button>
+        <button id="navHome" class="bnav" title="Home (Google)">⌂</button>
+        <input id="localUrl" placeholder="Search Google or type a URL — http://localhost:3000 for your apps" spellcheck="false" />
+        <button id="localGo" class="bgo">Go</button>
+      </div>
+      <iframe id="browserFrame" title="ANTROR Browser"
+        sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-pointer-lock"></iframe>
+    </section>
     <section id="editorWrap" hidden>
       <div id="tabsRow"></div>
       <div id="editorArea">

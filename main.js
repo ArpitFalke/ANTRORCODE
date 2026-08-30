@@ -82,7 +82,7 @@ function createWindow() {
     autoHideMenuBar: true,
     show: false,   // avoids the blank first paint; shown on ready-to-show
     title: 'ANTROR Code',
-    icon: path.join(__dirname, 'favicon-3d.png'),
+    icon: path.join(__dirname, 'assets', 'logo.png'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,

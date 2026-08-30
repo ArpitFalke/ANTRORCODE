@@ -152,22 +152,31 @@ function openFromUrl(){
   const m=location.pathname.match(/\/p\/([\w-]+)/);
   if(!m) return;
   const pid=m[1];
-  const local=state.projects.find(p=>p.id===pid);
-  if(local){ if(state.project.id!==local.id) switchToProject(clone(local)); return; }
+  const attempt=async()=>{
+    const local=state.projects.find(p=>p.id===pid);
+    if(local){ if(state.project.id!==local.id) switchToProject(clone(local)); return true; }
+    if(window.VF && VF.configured()){
+      try{
+        const rows=await VF.listCloud();
+        const r=rows.find(x=>x.cloudId===pid);
+        if(r){
+          persistCurrentProject();
+          state.project=Object.assign(blankProject(r.name),{files:clone(r.files),chat:clone(r.chat||[]),cloudId:r.cloudId});
+          state.chat=clone(state.project.chat);
+          state.ui.tabs=[]; state.ui.open=null;
+          saveProject(); saveChat(); persistCurrentProject();
+          renderAll(); restoreChatLog(); showView('preview'); syncPristine(true);
+          toast('☁ Opened “'+r.name+'” from your cloud','ok');
+          return true;
+        }
+      }catch(e){}
+    }
+    return false;
+  };
   (async()=>{
-    try{
-      if(!(window.VF && VF.configured())) return;
-      const rows=await VF.listCloud();
-      const r=rows.find(x=>x.cloudId===pid);
-      if(!r) return;
-      persistCurrentProject();
-      state.project=Object.assign(blankProject(r.name),{files:clone(r.files),chat:clone(r.chat||[]),cloudId:r.cloudId});
-      state.chat=clone(state.project.chat);
-      state.ui.tabs=[]; state.ui.open=null;
-      saveProject(); saveChat(); persistCurrentProject();
-      renderAll(); restoreChatLog(); showView('preview'); syncPristine(true);
-      toast('☁ Opened “'+r.name+'” from your cloud','ok');
-    }catch(e){}
+    let ok=await attempt();
+    if(!ok){ await new Promise(res=>setTimeout(res,400)); ok=await attempt(); }   // retry once (late storage)
+    if(!ok) toast('Project link opened, but this project is not on this device — sign in with the same account to pull it from the cloud','err',7000);
   })();
 }
 function blankProject(name){
@@ -579,6 +588,11 @@ const renderTreeSoon = debounce(renderTree, 300);
 
 /* stage views */
 function showView(v){
+  if($id('browserWrap') && !$id('browserWrap').hidden){
+    $id('browserWrap').hidden=true;
+    $id('tabWorkspace').classList.add('on'); $id('tabBrowser').classList.remove('on');
+    $id('stagebar').hidden=false;
+  }
   state.ui.view=v;
   $id('segPreview').classList.toggle('active', v==='preview');
   $id('segCode').classList.toggle('active', v==='code');
@@ -874,6 +888,13 @@ async function sendPrompt(rawText){
   const text=rawText.trim(); if(!text) return;
   const cfg=ensureConfigured(); if(!cfg) return;
   sendPrompt.lastPrompt=text;
+  try{
+  return await sendPromptCore(text,cfg,rawText);
+  } finally {
+    setBusy(false);   // never leave the buttons dead, even if something throws
+  }
+}
+async function sendPromptCore(text,cfg,rawText){
 
   let sendText=text;
   if(pendingAttach.length){
@@ -1960,6 +1981,17 @@ function bind(){
   $id('sbToggle').addEventListener('click',()=>{ state.settings.sbMin=!state.settings.sbMin; saveSettings(); applySb(); });
   applySb();
   $id('tasksClose').addEventListener('click',()=>$id('tasksDrawer').hidden=true);
+  $id('btnQuickChat').addEventListener('click',()=>{
+    $id('tasksDrawer').hidden=true;
+    persistCurrentProject();
+    state.project=blankProject('quick-'+Math.floor(Math.random()*90+10));
+    state.chat=[]; $id('chatLog').innerHTML='';
+    state.checkpoints=[]; saveChecks();
+    state.ui.tabs=[]; state.ui.open=null;
+    saveProject(); saveChat(); persistCurrentProject();
+    renderAll(); syncPristine();
+    toast('✦ Quick chat started — fresh memory, project untouched','ok');
+  });
   ['projectsDrawer','tasksDrawer','historyDrawer'].forEach(id=>{
     const el=$id(id);
     el.addEventListener('click',(e)=>{ if(e.target===el) el.hidden=true; });   // backdrop click
@@ -1978,57 +2010,52 @@ function bind(){
   $id('segPreview').addEventListener('click',()=>showView('preview'));
   $id('segCode').addEventListener('click',()=>showView('code'));
   $id('btnRefresh').addEventListener('click',()=>refreshPreview());
-  // in-app browser: navigate the preview to any URL (localhost servers, local apps)
-  let localOn=false;
+  // right column tabs: workspace ↔ browser
+  let browserOn=false;
+  function showRightTab(tab){
+    $id('tabWorkspace').classList.toggle('on',tab==='workspace');
+    $id('tabBrowser').classList.toggle('on',tab==='browser');
+    $id('stagebar').hidden = tab!=='workspace';
+    $id('previewWrap').hidden = tab!=='workspace' || state.ui.view!=='preview';
+    $id('editorWrap').hidden = tab!=='workspace' || state.ui.view!=='code';
+    $id('browserWrap').hidden = tab!=='browser';
+    if(tab==='browser'){ browserOn=true; const f=$id('browserFrame'); if(!f.src) f.src='https://www.google.com'; }
+  }
+  $id('tabWorkspace').addEventListener('click',()=>showRightTab('workspace'));
+  $id('tabBrowser').addEventListener('click',()=>showRightTab('browser'));
+  $id('wsClose').addEventListener('click',()=>{ $id('browserWrap').hidden=true; $id('stagebar').hidden=false; $id('previewWrap').hidden=true; $id('editorWrap').hidden=true; document.body.classList.add('conv'); });
+  $id('tabBrowser').addEventListener('click',()=>{ $id('localBar') && ($id('localBar').hidden=true); });
+
+  // browser chrome: smart routing
+  function browserNavigate(q){
+    q=(q||'').trim();
+    if(!q){ toast('Type a URL or a search','err'); return; }
+    const isUrl=/^https?:\/\//i.test(q)||/^([\w-]+\.)+[a-z]{2,}(\/|:|$)/i.test(q);
+    const target=isUrl ? (/^https?:\/\//i.test(q)?q:'https://'+q)
+                       : 'https://www.google.com/search?q='+encodeURIComponent(q);
+    if(/localhost|127\.0\.0\.1/.test(target)){
+      navFrame(target);
+      toast('⛓ Local app — make sure the server is running (desktop app or bridge)','ok',4500);
+      return;
+    }
+    $id('localUrl').value=target;
+    if(window.antrorAPI && window.antrorAPI.openBrowser){ window.antrorAPI.openBrowser(target); }
+    else { window.open(target,'_blank'); toast('🌐 External sites open in a new tab on the web version','ok',4500); }
+  }
   function navFrame(url){
-    localOn=true;
+    browserOn=true; showRightTab('browser');
     $id('localUrl').value=url;
-    $id('frameHolder').classList.remove('phone','tablet');
-    const f=$id('previewFrame');
-    const nf=f.cloneNode(false);
-    nf.removeAttribute('srcdoc');
-    nf.setAttribute('sandbox','allow-scripts allow-same-origin allow-forms allow-popups allow-pointer-lock');
-    f.replaceWith(nf);
-    nf.src=url;
+    const f=$id('browserFrame');
+    f.src=url;
     state.settings.localUrl=url; saveSettings();
   }
-  function openLocal(){
-    let u=($id('localUrl').value||'').trim();
-    if(!u){ toast('Type a URL — e.g. http://localhost:3000','err'); return; }
-    if(!/^https?:\/\//i.test(u)) u='http://'+u;
-    navFrame(u);
-  }
-  function exitLocal(){
-    localOn=false; $id('localBar').hidden=true;
-    refreshPreview();
-  }
-  $id('btnLocal').addEventListener('click',()=>{
-    const bar=$id('localBar');
-    bar.hidden=!bar.hidden;
-    if(!bar.hidden){
-      $id('localUrl').value=state.settings.localUrl||'http://localhost:3000';
-      $id('localUrl').focus(); $id('localUrl').select();
-    } else if(localOn) exitLocal();
-  });
-  $id('localGo').addEventListener('click',openLocal);
-  $id('localUrl').addEventListener('keydown',(e)=>{ if(e.key==='Enter')openLocal(); });
-  $id('localExit').addEventListener('click',exitLocal);
-  // real web browsing from the address bar
-  $id('navWeb').addEventListener('click',()=>{
-    let q=($id('localUrl').value||'').trim();
-    if(!q){ toast('Type a URL or a search','err'); return; }
-    const isUrl=/^https?:\/\//i.test(q)||/^([\w-]+\.)+[a-z]{2,}(\/|$)/i.test(q);
-    let target;
-    if(isUrl){ target=/^https?:\/\//i.test(q)?q:'https://'+q; }
-    else { target='https://www.google.com/search?q='+encodeURIComponent(q); }
-    if(/localhost|127\.0\.0\.1/.test(target)){ openLocal(); return; }
-    if(window.antrorAPI && window.antrorAPI.openBrowser){ window.antrorAPI.openBrowser(target); toast('🌐 Opened in the in-app browser','ok'); }
-    else { window.open(target,'_blank'); toast('External sites open in a new tab on the web version','ok',4500); }
-  });
-  // back / forward / reload operate on the framed site (same-origin localhost)
-  $id('navBack').addEventListener('click',()=>{ const f=$id('previewFrame'); try{ f.contentWindow.history.back(); }catch(e){} });
-  $id('navFwd').addEventListener('click',()=>{ const f=$id('previewFrame'); try{ f.contentWindow.history.forward(); }catch(e){} });
-  $id('navRel').addEventListener('click',()=>{ const f=$id('previewFrame'); if(localOn){ try{ f.contentWindow.location.reload(); }catch(e){ navFrame($id('localUrl').value.trim()); } } else refreshPreview(); });
+  $id('localGo').addEventListener('click',()=>browserNavigate($id('localUrl').value));
+  $id('localUrl').addEventListener('keydown',(e)=>{ if(e.key==='Enter') browserNavigate($id('localUrl').value); });
+  $id('navBack').addEventListener('click',()=>{ try{ $id('browserFrame').contentWindow.history.back(); }catch(e){} });
+  $id('navFwd').addEventListener('click',()=>{ try{ $id('browserFrame').contentWindow.history.forward(); }catch(e){} });
+  $id('navRel').addEventListener('click',()=>{ try{ $id('browserFrame').contentWindow.location.reload(); }catch(e){ const u=$id('localUrl').value; if(u) navFrame(u); } });
+  $id('navHome').addEventListener('click',()=>navFrame('https://www.google.com'));
+  $id('navWeb').addEventListener('click',()=>browserNavigate($id('localUrl').value));
 
   $id('btnOpenTab').addEventListener('click',()=>{
     const doc=buildPreviewDoc();
@@ -2081,13 +2108,23 @@ function bind(){
   }));
   // slash commands — type "/" in the prompt box (Claude Code style)
   const slashPop=$id('slashPop');
+  const P=(prefix)=>(tb)=>{ tb.value=prefix+' '+tb.value.replace(/^\/\S+\s*/,''); tb.focus(); tb.setSelectionRange(tb.value.length,tb.value.length); };
   const SLASH=[
-    {cmd:'/plan', desc:'Ask the AI to plan with todos first', act:(tb)=>{ tb.value='Plan this carefully with a todo list first: '; tb.focus(); }},
-    {cmd:'/undo', desc:'Undo the last AI run (restores files)', act:()=>{ const u=document.querySelector('.changesum .ghost'); if(u)u.click(); else toast('Nothing to undo in this session'); }},
-    {cmd:'/preview', desc:'Show or hide the workspace', act:()=>$id('btnPrevToggle').click()},
-    {cmd:'/new', desc:'Start a fresh project', act:()=>newProject()},
-    {cmd:'/export', desc:'Download the project as .zip', act:()=>exportZip()},
-    {cmd:'/clear', desc:'Clear this conversation (files stay)', act:()=>{ state.chat=[]; $id('chatLog').innerHTML=''; saveChat(); syncPristine(); }},
+    {cmd:'/plan',     desc:'Plan with todos before building',            act:P('Plan this carefully with a todo list first:')},
+    {cmd:'/goal',     desc:'Define the goal and success criteria',       act:P('Goal — restate the goal and success criteria for:')},
+    {cmd:'/issue',    desc:'Describe an issue — get diagnosis + fix',    act:P('Issue to diagnose and fix:')},
+    {cmd:'/review',   desc:'Code review of the current project',         act:()=>{ $id('promptBox').value='Review the current project files: find bugs, security issues and improvements. Give a prioritized list.'; sendPrompt($id('promptBox').value); }},
+    {cmd:'/fix',      desc:'Find and fix problems automatically',        act:P('Find and fix the problems in:')},
+    {cmd:'/test',     desc:'Generate tests for the project',             act:()=>{ $id('promptBox').value='Write tests for the current project files and add them as test.html or tests.js.'; sendPrompt($id('promptBox').value); }},
+    {cmd:'/refactor', desc:'Refactor for clarity and structure',         act:P('Refactor for clarity and structure:')},
+    {cmd:'/optimize', desc:'Optimize performance and size',              act:P('Optimize performance and bundle size of:')},
+    {cmd:'/docs',     desc:'Generate README / documentation',            act:()=>{ $id('promptBox').value='Generate a complete README.md for the current project.'; sendPrompt($id('promptBox').value); }},
+    {cmd:'/explain',  desc:'Explain how the project works',              act:()=>{ $id('promptBox').value='Explain how the current project works in simple words.'; sendPrompt($id('promptBox').value); }},
+    {cmd:'/undo',     desc:'Undo the last AI run (restores files)',      act:()=>{ const u=document.querySelector('.changesum .ghost'); if(u)u.click(); else toast('Nothing to undo in this session'); }},
+    {cmd:'/preview',  desc:'Show or hide the workspace',                 act:()=>$id('btnPrevToggle').click()},
+    {cmd:'/new',      desc:'Start a fresh project',                      act:()=>newProject()},
+    {cmd:'/export',   desc:'Download the project as .zip',               act:()=>exportZip()},
+    {cmd:'/clear',    desc:'Clear this conversation (files stay)',       act:()=>{ state.chat=[]; $id('chatLog').innerHTML=''; saveChat(); syncPristine(); }},
   ];
   function renderSlash(filter){
     slashPop.innerHTML='';
@@ -2151,8 +2188,9 @@ function bind(){
   // preview show/hide from the chat header
   $id('tpMin').addEventListener('click',()=>{ const l=$id('tpList'); l.style.display = l.style.display==='none'?'':'none'; });
   $id('btnPrevToggle').addEventListener('click',()=>{
-    if(document.body.classList.contains('pristine') || document.body.classList.contains('conv')) syncPristine(true);
-    else syncPristine(false);   // back to chat-only (conversation stays visible)
+    const wsVisible = !$id('stage').hidden && $id('stagebar') && !$id('stagebar').hidden;
+    if(wsVisible){ syncPristine(false); }   // back to chat-only (conversation stays)
+    else { syncPristine(true); try{ showRightTab('workspace'); }catch(e){} }
   });
   // image attach (+) — images land in assets/ and can be used by the preview & AI
   $id('btnAttach').addEventListener('click',()=>$id('attachInput').click());
@@ -2228,6 +2266,7 @@ function init(){
   }
   renderAll();
   restoreChatLog();
+  $id('sendBtn').disabled=false; $id('stopBtn').hidden=true;   // never inherit dead buttons
   syncPristine();   // empty → greeting centered · conversation → chat visible · workspace on demand
   applyEditorFont();
   if(state.settings.thinking==='balanced') state.settings.thinking='medium';

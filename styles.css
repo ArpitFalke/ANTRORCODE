@@ -894,20 +894,6 @@ body.pristine #composerDock{flex:1;justify-content:center;padding:0 18px 7vh}
 
 /* ══════════ TABLET DEVICE + LOCAL BAR + SLASH POPUP ══════════ */
 #frameHolder.tablet #previewFrame{width:768px;max-width:100%;box-shadow:0 0 0 1px var(--line2)}
-#localBar{
-  display:flex;align-items:center;gap:7px;padding:7px 10px;background:var(--bg2);
-  border-bottom:1px solid var(--line);flex:none;
-}
-#localBar .bnav{width:30px;height:30px;flex:none;border-radius:8px;border:1px solid transparent;color:var(--dim);font-size:13px}
-#localBar .bnav:hover{color:var(--txt);background:rgba(255,255,255,.06);border-color:var(--line2)}
-#localBar .bnav:disabled{opacity:.35;cursor:default}
-#localBar[hidden]{display:none}
-.lb-dot{width:8px;height:8px;border-radius:50%;background:#a8d8b0;box-shadow:0 0 8px rgba(168,216,176,.6);flex:none}
-#localUrl{
-  flex:1;min-width:0;padding:8px 12px;border-radius:9px;font-size:12px;font-family:var(--mono);
-  background:var(--panel);border:1px solid var(--line2);outline:none;color:var(--txt);
-}
-#localUrl:focus{border-color:rgba(255,255,255,.4)}
 #slashPop{
   position:absolute;left:18px;right:18px;bottom:calc(100% + 8px);z-index:35;
   background:var(--panel2);border:1px solid var(--line2);border-radius:14px;padding:6px;
@@ -921,3 +907,33 @@ body.pristine #composerDock{flex:1;justify-content:center;padding:0 18px 7vh}
 .slash-it:hover{background:rgba(255,255,255,.06)}
 .slash-it b{font-family:var(--mono);font-size:12px;color:var(--txt);flex:none;min-width:90px}
 .slash-it small{font-size:11px;color:var(--faint);line-height:1.5}
+
+
+/* ══════════ WORKSPACE / BROWSER TABS ══════════ */
+#wsTabs{display:flex;align-items:center;gap:6px;padding:7px 10px;border-bottom:1px solid var(--line);background:var(--bg2);flex:none}
+.wtab{
+  display:inline-flex;align-items:center;gap:7px;padding:6px 14px;border-radius:8px;
+  font-size:11.5px;font-weight:650;color:var(--dim);border:1px solid transparent;transition:.13s;
+}
+.wtab:hover{color:var(--txt);background:rgba(255,255,255,.05)}
+.wtab.on{color:var(--txt);background:rgba(255,255,255,.07);border-color:var(--line2)}
+.wtab svg{display:block;opacity:.85}
+.wtab-x{margin-left:auto;color:var(--faint);font-size:12px;padding:4px 9px;border-radius:7px}
+.wtab-x:hover{color:var(--txt);background:rgba(255,255,255,.07)}
+
+#browserWrap{flex:1;min-height:0;display:flex;flex-direction:column;position:relative}
+#browserWrap[hidden]{display:none}
+#browserBar{
+  display:flex;align-items:center;gap:7px;padding:7px 10px;background:var(--bg2);
+  border-bottom:1px solid var(--line);flex:none;
+}
+#browserBar .bnav{width:30px;height:30px;flex:none;border-radius:8px;border:1px solid transparent;color:var(--dim);font-size:13px}
+#browserBar .bnav:hover{color:var(--txt);background:rgba(255,255,255,.06);border-color:var(--line2)}
+#browserBar input{
+  flex:1;min-width:0;padding:8px 14px;border-radius:999px;font-size:12.5px;font-family:var(--mono);
+  background:var(--panel);border:1px solid var(--line2);outline:none;color:var(--txt);
+}
+#browserBar input:focus{border-color:rgba(255,255,255,.4)}
+#browserBar .bgo{padding:7px 16px;border-radius:999px;background:#e8e8e8;color:#0a0a0a;font-weight:750;font-size:12px}
+#browserBar .bgo:hover{background:#fff}
+#browserFrame{flex:1;min-height:0;width:100%;border:none;background:#fff}
