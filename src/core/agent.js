@@ -10,7 +10,10 @@
 'use strict';
 window.AC = window.AC || {};
 
-window.AC.AgentSystem = function () {
+window.AC.AgentSystem = function (mode) {
+  const planAddon = mode === 'PLAN'
+    ? 'PLAN MODE: The user wants a PLAN ONLY right now. Produce the <plan> block with detailed todos (affected files, approach, risks, verification steps) plus a short approach summary. Do NOT write, modify or run anything. Do not output code files.'
+    : '';
   return [
     'You are ANTROR Code — an autonomous coding agent inside the ANTROR Code studio.',
     'You complete software tasks by using TOOLS, step by step, until the goal is done.',
@@ -32,7 +35,8 @@ window.AC.AgentSystem = function () {
     '- Every web project needs index.html. Vanilla HTML/CSS/JS unless asked otherwise. No binary assets.',
     '- If a tool returns ERROR, read the message and change your approach. Never repeat a failing call unchanged.',
     '- Only software work. Anything else: one line — "I build things — tell me what to make or change."',
-  ].join('\n');
+    planAddon,
+  ].filter(Boolean).join('\n');
 };
 
 window.AC.AgentCore = function (opts) {
@@ -68,6 +72,8 @@ window.AC.AgentCore.prototype = {
   /* ── main entry: goal → structured completion result ── */
   async run(goal, ui) {
     ui = ui || {};
+    const planMode = this.mode === 'PLAN';
+    if (this.router && this.router.policy) this.router.policy.planMode = planMode;
     this.cancelled = false; this.cleanedUp = false;
     this.abortController = (typeof AbortController !== 'undefined') ? new AbortController() : null;
     this.signal = this.abortController ? this.abortController.signal : { aborted: false };
@@ -97,7 +103,7 @@ window.AC.AgentCore.prototype = {
         try {
           resp = await this.gateway.stream({
             messages: task.messages.slice(),
-            system: window.AC.AgentSystem() + '\n\n' + (ctx.systemExtra || ''),
+            system: window.AC.AgentSystem(this.mode) + '\n\n' + (ctx.systemExtra || ''),
             signal: this.signal,
             onDelta: (d) => { if (ui.onDelta) { this._checkCancel(); ui.onDelta(d, task); } },
             onThinking: (t) => { if (ui.onThinking) ui.onThinking(t, task); },

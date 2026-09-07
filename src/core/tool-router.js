@@ -57,6 +57,7 @@ window.AC.ToolRouter.prototype = {
    it risk-based per tool/operation without touching the router. */
 window.AC.PermissionPolicy = function () {
   this.approvedCommands = new Set();
+  this.planMode = false;   // when true, WRITE/EXECUTE are denied (planning only)
 };
 window.AC.PermissionPolicy.prototype = {
   check(cls, call) {
@@ -66,8 +67,11 @@ window.AC.PermissionPolicy.prototype = {
       case 'GIT':
       case 'BROWSER':
       case 'MCP':   return { allowed: true };          // user connected/configured these surfaces explicitly
-      case 'WRITE': return { allowed: true };          // the core loop; diff + undo + verification cover recovery
+      case 'WRITE':
+        if (this.planMode) return { allowed: false, reason: 'PLAN MODE — produce the plan only' };
+        return { allowed: true };          // the core loop; diff + undo + verification cover recovery
       case 'EXECUTE': {
+        if (this.planMode) return { allowed: false, reason: 'PLAN MODE — produce the plan only' };
         const cmd = call.arguments && call.arguments.command;
         const key = 'EXECUTE:' + cmd;
         if (this.approvedCommands.has(key)) return { allowed: true };

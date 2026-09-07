@@ -39,11 +39,16 @@ def('write_file', 'Create or completely replace a project file', 'WRITE',
     if (!p || p.includes('..') || p.startsWith('/')) return AC.fail('write_file', 'BAD_ARGUMENTS', 'Invalid path: ' + p);
     const prev = state.project.files[p];
     state.project.files[p] = String(args.content ?? '').replace(/\r\n/g, '\n').replace(/^\n+/, '').replace(/\s+$/, '\n');
+    let added = 0, removed = 0;
+    if (typeof lineDiff === 'function') {
+      const d = lineDiff(prev, state.project.files[p]);
+      if (d) d.forEach((x) => { if (x.t === '+') added++; else if (x.t === '-') removed++; });
+    }
     if (typeof saveProject === 'function') saveProject();
     if (typeof renderTreeSoon === 'function') renderTreeSoon();
     if (typeof refreshSoon === 'function') refreshSoon();
     if (typeof persistCurrentProject === 'function') persistCurrentProject();
-    return AC.ok('write_file', 'written', { path: p, created: prev == null, lines: state.project.files[p].split('\n').length });
+    return AC.ok('write_file', 'written', { path: p, created: prev == null, added, removed, lines: state.project.files[p].split('\n').length });
   });
 
 def('apply_patch', 'Apply a unified diff to an existing project file (reviewable, reversible)', 'WRITE',
@@ -57,12 +62,17 @@ def('apply_patch', 'Apply a unified diff to an existing project file (reviewable
       const before = files[p];
       const after = AC.applyUnifiedDiff(before, patch);
       if (after === null) return AC.fail('apply_patch', 'PATCH_FAILED', 'Patch context did not match the file — read the file and regenerate the patch');
+      let added = 0, removed = 0;
+      if (typeof lineDiff === 'function') {
+        const d = lineDiff(before, after);
+        if (d) d.forEach((x) => { if (x.t === '+') added++; else if (x.t === '-') removed++; });
+      }
       files[p] = after;
       if (typeof saveProject === 'function') saveProject();
       if (typeof renderTreeSoon === 'function') renderTreeSoon();
       if (typeof refreshSoon === 'function') refreshPreview();
       if (typeof persistCurrentProject === 'function') persistCurrentProject();
-      return AC.ok('apply_patch', 'patched', { path: p, bytesBefore: before.length, bytesAfter: after.length });
+      return AC.ok('apply_patch', 'patched', { path: p, added, removed, bytesBefore: before.length, bytesAfter: after.length });
     } catch (e) {
       return AC.fail('apply_patch', 'PATCH_FAILED', e.message || String(e));
     }

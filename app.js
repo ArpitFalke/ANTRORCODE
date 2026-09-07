@@ -1125,7 +1125,11 @@ async function sendPromptCore(text,cfg,rawText){
 }
 /* ── Agent Core UI adapter (thin): AC events → existing UI pieces ── */
 async function runAgentTask(text,cfg){
+  const planMode=/^\/plan\b/i.test(text);
+  const goal=text.replace(/^\/plan\b\s*/i,'').trim()||text;
   const core=new window.AC.AgentCore({});
+  core.mode=planMode?'PLAN':'AGENT';
+  if(planMode && core.router && core.router.policy) core.router.policy.planMode=true;
   window.__activeAgent=core;
   const gw=core.gateway;
   const ui=newAiMsg();
@@ -1140,8 +1144,8 @@ async function runAgentTask(text,cfg){
 
   return await new Promise(async(resolve)=>{
     try{
-      const result=await core.run(text,{
-        onDelta:(d)=>{ raw+=d; ui.txt.textContent=AC.stripProtocol(raw); softScroll(); },
+      const result=await core.run(goal,{
+        onDelta:(d)=>{ raw+=d; softScroll(); },   /* ZCode-style: file contents are NOT streamed into the chat — only activity lines + the final answer */
         onThinking:(t)=>{ /* live thinking handled by the plan/thinking hooks below */ },
         onPlan:(plan)=>{ if(typeof renderTodos==='function') renderTodos(plan); },
         onTool:(call)=>{
@@ -1164,6 +1168,10 @@ async function runAgentTask(text,cfg){
           if(res.success && (call.tool==='write_file'||call.tool==='apply_patch')){
             const f=state.project.files[call.arguments.path];
             if(f!=null){ fcard(ui.root,call.arguments.path,f.split('\n').length); renderTreeSoon(); refreshSoon(); }
+            const m=res.metadata||{};
+            const stats=(m.added!=null||m.removed!=null)?' <span class="da">+'+(m.added||0)+'</span> <span class="dr">−'+(m.removed||0)+'</span>':'';
+            const last=act.lastElementChild;
+            if(last) last.innerHTML='<span class="ic">▣</span> '+ (call.tool==='apply_patch'?'Patched ':'') + esc(call.arguments.path) + stats;
           }
         },
       });
@@ -1176,6 +1184,10 @@ async function runAgentTask(text,cfg){
         const c=document.createElement('div'); c.className='errcard';
         c.innerHTML='<b>Agent failed:</b> '+esc((result.error&&result.error.message)||'unknown error')+(result.errors[0]&&result.errors[0].code?' <span style="color:var(--faint)">['+esc(result.errors[0].code)+']</span>':'');
         ui.root.appendChild(c);
+      } else if(core.mode==='PLAN' && result.status==='COMPLETED'){
+        const hint=document.createElement('div'); hint.className='typeline';
+        hint.textContent='Plan ready — send any message to start building with this plan.';
+        ui.root.appendChild(hint);
       } else if(result.verification && !result.verification.passed){
         const c=document.createElement('div'); c.className='errcard';
         c.innerHTML='<b>Verification found issues:</b><br>'+result.verification.problems.map(p=>'• '+esc(p.file)+' — '+esc(p.issue)).join('<br>');
@@ -2420,6 +2432,10 @@ function init(){
   if(state.settings.thinking==='deep') state.settings.thinking='max';
   paintThinkChip();
   updateCtxPill(ctxOfConversation(''));
+  // live-sync settings changed on the settings page/tab
+  const syncSettings=()=>{ state.settings=loadJSON(LS.s,{ provider:'zai', keys:{}, models:{}, bases:{} }); renderStatusChip(); if(typeof paintThinkChip==='function') paintThinkChip(); };
+  window.addEventListener('storage',(e)=>{ if(e.key==='vf.v1.settings') syncSettings(); });
+  window.addEventListener('focus',()=>{ try{ if(localStorage.getItem('vf.v1.settings')!==JSON.stringify(state.settings)) syncSettings(); }catch(e){} });
   if(!window.antrorAPI) idbGetDir().then(h=>{ if(h) state.ui.saveDirHandle=h; });
   (async()=>{
     try{ await restoreCloudOnSignIn(); }catch(e){}
