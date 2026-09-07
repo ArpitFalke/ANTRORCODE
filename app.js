@@ -1145,7 +1145,19 @@ async function runAgentTask(text,cfg){
   return await new Promise(async(resolve)=>{
     try{
       const result=await core.run(goal,{
-        onDelta:(d)=>{ raw+=d; softScroll(); },   /* ZCode-style: file contents are NOT streamed into the chat — only activity lines + the final answer */
+        onDelta:(d)=>{
+          raw+=d;
+          /* ZCode-style live text: everything except hidden tool blocks streams into the chat */
+          let vis=raw.replace(/```antror_tool[\s\S]*?```/g,'');
+          const openFence=vis.lastIndexOf('\u0060\u0060\u0060antror_tool');
+          if(openFence>=0) vis=vis.slice(0,openFence);
+          vis=vis.replace(/<plan>[\s\S]*?<\/plan>/g,'').replace(/<\/?plan>/g,'')
+                 .replace(/<\/?todo[^>]*>/g,'').replace(/<name>[\s\S]*?<\/name>/g,'')
+                 .replace(/<read\s[^>]*\/>/g,'').replace(/<run>[\s\S]*?<\/run>/g,'')
+                 .replace(/<mcp\s[\s\S]*?<\/mcp>/g,'').trim();
+          ui.txt.textContent=vis;
+          softScroll();
+        },   /* ZCode-style: file contents are NOT streamed into the chat — only activity lines + the final answer */
         onThinking:(t)=>{ /* live thinking handled by the plan/thinking hooks below */ },
         onPlan:(plan)=>{ if(typeof renderTodos==='function') renderTodos(plan); },
         onTool:(call)=>{
