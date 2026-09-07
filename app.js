@@ -1274,6 +1274,12 @@ function finalizeBubble(ui,disp,written,stopped,dsum,thinkTxt){
   }
   scrollChat();
 }
+function applyAppearance(){
+  document.body.classList.toggle('accent-mono',(state.settings.accent||'ember')==='mono');
+  document.body.classList.toggle('accent-ember',(state.settings.accent||'ember')!=='mono');
+  document.body.classList.toggle('reduce-motion',state.settings.reduceMotion===true);
+}
+
 function setBusy(b){
   state.ui.busy=b;
   const btn=$id('sendBtn');
@@ -2488,9 +2494,10 @@ function init(){
   if(state.settings.thinking==='balanced') state.settings.thinking='medium';
   if(state.settings.thinking==='deep') state.settings.thinking='max';
   paintThinkChip();
+  applyAppearance();
   updateCtxPill(ctxOfConversation(''));
   // live-sync settings changed on the settings page/tab
-  const syncSettings=()=>{ state.settings=loadJSON(LS.s,{ provider:'zai', keys:{}, models:{}, bases:{} }); renderStatusChip(); if(typeof paintThinkChip==='function') paintThinkChip(); };
+  const syncSettings=()=>{ state.settings=loadJSON(LS.s,{ provider:'zai', keys:{}, models:{}, bases:{} }); renderStatusChip(); if(typeof paintThinkChip==='function') paintThinkChip(); applyAppearance(); };
   window.addEventListener('storage',(e)=>{ if(e.key==='vf.v1.settings') syncSettings(); });
   window.addEventListener('focus',()=>{ try{ if(localStorage.getItem('vf.v1.settings')!==JSON.stringify(state.settings)) syncSettings(); }catch(e){} });
   if(!window.antrorAPI) idbGetDir().then(h=>{ if(h) state.ui.saveDirHandle=h; });

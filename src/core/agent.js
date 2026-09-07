@@ -103,7 +103,7 @@ window.AC.AgentCore.prototype = {
         try {
           resp = await this.gateway.stream({
             messages: task.messages.slice(),
-            system: window.AC.AgentSystem(this.mode) + '\n\n' + (ctx.systemExtra || ''),
+            system: (window.AC.buildSystem ? window.AC.buildSystem(this.mode) : window.AC.AgentSystem(this.mode)) + '\n\n' + (ctx.systemExtra || ''),
             signal: this.signal,
             onDelta: (d) => { if (ui.onDelta) { this._checkCancel(); ui.onDelta(d, task); } },
             onThinking: (t) => { if (ui.onThinking) ui.onThinking(t, task); },

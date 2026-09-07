@@ -155,6 +155,7 @@ button.ghost.danger:hover{color:var(--err);border-color:rgba(224,133,133,.5)}
       <button data-sec="ext"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" style="vertical-align:-2px"><path d="M8 2v5M16 2v5"/><path d="M5 7h14v3a7 7 0 0 1-14 0V7z"/><path d="M12 17v5"/></svg>&nbsp; Extensions</button>
       <button data-sec="usage">📈&nbsp; Usage</button>
       <button data-sec="workspace">🗂&nbsp; Workspace</button>
+      <button data-sec="appearance">🎨&nbsp; Appearance</button>
       <button data-sec="about">ⓘ&nbsp; About</button>
     </nav>
     <a class="back" href="index.html">← Back to app</a>
@@ -308,6 +309,34 @@ button.ghost.danger:hover{color:var(--err);border-color:rgba(224,133,133,.5)}
       </div>
     </section>
 
+    <!-- ══ APPEARANCE ══ -->
+    <section class="sec" id="sec-appearance">
+      <h1>Appearance</h1>
+      <p class="sub">Make the studio yours.</p>
+      <div class="card">
+        <h3>Accent</h3>
+        <div class="seg" id="accentSeg">
+          <button type="button" data-accent="ember">Ember</button>
+          <button type="button" data-accent="mono">Mono</button>
+        </div>
+        <p class="hint" style="margin-top:8px">The warm glow used across the studio — borders, working indicator, highlights.</p>
+      </div>
+      <div class="card">
+        <h3>Editor</h3>
+        <div class="glab" style="margin-top:0">Code font size</div>
+        <div class="seg" id="fontSeg2">
+          <button type="button" data-font="s">S</button>
+          <button type="button" data-font="m">M</button>
+          <button type="button" data-font="l">L</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Motion</h3>
+        <label class="switch-row"><input type="checkbox" id="chkMotion" checked /> Allow animations (borders, indicators, transitions)</label>
+      </div>
+    </section>
+
+
     <!-- ══ ABOUT ══ -->
     <section class="sec" id="sec-about">
       <h1>About</h1>
@@ -352,6 +381,20 @@ const PROVIDERS={
   custom:{label:'Custom endpoint',desc:'Any OpenAI-compatible URL (LM Studio, proxy…)',kind:'openai',noKey:true,base:'',model:'',keyUrl:''},
 };
 const PROV_ORDER=['zai','anthropic','openai','openrouter','gemini','groq','nvidia','ollama','custom'];
+
+/* ── model catalog: every provider, every model ── */
+const MODELS={
+  zai:['glm-4.6','glm-4.5','glm-4.5-air','glm-4.5-flash','glm-4-32b-0414-128k','glm-4-0520','glm-4-plus','glm-4-air','glm-4-flash'],
+  anthropic:['claude-opus-4-1','claude-opus-4-0','claude-sonnet-4-5','claude-sonnet-4-0','claude-3-7-sonnet-latest','claude-3-5-sonnet-latest','claude-3-5-haiku-latest','claude-3-opus-latest','claude-3-haiku-20240307'],
+  openai:['gpt-5','gpt-5-mini','gpt-5-nano','gpt-4.1','gpt-4.1-mini','gpt-4.1-nano','gpt-4o','gpt-4o-mini','chatgpt-4o-latest','o3','o4-mini','o1','o1-mini'],
+  openrouter:['z-ai/glm-4.6','anthropic/claude-sonnet-4.5','anthropic/claude-opus-4.1','openai/gpt-5','openai/gpt-4.1','google/gemini-2.5-pro','google/gemini-2.5-flash','deepseek/deepseek-chat-v3.1','deepseek/deepseek-r1','meta-llama/llama-3.3-70b-instruct','qwen/qwen3-coder','mistralai/mistral-large-2411','x-ai/grok-4'],
+  gemini:['gemini-2.5-pro','gemini-2.5-flash','gemini-2.5-flash-lite','gemini-2.0-flash','gemini-2.0-flash-lite','gemini-1.5-pro','gemini-1.5-flash'],
+  groq:['llama-3.3-70b-versatile','llama-3.1-8b-instant','openai/gpt-oss-120b','openai/gpt-oss-20b','qwen/qwen3-32b','moonshotai/kimi-k2-instruct','gemma2-9b-it'],
+  nvidia:['meta/llama-3.3-70b-instruct','meta/llama-3.1-405b-instruct','meta/llama-3.1-70b-instruct','nvidia/llama-3.3-nemotron-super-49b-v1','nvidia/llama-3.1-nemotron-70b-instruct','deepseek-ai/deepseek-r1','deepseek-ai/deepseek-v3','qwen/qwen2.5-coder-32b-instruct','qwen/qwen2.5-72b-instruct','mistralai/mixtral-8x22b-instruct-v0.1','microsoft/phi-4'],
+  ollama:['qwen2.5-coder:7b','qwen2.5-coder:14b','llama3.2:3b','llama3.1:8b','deepseek-coder-v2:16b','codellama:13b','mistral:7b','gemma2:9b','phi4:14b'],
+  custom:[],
+};
+
 
 /* ── nav ── */
 document.querySelectorAll('.s-nav nav button').forEach(b=>b.addEventListener('click',()=>{
@@ -593,19 +636,7 @@ $('btnWipeAll').onclick=()=>{
 window.addEventListener('message',(e)=>{
   if(e.data && e.data.__antrorSettings===1){
     Object.assign(S, loadJSON(LS.s,{}));
-    buildGrid(); paintProvFields(S.provider||'zai'); /* ── model catalog: every provider, every model ── */
-const MODELS={
-  zai:['glm-4.6','glm-4.5','glm-4.5-air','glm-4.5-flash','glm-4-32b-0414-128k','glm-4-0520','glm-4-plus','glm-4-air','glm-4-flash'],
-  anthropic:['claude-opus-4-1','claude-opus-4-0','claude-sonnet-4-5','claude-sonnet-4-0','claude-3-7-sonnet-latest','claude-3-5-sonnet-latest','claude-3-5-haiku-latest','claude-3-opus-latest','claude-3-haiku-20240307'],
-  openai:['gpt-5','gpt-5-mini','gpt-5-nano','gpt-4.1','gpt-4.1-mini','gpt-4.1-nano','gpt-4o','gpt-4o-mini','chatgpt-4o-latest','o3','o4-mini','o1','o1-mini'],
-  openrouter:['z-ai/glm-4.6','anthropic/claude-sonnet-4.5','anthropic/claude-opus-4.1','openai/gpt-5','openai/gpt-4.1','google/gemini-2.5-pro','google/gemini-2.5-flash','deepseek/deepseek-chat-v3.1','deepseek/deepseek-r1','meta-llama/llama-3.3-70b-instruct','qwen/qwen3-coder','mistralai/mistral-large-2411','x-ai/grok-4'],
-  gemini:['gemini-2.5-pro','gemini-2.5-flash','gemini-2.5-flash-lite','gemini-2.0-flash','gemini-2.0-flash-lite','gemini-1.5-pro','gemini-1.5-flash'],
-  groq:['llama-3.3-70b-versatile','llama-3.1-8b-instant','openai/gpt-oss-120b','openai/gpt-oss-20b','qwen/qwen3-32b','moonshotai/kimi-k2-instruct','gemma2-9b-it'],
-  nvidia:['meta/llama-3.3-70b-instruct','meta/llama-3.1-405b-instruct','meta/llama-3.1-70b-instruct','nvidia/llama-3.3-nemotron-super-49b-v1','nvidia/llama-3.1-nemotron-70b-instruct','deepseek-ai/deepseek-r1','deepseek-ai/deepseek-v3','qwen/qwen2.5-coder-32b-instruct','qwen/qwen2.5-72b-instruct','mistralai/mixtral-8x22b-instruct-v0.1','microsoft/phi-4'],
-  ollama:['qwen2.5-coder:7b','qwen2.5-coder:14b','llama3.2:3b','llama3.1:8b','deepseek-coder-v2:16b','codellama:13b','mistral:7b','gemma2:9b','phi4:14b'],
-  custom:[],
-};
-function renderModelChips(){
+    buildGrid(); paintProvFields(S.provider||'zai'); function renderModelChips(){
   const box=$('modelChips'); if(!box) return;
   const list=MODELS[pick]||[];
   box.innerHTML='';
@@ -676,25 +707,27 @@ $('mcpAdd').onclick=()=>{
 function renderAutoPush(){
   const c=$('chkAutoPush'); if(c) c.checked=!!S.autoPush;
 }
-$('chkAutoPush').addEventListener('change',(e)=>{ S.autoPush=e.target.checked; persist(); toastMsg(e.target.checked?'☁ Auto-push on':'Auto-push off'); });
+const acp=$('chkAutoPush'); if(acp){ acp.addEventListener('change',(e)=>{ S.autoPush=e.target.checked; persist(); toastMsg(e.target.checked?'☁ Auto-push on':'Auto-push off'); }); }
 renderAutoPush();
+/* ── appearance wiring ── */
+function paintAppearance(){
+  const acc=S.accent||'ember';
+  document.querySelectorAll('#accentSeg [data-accent]').forEach(b=>b.classList.toggle('active',b.dataset.accent===acc));
+  const f=S.editorFont??'m';
+  document.querySelectorAll('#fontSeg2 [data-font]').forEach(b=>b.classList.toggle('active',b.dataset.font===f));
+  const cm=$('chkMotion'); if(cm) cm.checked=S.reduceMotion!==true;
+}
+document.querySelectorAll('#accentSeg [data-accent]').forEach(b=>b.addEventListener('click',()=>{ S.accent=b.dataset.accent; persist(); paintAppearance(); }));
+document.querySelectorAll('#fontSeg2 [data-font]').forEach(b=>b.addEventListener('click',()=>{ S.editorFont=b.dataset.font; persist(); paintAppearance(); }));
+const cm=$('chkMotion'); if(cm) cm.addEventListener('change',(e)=>{ S.reduceMotion=e.target.checked; persist(); });
+
 paintGeneral(); renderLists(); renderAcct(); renderExt();
   }
 });
 window.opener?.focus?.();
 
 /* ── model catalog: every provider, every model ── */
-const MODELS={
-  zai:['glm-4.6','glm-4.5','glm-4.5-air','glm-4.5-flash','glm-4-32b-0414-128k','glm-4-0520','glm-4-plus','glm-4-air','glm-4-flash'],
-  anthropic:['claude-opus-4-1','claude-opus-4-0','claude-sonnet-4-5','claude-sonnet-4-0','claude-3-7-sonnet-latest','claude-3-5-sonnet-latest','claude-3-5-haiku-latest','claude-3-opus-latest','claude-3-haiku-20240307'],
-  openai:['gpt-5','gpt-5-mini','gpt-5-nano','gpt-4.1','gpt-4.1-mini','gpt-4.1-nano','gpt-4o','gpt-4o-mini','chatgpt-4o-latest','o3','o4-mini','o1','o1-mini'],
-  openrouter:['z-ai/glm-4.6','anthropic/claude-sonnet-4.5','anthropic/claude-opus-4.1','openai/gpt-5','openai/gpt-4.1','google/gemini-2.5-pro','google/gemini-2.5-flash','deepseek/deepseek-chat-v3.1','deepseek/deepseek-r1','meta-llama/llama-3.3-70b-instruct','qwen/qwen3-coder','mistralai/mistral-large-2411','x-ai/grok-4'],
-  gemini:['gemini-2.5-pro','gemini-2.5-flash','gemini-2.5-flash-lite','gemini-2.0-flash','gemini-2.0-flash-lite','gemini-1.5-pro','gemini-1.5-flash'],
-  groq:['llama-3.3-70b-versatile','llama-3.1-8b-instant','openai/gpt-oss-120b','openai/gpt-oss-20b','qwen/qwen3-32b','moonshotai/kimi-k2-instruct','gemma2-9b-it'],
-  nvidia:['meta/llama-3.3-70b-instruct','meta/llama-3.1-405b-instruct','meta/llama-3.1-70b-instruct','nvidia/llama-3.3-nemotron-super-49b-v1','nvidia/llama-3.1-nemotron-70b-instruct','deepseek-ai/deepseek-r1','deepseek-ai/deepseek-v3','qwen/qwen2.5-coder-32b-instruct','qwen/qwen2.5-72b-instruct','mistralai/mixtral-8x22b-instruct-v0.1','microsoft/phi-4'],
-  ollama:['qwen2.5-coder:7b','qwen2.5-coder:14b','llama3.2:3b','llama3.1:8b','deepseek-coder-v2:16b','codellama:13b','mistral:7b','gemma2:9b','phi4:14b'],
-  custom:[],
-};
+
 function renderModelChips(){
   const box=$('modelChips'); if(!box) return;
   const list=MODELS[pick]||[];
@@ -766,8 +799,20 @@ $('mcpAdd').onclick=()=>{
 function renderAutoPush(){
   const c=$('chkAutoPush'); if(c) c.checked=!!S.autoPush;
 }
-$('chkAutoPush').addEventListener('change',(e)=>{ S.autoPush=e.target.checked; persist(); toastMsg(e.target.checked?'☁ Auto-push on':'Auto-push off'); });
+const acp=$('chkAutoPush'); if(acp){ acp.addEventListener('change',(e)=>{ S.autoPush=e.target.checked; persist(); toastMsg(e.target.checked?'☁ Auto-push on':'Auto-push off'); }); }
 renderAutoPush();
+/* ── appearance wiring ── */
+function paintAppearance(){
+  const acc=S.accent||'ember';
+  document.querySelectorAll('#accentSeg [data-accent]').forEach(b=>b.classList.toggle('active',b.dataset.accent===acc));
+  const f=S.editorFont??'m';
+  document.querySelectorAll('#fontSeg2 [data-font]').forEach(b=>b.classList.toggle('active',b.dataset.font===f));
+  const cm=$('chkMotion'); if(cm) cm.checked=S.reduceMotion!==true;
+}
+document.querySelectorAll('#accentSeg [data-accent]').forEach(b=>b.addEventListener('click',()=>{ S.accent=b.dataset.accent; persist(); paintAppearance(); }));
+document.querySelectorAll('#fontSeg2 [data-font]').forEach(b=>b.addEventListener('click',()=>{ S.editorFont=b.dataset.font; persist(); paintAppearance(); }));
+const cm=$('chkMotion'); if(cm) cm.addEventListener('change',(e)=>{ S.reduceMotion=e.target.checked; persist(); });
+
 paintGeneral(); renderLists(); renderAcct(); renderExt();
 </script>
 <script src="cleanlinks.js"></script>

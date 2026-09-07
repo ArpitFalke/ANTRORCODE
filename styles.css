@@ -943,3 +943,12 @@ body.pristine #composerDock{flex:1;justify-content:center;padding:0 18px 7vh}
 #sendBtn.stop{background:#3a3a3a;color:#e8c9c9;border:1px solid rgba(224,133,133,.4)}
 #sendBtn.stop:hover{transform:scale(1.05);background:#4a2a2a}
 #extView{flex:1;min-height:0;width:100%;border:none;background:#fff;display:block}
+
+
+/* ══════════ ACCENT + REDUCED MOTION ══════════ */
+body.accent-mono{--cream:#e8e8e8;--warm:#c9c9c9}
+body.accent-ember{--cream:#f2ead8;--warm:#e0906b}
+body.reduce-motion *,body.reduce-motion *::before,body.reduce-motion *::after{
+  animation:none!important;transition:none!important;
+}
+body.reduce-motion .eq,body.reduce-motion .actline.live::before{display:none}

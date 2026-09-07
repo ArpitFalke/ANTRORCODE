@@ -9,6 +9,29 @@ window.AC = window.AC || {};
 
 window.AC.ContextBuilder = function () {};
 
+/* System-prompt composition: base rules + plugins + skills + MCP + project memory.
+   Lives here so the agent loop stays provider- and feature-agnostic. */
+window.AC.buildSystem = function (mode) {
+  const S = (window.state && state.settings) || {};
+  let sys = window.AC.AgentSystem ? window.AC.AgentSystem(mode) : '';
+  const P = S.plugins || {};
+  if (P.tailwind) sys += '\n\nPLUGIN — TAILWIND: Style everything with Tailwind CSS via <script src="https://cdn.tailwindcss.com"></script> and utility classes; keep a <style> block only for custom keyframes.';
+  if (P.motion) sys += '\n\nPLUGIN — MOTION: Add tasteful life to the UI — transitions on every interactive element, keyframe entrances, scroll reveals, micro-interactions. Smooth, never gimmicky.';
+  if (P.seo) sys += '\n\nPLUGIN — SEO: Include complete meta tags (description, Open Graph, Twitter card), semantic HTML5 landmarks and descriptive page titles.';
+  if (P.strictjs) sys += '\n\nPLUGIN — STRICT JS: Write modern strict-mode JavaScript — no globals, small pure functions, defensive error handling, meaningful names.';
+  (S.skills || []).filter(s => s.on).forEach(sk => { sys += '\n\nSKILL — ' + sk.name + ':\n' + sk.text; });
+  const T = S.mcpTools || {};
+  Object.keys(T).forEach(server => {
+    sys += '\n\nMCP SERVER CONNECTED — "' + server + '". Available tools:';
+    (T[server].tools || []).forEach(t => {
+      sys += '\n   • ' + server + '.' + t.name + ' — ' + (t.description || '') + ' | call: <mcp server="' + server + '" tool="' + t.name + '" args=\'{"param":"value"}\'/>';
+    });
+  });
+  const mem = (window.state && state.project.files && state.project.files['ANTROR.md']);
+  if (mem) sys += '\n\nPROJECT MEMORY — ANTROR.md (durable facts; keep updated):\n' + mem;
+  return sys;
+};
+
 window.AC.ContextBuilder.prototype = {
   build(goal, opts) {
     opts = opts || {};
