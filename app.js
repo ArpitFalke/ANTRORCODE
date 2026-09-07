@@ -1228,7 +1228,13 @@ async function runAgentTask(text,cfg){
         c.innerHTML='<b>Verification found issues:</b><br>'+result.verification.problems.map(p=>'• '+esc(p.file)+' — '+esc(p.issue)).join('<br>');
         ui.root.appendChild(c);
       }
-      state.chat.push({role:'assistant',display:result.text||'',files:(result.changedFiles||[]).slice(),t:Date.now()});
+      const filesMeta={};
+      (result.toolResults||[]).forEach((r)=>{
+        if(r.success && (r.tool==='write_file'||r.tool==='apply_patch') && r.metadata && r.metadata.path){
+          filesMeta[r.metadata.path]={ added:r.metadata.added||0, removed:r.metadata.removed||0, lines:(state.project.files[r.metadata.path]||'').split('\n').length };
+        }
+      });
+      state.chat.push({role:'assistant',display:result.text||'',files:(result.changedFiles||[]).slice(),filesMeta,t:Date.now()});
       saveChat(); persistCurrentProject();
       usageAdd(cfg.id, Math.round(text.length/4), Math.round((result.text||'').length/4));
       dsAutoSave();
@@ -2089,12 +2095,18 @@ function renderAll(){
   $id('projName').textContent = state.project.name||'untitled';
 }
 function restoreChatLog(){
+  const ce=$id('chatEmpty'); if(ce && state.chat.length) ce.hidden=true;   // conversation exists → no greeting
   state.chat.forEach(m=>{
     if(m.role==='user') addUserMsg(m.text);
     else{
       const ui=newAiMsg(); ui.caret.remove(); ui.root.classList.remove('stream');
       ui.bubble.innerHTML = m.display?.trim()?renderRich(m.display):'<p class="typeline">(no message)</p>';
-      (m.files||[]).forEach(p=>{ const c=state.project.files[p]; fcard(ui.root,p,c?linesOf(c):0); });
+      const meta=m.filesMeta||{};
+      (m.files||[]).forEach(p=>{
+        const c=state.project.files[p];
+        const md=meta[p];
+        fcard(ui.root,p,c?linesOf(c):0,md?{added:md.added,removed:md.removed}:null);
+      });
       if(m.error) { /* historical errors collapse silently */ }
     }
   });

@@ -399,7 +399,8 @@ $('btnSaveSet').onclick=()=>{
   if(model && model!==P.model) S.models[id]=model; else delete S.models[id];
   S.onboarded=true;
   persist(); renderLists();
-  $('provHint').className='hint ok'; $('provHint').textContent='✓ Saved — '+P.label+(model?' · '+model:'')+'. Return to the app tab — it refreshes automatically.';
+  $('provHint').className='hint ok'; $('provHint').textContent='✓ Saved — returning to the studio…';
+  setTimeout(()=>{ location.href=(location.hostname==='localhost'||location.hostname==='127.0.0.1'||location.protocol==='file:')?'studio.html':'/studio'; }, 700);+P.label+(model?' · '+model:'')+'. Return to the app tab — it refreshes automatically.';
 };
 $('btnForget').onclick=()=>{ delete S.keys[pick]; persist(); paintProvFields(pick); renderModelChips(); renderLists(); };
 $('btnTestKey').onclick=async()=>{
