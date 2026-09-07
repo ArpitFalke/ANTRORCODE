@@ -38,7 +38,9 @@
       "favicon.ico",
       "favicon-192.png",
       "favicon-512.png",
-      "apple-touch-icon.png"
+      "apple-touch-icon.png",
+      "src/**",
+      "version.json"
     ],
     "directories": {
       "output": "desktop-dist"

@@ -918,6 +918,12 @@ async function sendPrompt(rawText){
   }
 }
 async function sendPromptCore(text,cfg,rawText){
+  /* ── Agent Core mode (default): tool-driven agent loop ──
+     Falls back to the legacy single-shot flow only if the core is missing. */
+  if(window.AC && window.AC.AgentCore){
+    return await runAgentTask(text,cfg);
+  }
+
 
   let sendText=text;
   if(pendingAttach.length){
@@ -1117,6 +1123,77 @@ async function sendPromptCore(text,cfg,rawText){
   const td=window.__vfTermSink; if(td&&td.done) try{td.done(written);}catch(e){}
   setBusy(false);
 }
+/* ── Agent Core UI adapter (thin): AC events → existing UI pieces ── */
+async function runAgentTask(text,cfg){
+  const core=new window.AC.AgentCore({});
+  window.__activeAgent=core;
+  const gw=core.gateway;
+  const ui=newAiMsg();
+  setBusy(true);
+  persistCurrentProject();
+
+  let raw='';
+  const act=document.createElement('div'); act.className='activity';
+  ui.root.insertBefore(act, ui.bubble);
+  const actLine=(html)=>{ const d=document.createElement('div'); d.className='actline'; d.innerHTML=html; act.appendChild(d); scrollChat(); return d; };
+  const promptEl=actLine('<span class="ic">💬</span> '+esc(text.slice(0,90)));
+
+  return await new Promise(async(resolve)=>{
+    try{
+      const result=await core.run(text,{
+        onDelta:(d)=>{ raw+=d; ui.txt.textContent=AC.stripProtocol(raw); softScroll(); },
+        onThinking:(t)=>{ /* live thinking handled by the plan/thinking hooks below */ },
+        onPlan:(plan)=>{ if(typeof renderTodos==='function') renderTodos(plan); },
+        onTool:(call)=>{
+          if(call.tool==='write_file'){
+            const created=!(call.arguments.path in state.project.files);
+            actLine('<span class="ic">▣</span> '+(created?'Created ':'Updated ')+esc(call.arguments.path));
+          } else if(call.tool==='apply_patch'){
+            actLine('<span class="ic">▣</span> Patching '+esc(call.arguments.path));
+          } else if(call.tool==='read_file'){
+            actLine('<span class="ic">▣</span> Reading '+esc(call.arguments.path));
+          } else if(call.tool==='run_command'){
+            actLine('<span class="ic">▭</span> Terminal · '+esc(String(call.arguments.command||'').slice(0,80)));
+          } else if(call.tool==='mcp_call'){
+            actLine('<span class="ic">✦</span> MCP · '+esc(call.arguments.server+'.'+call.arguments.tool));
+          } else {
+            actLine('<span class="ic">▸</span> '+esc(call.tool));
+          }
+        },
+        onToolResult:(call,res)=>{
+          if(res.success && (call.tool==='write_file'||call.tool==='apply_patch')){
+            const f=state.project.files[call.arguments.path];
+            if(f!=null){ fcard(ui.root,call.arguments.path,f.split('\n').length); renderTreeSoon(); refreshSoon(); }
+          }
+        },
+      });
+
+      /* completion rendering (existing UX) */
+      const stopped=result.status==='CANCELLED';
+      const failed=result.status==='FAILED';
+      finalizeBubble(ui,result.text||'(no output)',(result.changedFiles||[]).map(p=>({path:p,lines:(state.project.files[p]||'').split('\n').length})),stopped,null,'');
+      if(failed){
+        const c=document.createElement('div'); c.className='errcard';
+        c.innerHTML='<b>Agent failed:</b> '+esc((result.error&&result.error.message)||'unknown error')+(result.errors[0]&&result.errors[0].code?' <span style="color:var(--faint)">['+esc(result.errors[0].code)+']</span>':'');
+        ui.root.appendChild(c);
+      } else if(result.verification && !result.verification.passed){
+        const c=document.createElement('div'); c.className='errcard';
+        c.innerHTML='<b>Verification found issues:</b><br>'+result.verification.problems.map(p=>'• '+esc(p.file)+' — '+esc(p.issue)).join('<br>');
+        ui.root.appendChild(c);
+      }
+      usageAdd(cfg.id, Math.round(text.length/4), Math.round((result.text||'').length/4));
+      dsAutoSave();
+      if((result.changedFiles||[]).length) refreshPreview();
+      scrollChat();
+      resolve(result);
+    }catch(e){
+      finalizeBubble(ui,'Agent error: '+(e.message||e),[],true,null,'');
+      setBusy(false);
+      resolve(null);
+    }
+  });
+}
+
 function finalizeBubble(ui,disp,written,stopped,dsum,thinkTxt){
   ui.caret.remove(); ui.root.classList.remove('stream');
   ui.bubble.innerHTML = disp.trim() ? renderRich(disp) : '<p class="typeline">(no message — just code)</p>';

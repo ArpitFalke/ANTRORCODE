@@ -4,11 +4,11 @@
    (AI calls obviously still need internet). A product by ANTROR.
    ════════════════════════════════════════════════════════════════ */
 'use strict';
-const CACHE = 'antror-v2';
+const CACHE = 'antror-v4';
 const ASSETS = [
   '/', '/index.html', '/login.html', '/register.html', '/settings.html',
   '/legal.html', '/download.html', '/auth.html',
-  '/styles.css', '/app.js', '/supabase.js', '/supabase-config.js', '/terminal.js',
+  '/styles.css', '/app.js', '/src/core/errors.js', '/src/core/events.js', '/src/core/task.js', '/src/core/context.js', '/src/core/model-gateway.js', '/src/core/tool-router.js', '/src/core/verifier.js', '/src/core/agent.js', '/src/tools/index.js', '/supabase.js', '/supabase-config.js', '/terminal.js',
   '/manifest.json', '/assets/logo.png',
 ];
 
