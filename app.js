@@ -1134,13 +1134,32 @@ async function runAgentTask(text,cfg){
   const gw=core.gateway;
   const ui=newAiMsg();
   setBusy(true);
-  persistCurrentProject();
+
+  /* conversation persistence: the run is part of the project's memory */
+  state.chat.push({role:'user',text,t:Date.now()});
+  saveChat();
+
+  const fmtDur=(ms)=>{ const sec=Math.round(ms/1000); return sec<60 ? sec+'s' : Math.floor(sec/60)+'m '+(sec%60)+'s'; };
 
   let raw='';
   const act=document.createElement('div'); act.className='activity';
   ui.root.insertBefore(act, ui.bubble);
   const actLine=(html)=>{ const d=document.createElement('div'); d.className='actline'; d.innerHTML=html; act.appendChild(d); scrollChat(); return d; };
   const promptEl=actLine('<span class="ic">💬</span> '+esc(text.slice(0,90)));
+
+  /* working timer + thinking line, ZCode-style */
+  const t0=Date.now();
+  const timerEl=actLine('');
+  timerEl.innerHTML='<span class="eq"><i></i><i></i><i></i><i></i></span><span class="tt">Working…</span>';
+  const timerTxt=timerEl.querySelector('.tt');
+  const workTick=setInterval(()=>{ timerTxt.textContent='Working for '+fmtDur(Date.now()-t0); },900);
+  let thinkEl=null;
+  const ui_onThinking=(t)=>{
+    if(!thinkEl){ thinkEl=actLine(''); thinkEl.innerHTML='<span class="ic">✦</span><span class="tt">Thinking…</span><div class="thinklive" title="Live reasoning — click to expand"></div>';
+      thinkEl.querySelector('.thinklive').addEventListener('click',function(){ this.classList.toggle('open'); }); }
+    thinkEl.querySelector('.thinklive').textContent=String(t).slice(-300);
+    thinkEl.querySelector('.tt').textContent='Thinking…';
+  };
 
   return await new Promise(async(resolve)=>{
     try{
@@ -1192,7 +1211,11 @@ async function runAgentTask(text,cfg){
       const stopped=result.status==='CANCELLED';
       const failed=result.status==='FAILED';
       finalizeBubble(ui,result.text||'(no output)',(result.changedFiles||[]).map(p=>({path:p,lines:(state.project.files[p]||'').split('\n').length})),stopped,null,'');
+      clearInterval(workTick);
+      timerEl.innerHTML='<span class="ic">✓</span> Completed in '+fmtDur(Date.now()-t0);
+      timerEl.className='actline';
       if(failed){
+        timerEl.textContent='⚠ Stopped after '+fmtDur(Date.now()-t0);
         const c=document.createElement('div'); c.className='errcard';
         c.innerHTML='<b>Agent failed:</b> '+esc((result.error&&result.error.message)||'unknown error')+(result.errors[0]&&result.errors[0].code?' <span style="color:var(--faint)">['+esc(result.errors[0].code)+']</span>':'');
         ui.root.appendChild(c);
@@ -1205,6 +1228,8 @@ async function runAgentTask(text,cfg){
         c.innerHTML='<b>Verification found issues:</b><br>'+result.verification.problems.map(p=>'• '+esc(p.file)+' — '+esc(p.issue)).join('<br>');
         ui.root.appendChild(c);
       }
+      state.chat.push({role:'assistant',display:result.text||'',files:(result.changedFiles||[]).slice(),t:Date.now()});
+      saveChat(); persistCurrentProject();
       usageAdd(cfg.id, Math.round(text.length/4), Math.round((result.text||'').length/4));
       dsAutoSave();
       if((result.changedFiles||[]).length) refreshPreview();

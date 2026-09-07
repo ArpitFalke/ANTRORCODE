@@ -155,7 +155,9 @@ window.AC.AgentCore.prototype = {
             ? 'OK\n' + String(r.res.result).slice(0, 6000)
             : 'ERROR ' + r.res.error.code + ': ' + r.res.error.message + '\n(Change your approach — do not repeat this call unchanged.)')
         ).join('\n\n');
-        task.messages.push({ role: 'user', text: 'TOOL RESULTS:\n\n' + observe + '\n\nContinue: the next tool call, or the final plain-text answer if the goal is complete.' });
+        task.messages.push({ role: 'user', text: 'TOOL RESULTS:\n\n' + observe +
+          '\n\nContinue: the next tool call, or the final plain-text answer if the goal is complete.' +
+          '\nIf your plan progressed, RE-EMIT the full <plan> block with <todo done="true"> on every item you finished.' });
       }
 
       /* ── verification (basic structural) on completed runs ── */
