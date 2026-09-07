@@ -1149,7 +1149,6 @@ async function runAgentTask(text,cfg){
   ui.root.insertBefore(act, ui.bubble);
   const actLine=(html)=>{ const d=document.createElement('div'); d.className='actline'; d.innerHTML=html; act.appendChild(d); scrollChat(); return d; };
   if(typeof addUserMsg==='function') addUserMsg(text);   // render the user's message card
-  const promptEl=actLine('<span class="ic">💬</span> '+esc(text.slice(0,90)));
 
   /* working timer + thinking line, ZCode-style */
   const t0=Date.now();

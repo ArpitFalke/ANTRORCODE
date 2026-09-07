@@ -146,11 +146,15 @@ window.AC.AgentCore.prototype = {
             finishedNaturally = true;
             break;
           }
+          /* plan-only first turn: acknowledge and kick off execution automatically */
+          if (task.plan.length && task.round === 1) {
+            task.messages.push({ role: 'assistant', text: resp.rawText || resp.text });
+            task.messages.push({ role: 'user', text: 'Plan acknowledged. Begin executing now — reply with your first tool call. Do not wait for confirmation and do not re-plan.' });
+            continue;
+          }
           finishedNaturally = true;
           break;
         }
-
-        /* ── execute tools: validate → permission → run → structured result ── */
         task.set('WAITING_FOR_TOOL', resp.toolCalls.length + ' tool call(s)');
         const results = [];
         for (const call of resp.toolCalls.slice(0, 6)) {
@@ -186,6 +190,7 @@ window.AC.AgentCore.prototype = {
         task.set('VERIFYING', 'basic structural verification');
         task.verification = await this.verifier.verify(task.changedFiles);
         AC.events.verifyDone({ passed: task.verification.passed });
+        task.plan.forEach(p=>{ p.done=true; });   // goal achieved → plan complete
         task.set('COMPLETED', 'goal achieved');
         ev('agent.completed', task.snapshot());
         const done = this._result(task, lastText, 'COMPLETED', null, task.verification);
