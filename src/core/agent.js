@@ -127,8 +127,28 @@ window.AC.AgentCore.prototype = {
         const plan = this.parsePlan(resp.rawText || resp.text);
         if (plan.length) { task.plan = plan; if (ui.onPlan) ui.onPlan(plan, task); }
 
-        /* no tool calls → final answer */
-        if (!resp.toolCalls.length) { finishedNaturally = true; break; }
+        /* legacy compatibility: <file path="…"> blocks (no structured calls this round) */
+        if (!resp.toolCalls.length) {
+          const legacy = [...resp.rawText.matchAll(/<file\s+path="([^"]+)">([\s\S]*?)<\/file>/g)];
+          if (legacy.length) {
+            task.set('WAITING_FOR_TOOL', legacy.length + ' legacy file block(s)');
+            for (const [, p, content] of legacy) {
+              const call = { tool: 'write_file', arguments: { path: p, content } };
+              task.toolCalls.push(call);
+              if (ui.onTool) ui.onTool(call, task);
+              const res = await this.router.execute(call);
+              task.toolResults.push(res);
+              if (res.success && !task.changedFiles.includes(p)) task.changedFiles.push(p);
+              if (ui.onToolResult) ui.onToolResult(call, res, task);
+            }
+            resp.text = window.AC.stripLegacyFiles(resp.rawText);
+            lastText = resp.text;               // the summary text after the files IS the final answer
+            finishedNaturally = true;
+            break;
+          }
+          finishedNaturally = true;
+          break;
+        }
 
         /* ── execute tools: validate → permission → run → structured result ── */
         task.set('WAITING_FOR_TOOL', resp.toolCalls.length + ' tool call(s)');
@@ -220,7 +240,7 @@ window.AC.AgentCore.prototype = {
       text: (typeof window.AC !== 'undefined' && window.AC.stripProtocol) ? window.AC.stripProtocol(text) : text,
       taskId: task.taskId, goal: task.goal, mode: task.mode,
       rounds: task.round, changedFiles: task.changedFiles.slice(),
-      toolResults: task.toolResults.map((r) => ({ tool: r.tool, success: r.success, error: r.error || undefined })),
+      toolResults: task.toolResults.map((r) => ({ tool: r.tool, success: r.success, error: r.error || undefined, metadata: r.metadata || undefined })),
       plan: task.plan.map((p) => ({ label: p.label, done: p.done })),
       errors: task.errors.slice(),
       verification: task.verification,

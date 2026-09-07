@@ -20,6 +20,10 @@ window.AC.ModelGateway = function (opts) {
   this.preferNative = !opts || opts.preferNative !== false;
 };
 
+window.AC.stripLegacyFiles = function (text) {
+  return String(text || '').replace(/<file\s+path="[^"]*">[\s\S]*?<\/file>/g, '').trim();
+};
+
 window.AC.stripProtocol = function (text) {
   return String(text || '')
     .replace(/```antror_tool[\s\S]*?```/g, '')

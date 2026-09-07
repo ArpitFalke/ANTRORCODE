@@ -1134,6 +1134,9 @@ async function runAgentTask(text,cfg){
   const gw=core.gateway;
   const ui=newAiMsg();
   setBusy(true);
+  syncPristine(true);                                   // workspace opens the moment the agent starts
+  $id('promptBox').value=''; autoGrow();                // prompt leaves the box
+  try{ localStorage.removeItem('vf.v1.draft'); }catch(e){}
 
   /* conversation persistence: the run is part of the project's memory */
   state.chat.push({role:'user',text,t:Date.now()});
@@ -1145,6 +1148,7 @@ async function runAgentTask(text,cfg){
   const act=document.createElement('div'); act.className='activity';
   ui.root.insertBefore(act, ui.bubble);
   const actLine=(html)=>{ const d=document.createElement('div'); d.className='actline'; d.innerHTML=html; act.appendChild(d); scrollChat(); return d; };
+  if(typeof addUserMsg==='function') addUserMsg(text);   // render the user's message card
   const promptEl=actLine('<span class="ic">💬</span> '+esc(text.slice(0,90)));
 
   /* working timer + thinking line, ZCode-style */
@@ -1166,8 +1170,11 @@ async function runAgentTask(text,cfg){
       const result=await core.run(goal,{
         onDelta:(d)=>{
           raw+=d;
-          /* ZCode-style live text: everything except hidden tool blocks streams into the chat */
-          let vis=raw.replace(/```antror_tool[\s\S]*?```/g,'');
+          /* ZCode-style: only the visible answer streams — tool/file content hidden */
+          let vis=raw.split('\u0060\u0060\u0060antror_tool')[0];
+          vis=vis.replace(/<file\s+path="[^"]*">[\s\S]*?<\/file>/g,'');
+          const openFile=vis.lastIndexOf('<file');
+          if(openFile>=0) vis=vis.slice(0,openFile);
           const openFence=vis.lastIndexOf('\u0060\u0060\u0060antror_tool');
           if(openFence>=0) vis=vis.slice(0,openFence);
           vis=vis.replace(/<plan>[\s\S]*?<\/plan>/g,'').replace(/<\/?plan>/g,'')
@@ -1198,9 +1205,11 @@ async function runAgentTask(text,cfg){
         onToolResult:(call,res)=>{
           if(res.success && (call.tool==='write_file'||call.tool==='apply_patch')){
             const f=state.project.files[call.arguments.path];
-            if(f!=null){ fcard(ui.root,call.arguments.path,f.split('\n').length); renderTreeSoon(); refreshSoon(); }
             const m=res.metadata||{};
-            const stats=(m.added!=null||m.removed!=null)?' <span class="da">+'+(m.added||0)+'</span> <span class="dr">−'+(m.removed||0)+'</span>':'';
+            const delta=(m.added!=null||m.removed!=null)?{added:m.added||0,removed:m.removed||0}:null;
+            if(f!=null) fcard(ui.root,call.arguments.path,f.split('\n').length,delta);
+            renderTreeSoon(); refreshSoon();
+            const stats=delta?' <span class="da">+'+delta.added+'</span> <span class="dr">−'+delta.removed+'</span>':'';
             const last=act.lastElementChild;
             if(last) last.innerHTML='<span class="ic">▣</span> '+ (call.tool==='apply_patch'?'Patched ':'') + esc(call.arguments.path) + stats;
           }
@@ -1210,7 +1219,7 @@ async function runAgentTask(text,cfg){
       /* completion rendering (existing UX) */
       const stopped=result.status==='CANCELLED';
       const failed=result.status==='FAILED';
-      finalizeBubble(ui,result.text||'(no output)',(result.changedFiles||[]).map(p=>({path:p,lines:(state.project.files[p]||'').split('\n').length})),stopped,null,'');
+      finalizeBubble(ui,result.text||'(no output)',[],stopped,null,'');   // cards already rendered per tool result
       clearInterval(workTick);
       timerEl.innerHTML='<span class="ic">✓</span> Completed in '+fmtDur(Date.now()-t0);
       timerEl.className='actline';
@@ -1234,7 +1243,7 @@ async function runAgentTask(text,cfg){
           filesMeta[r.metadata.path]={ added:r.metadata.added||0, removed:r.metadata.removed||0, lines:(state.project.files[r.metadata.path]||'').split('\n').length };
         }
       });
-      state.chat.push({role:'assistant',display:result.text||'',files:(result.changedFiles||[]).slice(),filesMeta,t:Date.now()});
+      if(result.text) state.chat.push({role:'assistant',display:result.text,files:(result.changedFiles||[]).slice(),filesMeta,t:Date.now()});
       saveChat(); persistCurrentProject();
       usageAdd(cfg.id, Math.round(text.length/4), Math.round((result.text||'').length/4));
       dsAutoSave();
