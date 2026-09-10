@@ -978,7 +978,7 @@ async function sendPromptCore(text,cfg,rawText){
   const t0=Date.now();
   const fmtDur=(ms)=>{ const sec=Math.round(ms/1000); return sec<60 ? sec+'s' : Math.floor(sec/60)+'m '+(sec%60)+'s'; };
   const setAgentStatus=(txt,busy)=>{ const el=$id('agentStatus'); if(!el) return;
-    el.classList.toggle('busy',!!busy); $id('agentStatusText').textContent=txt; };
+    el.classList.toggle('busy',!!busy); const t2=$id('agentStatusText'); if(t2) t2.textContent=txt; };
   const setTask=(title)=>{ const el=$id('taskTitle'); if(el) el.textContent=String(title||'New task').slice(0,80); };
   const timerEl=actLine('','live build');
   timerEl.innerHTML='<span class="eq"><i></i><i></i><i></i><i></i></span><span class="tt">Working…</span>';
@@ -1161,7 +1161,6 @@ async function runAgentTask(text,cfg){
   /* conversation persistence: the run is part of the project's memory */
   state.chat.push({role:'user',text,t:Date.now()});
   saveChat();
-  setTask(text); setAgentStatus('Working…',true);
   try{
     window.AC=window.AC||{};
     window.AC.autoApprove=(window.__permMode==='auto');
@@ -1170,14 +1169,14 @@ async function runAgentTask(text,cfg){
 
   const fmtDur=(ms)=>{ const sec=Math.round(ms/1000); return sec<60 ? sec+'s' : Math.floor(sec/60)+'m '+(sec%60)+'s'; };
   const setAgentStatus=(txt,busy)=>{ const el=$id('agentStatus'); if(!el) return;
-    el.classList.toggle('busy',!!busy); $id('agentStatusText').textContent=txt; };
+    el.classList.toggle('busy',!!busy); const t2=$id('agentStatusText'); if(t2) t2.textContent=txt; };
   const setTask=(title)=>{ const el=$id('taskTitle'); if(el) el.textContent=String(title||'New task').slice(0,80); };
 
   let raw='';
   const act=document.createElement('div'); act.className='activity';
   ui.root.insertBefore(act, ui.bubble);
   const actLine=(html)=>{ const d=document.createElement('div'); d.className='actline'; d.innerHTML=html; act.appendChild(d); scrollChat(); return d; };
-  if(typeof addUserMsg==='function') addUserMsg(text);   // render the user's message card
+  if(typeof addUserMsg==='function') addUserMsg(text);   // user message renders ONCE (card)
 
   /* working timer + thinking line, ZCode-style */
   const t0=Date.now();
@@ -1185,12 +1184,19 @@ async function runAgentTask(text,cfg){
   timerEl.innerHTML='<span class="eq"><i></i><i></i><i></i><i></i></span><span class="tt">Working…</span>';
   const timerTxt=timerEl.querySelector('.tt');
   const workTick=setInterval(()=>{ timerTxt.textContent='Working for '+fmtDur(Date.now()-t0); },900);
-  let thinkEl=null;
+  let thinkEl=null,thinkSecs=0;
   const ui_onThinking=(t)=>{
-    if(!thinkEl){ thinkEl=actLine(''); thinkEl.innerHTML='<span class="ic">✦</span><span class="tt">Thinking…</span><div class="thinklive" title="Live reasoning — click to expand"></div>';
-      thinkEl.querySelector('.thinklive').addEventListener('click',function(){ this.classList.toggle('open'); }); }
-    thinkEl.querySelector('.thinklive').textContent=String(t).slice(-300);
-    thinkEl.querySelector('.tt').textContent='Thinking…';
+    thinkSecs=Math.round((Date.now()-t0)/1000);
+    if(!thinkEl){
+      thinkEl=actLine('');
+      thinkEl.innerHTML='<span class="aic">🧠</span><span class="at">Thinking</span><span class="am" id="__thinkd"></span>'+
+        '<div class="term-preview" title="Live reasoning — click to expand">'+esc(String(t).slice(-260))+'</div>';
+      const tp=thinkEl.querySelector('.term-preview');
+      tp.addEventListener('click',function(){ this.style.maxHeight=this.style.maxHeight?'':'320px'; });
+    }
+    const tp=thinkEl.querySelector('.term-preview');
+    if(tp) tp.textContent='…'+String(t).slice(-220);
+    const td=$id('__thinkd'); if(td) td.textContent='· '+Math.max(1,Math.round((Date.now()-t0)/1000))+'s';
   };
 
   return await new Promise(async(resolve)=>{
@@ -1215,19 +1221,20 @@ async function runAgentTask(text,cfg){
         onThinking:(t)=>{ /* live thinking handled by the plan/thinking hooks below */ },
         onPlan:(plan)=>{ if(typeof renderTodos==='function') renderTodos(plan); },
         onTool:(call)=>{
-          if(call.tool==='write_file'){
+          const ic=(n)=>'<span class="aic">'+n+'</span>';
+          if(call.tool==='read_file'){
+            actLine(ic('📄')+'<span class="at">Read</span><span class="achip">'+esc(call.arguments.path)+'</span>');
+          } else if(call.tool==='write_file'){
             const created=!(call.arguments.path in state.project.files);
-            actLine('<span class="ic">▣</span> '+(created?'Created ':'Updated ')+esc(call.arguments.path));
+            actLine(ic('✏️')+'<span class="at">'+(created?'New file':'Edit')+'</span><span class="achip">'+esc(call.arguments.path)+'</span>');
           } else if(call.tool==='apply_patch'){
-            actLine('<span class="ic">▣</span> Patching '+esc(call.arguments.path));
-          } else if(call.tool==='read_file'){
-            actLine('<span class="ic">▣</span> Reading '+esc(call.arguments.path));
+            actLine(ic('✏️')+'<span class="at">Patch</span><span class="achip">'+esc(call.arguments.path)+'</span>');
           } else if(call.tool==='run_command'){
-            actLine('<span class="ic">▭</span> Terminal · '+esc(String(call.arguments.command||'').slice(0,80)));
+            actLine(ic('▮')+'<span class="at">Terminal</span><span class="achip">'+esc(String(call.arguments.command||'').slice(0,50))+'</span>');
           } else if(call.tool==='mcp_call'){
-            actLine('<span class="ic">✦</span> MCP · '+esc(call.arguments.server+'.'+call.arguments.tool));
+            actLine(ic('✦')+'<span class="at">MCP</span><span class="achip">'+esc(call.arguments.server+'.'+call.arguments.tool)+'</span>');
           } else {
-            actLine('<span class="ic">▸</span> '+esc(call.tool));
+            actLine(ic('▸')+'<span class="at">'+esc(call.tool)+'</span>');
           }
         },
         onToolResult:(call,res)=>{
@@ -1237,9 +1244,12 @@ async function runAgentTask(text,cfg){
             const delta=(m.added!=null||m.removed!=null)?{added:m.added||0,removed:m.removed||0}:null;
             if(f!=null) fcard(ui.root,call.arguments.path,f.split('\n').length,delta);
             renderTreeSoon(); refreshSoon();
-            const stats=delta?' <span class="da">+'+delta.added+'</span> <span class="dr">−'+delta.removed+'</span>':'';
+            const stats=delta?'<span class="am"><span class="da">+'+delta.added+'</span> <span class="dr">−'+delta.removed+'</span></span>':'';
             const last=act.lastElementChild;
-            if(last) last.innerHTML='<span class="ic">▣</span> '+ (call.tool==='apply_patch'?'Patched ':'') + esc(call.arguments.path) + stats;
+            if(last && last.classList.contains('actline')){
+              const tail=last.querySelector('.am');
+              if(tail) tail.insertAdjacentHTML('beforeend',stats);
+            }
           }
         },
       });
@@ -1276,6 +1286,26 @@ async function runAgentTask(text,cfg){
       saveChat(); persistCurrentProject();
       usageAdd(cfg.id, Math.round(text.length/4), Math.round((result.text||'').length/4));
       dsAutoSave();
+      /* right-panel cards: files changed + recent tasks */
+      try{
+        const fc=$id('fcCount'), fl=$id('fcList');
+        if(fc && fl){
+          const changed=result.changedFiles||[];
+          fc.textContent=changed.length;
+          fl.innerHTML=changed.map((p)=>'<div class="cc-row"><span class="cic">📄</span><span class="ccl"><b>'+esc(p)+'</b></span></div>').join('')
+            || '<div style="padding:10px 13px;font-size:11px;color:var(--faint)">No files changed</div>';
+        }
+        const tasks=((state.tasks||{})[(state.project.id||'local')]||[]).slice(0,6);
+        const rtEl=$id('recentTasks');
+        if(rtEl){
+          rtEl.innerHTML=tasks.length?tasks.map((tk)=>{
+            const agoMin=Math.max(1,Math.round((Date.now()-tk.t)/60000));
+            const agoS=agoMin<60?agoMin+'m ago':Math.floor(agoMin/60)+'h ago';
+            const stIc=tk.status==='running'?'◐':'✓';
+            return '<div class="cc-row"><span class="cic">'+stIc+'</span><span class="ccl"><b>'+esc(tk.label.slice(0,44))+'</b></span><span class="cm">'+agoS+'</span></div>';
+          }).join(''):'';
+        }
+      }catch(e){}
       if((result.changedFiles||[]).length) refreshPreview();
       scrollChat();
       resolve(result);
@@ -2254,6 +2284,16 @@ function bind(){
   $id('segPreview').addEventListener('click',()=>showView('preview'));
   $id('segCode').addEventListener('click',()=>showView('code'));
   $id('btnRefresh').addEventListener('click',()=>refreshPreview());
+  // ctx panel collapse/expand
+  const collapsed=()=>document.getElementById('v2shell').classList.contains('ctx-hidden');
+  const colBtn=$id('ctxCollapse');
+  if(colBtn) colBtn.addEventListener('click',()=>{
+    const sh=$id('v2shell'); sh.classList.toggle('ctx-hidden');
+    colBtn.textContent=sh.classList.contains('ctx-hidden')?'«':'»';
+    colBtn.title=sh.classList.contains('ctx-hidden')?'Expand panel':'Collapse panel';
+    window.dispatchEvent(new Event('resize'));
+  });
+
   // right column tabs: workspace ↔ browser
   let browserOn=false;
   function showRightTab(tab){

@@ -271,3 +271,160 @@ body.theme-light .thinklive{background:transparent}
 .thinklive{cursor:pointer;margin-top:4px;font-size:10.5px;color:inherit;opacity:.75;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:520px}
 .thinklive.open{white-space:pre-wrap;max-height:260px;overflow-y:auto;opacity:.9}
+
+/* ════════════════════════════════════════════════════════════════
+   V2 LAYOUT FIX — definitive. Overrides everything above.
+   CENTER WORKSPACE > LEFT SIDEBAR > RIGHT CONTEXT PANEL
+   ════════════════════════════════════════════════════════════════ */
+
+/* shell: sidebar 228 | center 1fr | context 320 (collapsible) */
+#v2shell{grid-template-columns:228px minmax(0,1fr) 320px !important}
+#v2shell.ctx-hidden{grid-template-columns:228px minmax(0,1fr) !important}
+body.sbmin #v2shell,body.sbmin #app{grid-template-columns:56px minmax(0,1fr) 320px !important}
+body.sbmin.ctx-hidden #v2shell{grid-template-columns:56px minmax(0,1fr) !important}
+
+/* context panel: fixed 320, clean */
+#ctxPanel{width:320px !important;flex:none !important;display:flex;flex-direction:column}
+#ctxPanel.ctx-collapsed{width:0 !important;overflow:hidden;border-left:none}
+#chatResizer{display:none}
+
+/* center fills the column; activity gets the space, composer docks */
+#chatPanel{height:100%;display:flex;flex-direction:column}
+#taskHead{flex:none}
+#chatLogWrap{flex:1;min-height:0}
+
+/* PRISTINE (empty project): greeting + composer form ONE centered unit — no giant void */
+body.pristine #mainCol{justify-content:center}
+body.pristine #chatLogWrap{flex:none;overflow:visible}
+body.pristine #chatLog{display:none}
+body.pristine #chatEmpty{display:flex}
+body.pristine #composerDock{flex:none;width:100%;max-width:640px;margin:0 auto;padding:0 8px}
+body.pristine .ce-grid{max-width:400px;margin:0 auto}
+
+/* CONV / WORKSPACE: chat fills, composer docked */
+body.conv #mainCol{justify-content:flex-start}
+#composerDock{flex:none;padding:8px 14px 12px;max-width:860px;width:100%;margin:0 auto}
+.composer{width:100%}
+
+/* composer never crushed */
+.composer-bar{flex-wrap:nowrap;overflow:visible}
+#promptBox{width:100%}
+
+/* right panel content: compact, fits 320 */
+#ctxPanel .ctab{padding:10px}
+#ctxPanel .plist-row{padding:8px 9px}
+#ctxPanel .usage-tot span{min-width:0;padding:8px 4px}
+#ctxPanel .plans{grid-template-columns:1fr}
+
+/* user message: ONCE, compact card */
+.msg.user{align-self:flex-end;max-width:85%}
+.msg.user .bubble{padding:10px 14px;font-size:13px}
+
+/* agent activity: flat timeline rows, no cards */
+.msg.ai{align-self:stretch;max-width:100%;padding-left:26px}
+.msg.ai::before{left:8px;top:4px;width:20px;height:20px;border-radius:6px}
+.msg.ai::after{left:13px;top:9px;font-size:9px}
+.msg.ai .bubble{padding:0;font-size:13px;line-height:1.65}
+.fcards{margin:6px 0 2px}
+
+/* activity rows compact */
+.activity{gap:2px}
+.actline{font-size:11px;min-height:20px}
+.actline .ic{width:14px}
+
+/* context panel collapse behavior */
+#ctxPanel.ctx-collapsed #ctxTabs,#ctxPanel.ctx-collapsed .ctab{display:none}
+#ctxCollapse{position:static}
+
+/* ════════════════════════════════════════════════════════════════
+   ACTIVITY TIMELINE — ZCode-grade event language
+   ════════════════════════════════════════════════════════════════ */
+.activity{gap:2px;padding-left:6px;border-left:2px solid var(--line);margin-left:10px}
+.actline{min-height:24px;padding:2px 0;font-family:'Inter',system-ui,sans-serif;font-size:12px;
+  display:flex;align-items:baseline;gap:8px}
+.actline .aic{width:16px;text-align:center;flex:none;opacity:.85;font-size:11px}
+.actline .at{color:var(--txt);font-weight:600;flex:none}
+.actline .ad{color:var(--faint);flex:1;min-width:0;white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis}
+.actline .am{margin-left:auto;flex:none;font-family:var(--mono);font-size:10.5px;color:var(--faint)}
+.actline .am .da{color:#22c55e}
+.actline .am .dr{color:#ef4444}
+.actline.live{color:var(--txt)}
+.actline.live .aic{color:var(--acc);animation:pulseW 1.1s ease-in-out infinite}
+.actline.live::before{content:none}
+.actline.done .aic{color:#22c55e}
+.actline .achip{
+  font-family:var(--mono);font-size:10.5px;background:var(--panel2);
+  border:1px solid var(--line2);border-radius:5px;padding:1px 7px;color:var(--txt);flex:none}
+.actline .abtn{
+  font-family:var(--mono);font-size:10px;background:var(--panel2);color:var(--dim);
+  border:1px solid var(--line2);border-radius:5px;padding:2px 8px;cursor:pointer;flex:none}
+.actline .abtn:hover{color:var(--txt);border-color:rgba(255,255,255,.3)}
+
+/* terminal output preview inside activity */
+.term-preview{
+  font-family:var(--mono);font-size:10.5px;line-height:1.6;color:var(--dim);
+  background:var(--panel);border:1px solid var(--line);border-radius:8px;
+  padding:8px 12px;margin:4px 0 4px 24px;max-height:120px;overflow-y:auto;white-space:pre-wrap;
+}
+.term-preview .ok{color:#22c55e}
+
+/* result row */
+.result-row{display:flex;align-items:center;gap:8px;padding:6px 0;font-size:12.5px}
+.result-row .ric{color:#22c55e;font-weight:800}
+.result-row b{color:#22c55e}
+
+/* ════════════════════════════════════════════════════════════════
+   RIGHT PANEL CARDS (Plan / Files / Terminals / Browser / MCP / Recent)
+   ════════════════════════════════════════════════════════════════ */
+.ctx-card{
+  background:var(--panel);border:1px solid var(--line);border-radius:12px;
+  margin:0 10px 12px;overflow:hidden;
+}
+.ctx-card .cc-head{
+  display:flex;align-items:center;gap:8px;padding:11px 13px;border-bottom:1px solid var(--line);
+}
+.ctx-card .cc-head b{font-size:12.5px;color:var(--txt);flex:1}
+.ctx-card .cc-head .ccb{font-family:var(--mono);font-size:10px;color:var(--faint);
+  background:var(--panel2);border:1px solid var(--line);border-radius:5px;padding:1px 6px}
+.ctx-card .cc-body{padding:6px 0}
+.ctx-card .cc-row{
+  display:flex;align-items:center;gap:8px;padding:6px 13px;font-size:11.5px;color:var(--dim);
+}
+.ctx-card .cc-row:hover{background:rgba(255,255,255,.03)}
+.ctx-card .cc-row .cic{width:16px;text-align:center;flex:none;opacity:.8;font-size:10px}
+.ctx-card .cc-row .ccl{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ctx-card .cc-row .ccl b{color:var(--txt);font-weight:600}
+.ctx-card .cc-row .cm{margin-left:auto;flex:none;font-family:var(--mono);font-size:10px;color:var(--faint)}
+.ctx-card .cc-row .cm .da{color:#22c55e}
+.ctx-card .cc-row .cm .dr{color:#ef4444}
+
+/* plan progress */
+.plan-goal{padding:11px 13px 4px;font-size:13px;font-weight:750;color:var(--txt)}
+.plan-meta{display:flex;align-items:center;gap:8px;padding:0 13px 10px;font-size:10.5px;color:var(--faint)}
+.plan-meta .pbar{flex:1;height:4px;border-radius:4px;background:var(--line);overflow:hidden}
+.plan-meta .pbar i{display:block;height:100%;width:0%;background:var(--acc);transition:width .4s ease}
+.plan-meta .pn{font-family:var(--mono)}
+.plan-todo{display:flex;align-items:center;gap:9px;padding:5px 13px;font-size:11.5px;color:var(--dim)}
+.plan-todo .bx{width:15px;height:15px;border-radius:50%;border:1.5px solid var(--line2);flex:none;
+  display:flex;align-items:center;justify-content:center;font-size:8px}
+.plan-todo.done .bx{background:var(--acc);border-color:var(--acc);color:#fff}
+.plan-todo.done{color:var(--faint);text-decoration:line-through}
+.plan-todo.now{color:var(--txt)}
+.plan-todo.now .bx{border-color:var(--acc);color:var(--acc)}
+
+/* section cards in panel */
+.ctx-sec{margin:0 10px 12px;background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.ctx-sec .cs-head{display:flex;align-items:center;gap:8px;padding:10px 13px;border-bottom:1px solid var(--line);
+  font-size:12px;font-weight:700;color:var(--txt)}
+.ctx-sec .cs-head .cn{font-family:var(--mono);font-size:10px;color:var(--faint);
+  background:var(--panel2);border:1px solid var(--line);border-radius:5px;padding:1px 6px}
+.ctx-sec .cs-head .cadd{margin-left:auto;color:var(--dim);cursor:pointer;font-size:14px;padding:0 4px}
+.ctx-sec .cs-head .cadd:hover{color:var(--txt)}
+.ctx-empty{padding:14px 13px;font-size:11px;color:var(--faint);line-height:1.6}
+
+/* panel collapse rail */
+#ctxPanel{transition:width .18s ease}
+#ctxPanel.collapsed{width:44px}
+#ctxPanel.collapsed .ctx-tabs button[data-ctab],
+#ctxPanel.collapsed .ctab,#ctxPanel.collapsed .cc-row,#ctxPanel.collapsed .ctx-sec{display:none!important}

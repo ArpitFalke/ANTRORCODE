@@ -196,14 +196,21 @@
 
     <div class="ctab" id="ctab-plan">
       <div id="todoPanel">
-        <div class="tp-head" id="tpHead"><span class="tp-ic">☑</span><b id="tpGoal">Plan</b><span class="tpbar"><i id="tpFill"></i></span><span id="tpCount">0 / 0</span><button id="tpMin" title="Collapse">–</button></div>
-        <div id="tpList"></div>
+        <div class="plan-goal" id="tpGoalTxt">Plan</div>
+        <div class="plan-meta"><span class="pbar"><i id="tpFill"></i></span><span class="pn" id="tpCount">0/0</span><span class="pn" id="tpDur"></span></div>
+        <div class="plan-todos" id="tpList"></div>
+        <button id="tpMin" hidden></button>
       </div>
       <div id="planEmpty" class="pan-empty">The agent's plan appears here when it works on a task.</div>
     </div>
 
     <div class="ctab" id="ctab-files">
-      <div class="tree-head">FILES</div>
+      <div class="tree-head">FILES CHANGED — LAST RUN</div>
+      <div id="filesChangedCard" class="ctx-sec" style="margin:0 10px 14px">
+        <div class="cs-head"><span class="cic">📄</span><b>Files changed</b><span class="cn" id="fcCount">0</span></div>
+        <div id="fcList"></div>
+      </div>
+      <div class="tree-head">ALL PROJECT FILES</div>
       <nav id="fileTree"></nav>
     </div>
 
@@ -236,6 +243,7 @@
     <div class="ctab" id="ctab-tasks">
       <div class="tree-head">RECENT TASKS</div>
       <div id="recentTasks"></div>
+      <button id="panelNewTask" class="newtask" style="margin-top:10px;width:100%"><span>＋</span> New Task</button>
     </div>
   </aside>
 </div>

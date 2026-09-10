@@ -22,6 +22,9 @@ const MIME = {
 http.createServer((req, res) => {
   let p = decodeURIComponent((req.url || '/').split('?')[0]);
   const candidates = [];
+  if ((req.url || '').includes('?p=')) {          // project deep-link (?p=<id>) → the studio
+    candidates.push('index.html');
+  }
   if (p === '/' || p === '') {
     candidates.push('index.html');
   } else if (p.startsWith('/p/')) {          // project deep-link → the app resolves the id

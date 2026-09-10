@@ -443,7 +443,7 @@ $('btnSaveSet').onclick=()=>{
   S.onboarded=true;
   persist(); renderLists();
   $('provHint').className='hint ok'; $('provHint').textContent='✓ Saved — '+P.label+(model?' · '+model:'')+'. Back to ANTRORCODE…';
-  setTimeout(()=>{ location.href=(location.hostname==='localhost'||location.hostname==='127.0.0.1'||location.protocol==='file:')?'index.html':'/'; }, 700);+P.label+(model?' · '+model:'')+'. Return to the app tab — it refreshes automatically.';
+  setTimeout(()=>{ location.href=(location.hostname==='localhost'||location.hostname==='127.0.0.1'||location.protocol==='file:')?'index.html':'/'; }, 700);
 };
 $('btnForget').onclick=()=>{ delete S.keys[pick]; persist(); paintProvFields(pick); renderModelChips(); renderLists(); };
 $('btnTestKey').onclick=async()=>{
