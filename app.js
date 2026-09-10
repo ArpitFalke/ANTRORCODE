@@ -905,8 +905,24 @@ function extractWritten(raw, written){
 let lastScrollT=0;
 function softScroll(){ const n=performance.now(); if(n-lastScrollT>140){ lastScrollT=n; scrollChat(); } }
 
+window.__queue=window.__queue||[];
+function renderQueue(){
+  const row=$id('queueRow'); if(!row) return;
+  row.innerHTML='';
+  row.hidden=!window.__queue.length;
+  window.__queue.forEach((q,i)=>{
+    const c=document.createElement('div'); c.className='qchip';
+    c.innerHTML='<span class="qic">⏳</span><span>'+esc(q.slice(0,70))+'</span>';
+    const x=document.createElement('span'); x.className='qx'; x.textContent='✕'; x.title='Remove';
+    x.addEventListener('click',()=>{ window.__queue.splice(i,1); renderQueue(); });
+    c.appendChild(x); row.appendChild(c);
+  });
+}
 async function sendPrompt(rawText){
-  if(state.ui.busy) return;
+  if(state.ui.busy){
+    if(rawText.trim()){ window.__queue.push(rawText.trim()); renderQueue(); toast('⏳ Queued — runs after the current task'); }
+    return;
+  }
   const text=rawText.trim(); if(!text) return;
   const cfg=ensureConfigured(); if(!cfg) return;
   sendPrompt.lastPrompt=text;
@@ -915,6 +931,7 @@ async function sendPrompt(rawText){
     return await sendPromptCore(text,cfg,rawText);
   } finally {
     setBusy(false);   // never leave the buttons dead, even if something throws
+    if(window.__queue && window.__queue.length){ const next=window.__queue.shift(); renderQueue(); setTimeout(()=>sendPrompt(next),400); }
   }
 }
 async function sendPromptCore(text,cfg,rawText){
@@ -960,6 +977,9 @@ async function sendPromptCore(text,cfg,rawText){
   // working timer (like ZCode's "Working for 1m 28s")
   const t0=Date.now();
   const fmtDur=(ms)=>{ const sec=Math.round(ms/1000); return sec<60 ? sec+'s' : Math.floor(sec/60)+'m '+(sec%60)+'s'; };
+  const setAgentStatus=(txt,busy)=>{ const el=$id('agentStatus'); if(!el) return;
+    el.classList.toggle('busy',!!busy); $id('agentStatusText').textContent=txt; };
+  const setTask=(title)=>{ const el=$id('taskTitle'); if(el) el.textContent=String(title||'New task').slice(0,80); };
   const timerEl=actLine('','live build');
   timerEl.innerHTML='<span class="eq"><i></i><i></i><i></i><i></i></span><span class="tt">Working…</span>';
   const timerTxt=timerEl.querySelector('.tt');
@@ -1141,8 +1161,17 @@ async function runAgentTask(text,cfg){
   /* conversation persistence: the run is part of the project's memory */
   state.chat.push({role:'user',text,t:Date.now()});
   saveChat();
+  setTask(text); setAgentStatus('Working…',true);
+  try{
+    window.AC=window.AC||{};
+    window.AC.autoApprove=(window.__permMode==='auto');
+    if(window.__agentPolicy) window.__agentPolicy.auto=window.__permMode==='auto';
+  }catch(e){}
 
   const fmtDur=(ms)=>{ const sec=Math.round(ms/1000); return sec<60 ? sec+'s' : Math.floor(sec/60)+'m '+(sec%60)+'s'; };
+  const setAgentStatus=(txt,busy)=>{ const el=$id('agentStatus'); if(!el) return;
+    el.classList.toggle('busy',!!busy); $id('agentStatusText').textContent=txt; };
+  const setTask=(title)=>{ const el=$id('taskTitle'); if(el) el.textContent=String(title||'New task').slice(0,80); };
 
   let raw='';
   const act=document.createElement('div'); act.className='activity';
@@ -1222,6 +1251,7 @@ async function runAgentTask(text,cfg){
       clearInterval(workTick);
       timerEl.innerHTML='<span class="ic">✓</span> Completed in '+fmtDur(Date.now()-t0);
       timerEl.className='actline';
+      setAgentStatus('Agent Ready',false);
       if(failed){
         timerEl.textContent='⚠ Stopped after '+fmtDur(Date.now()-t0);
         const c=document.createElement('div'); c.className='errcard';
@@ -1282,6 +1312,8 @@ function applyAppearance(){
 
 function setBusy(b){
   state.ui.busy=b;
+  const st=$id('agentStatus');
+  if(st){ st.classList.toggle('busy',b); const t=$id('agentStatusText'); if(t) t.textContent=b?'Working…':'Agent Ready'; }
   const btn=$id('sendBtn');
   btn.disabled=false;                 // never disabled — it IS the stop button while busy
   btn.classList.toggle('stop',b);
@@ -2495,11 +2527,60 @@ function init(){
   if(state.settings.thinking==='deep') state.settings.thinking='max';
   paintThinkChip();
   applyAppearance();
-  updateCtxPill(ctxOfConversation(''));
+
+  /* ── V2 shell wiring ── */
+  const tbModel=$id('tbModel'); if(tbModel) tbModel.textContent=(PROVIDERS[activeProviderId()]?.label||'—').split('·').pop().trim();
+  const themeBtn=$id('themeToggle'); if(themeBtn) themeBtn.addEventListener('click',()=>{
+    document.body.classList.toggle('theme-light');
+    const light=document.body.classList.contains('theme-light');
+    themeBtn.textContent=light?'🌙':'☀';
+    try{ localStorage.setItem('vf.v1.theme',light?'light':'dark'); }catch(e){}
+  });
+  try{ if(localStorage.getItem('vf.v1.theme')==='light') document.body.classList.add('theme-light'); }catch(e){}
+  const openCmdk=()=>{
+    const k=$id('cmdk'); if(!k) return;
+    k.hidden=false; const inp=$id('cmdkIn'); inp.value=''; renderCmdk(''); inp.focus();
+  };
+  window.__openCmdk=openCmdk;
+  const cmBtn=$id('cmdkBtn'); if(cmBtn) cmBtn.addEventListener('click',openCmdk);
+  window.addEventListener('keydown',(e)=>{ if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){ e.preventDefault(); openCmdk(); } });
   // live-sync settings changed on the settings page/tab
   const syncSettings=()=>{ state.settings=loadJSON(LS.s,{ provider:'zai', keys:{}, models:{}, bases:{} }); renderStatusChip(); if(typeof paintThinkChip==='function') paintThinkChip(); applyAppearance(); };
   window.addEventListener('storage',(e)=>{ if(e.key==='vf.v1.settings') syncSettings(); });
   window.addEventListener('focus',()=>{ try{ if(localStorage.getItem('vf.v1.settings')!==JSON.stringify(state.settings)) syncSettings(); }catch(e){} });
+  /* ── command palette (Ctrl+K) ── */
+  const CMDK=[
+    {n:'New task',f:()=>newProject()},
+    {n:'Open projects',f:()=>{ persistCurrentProject(); renderProjectsDrawer(); $id('projectsDrawer').hidden=false; }},
+    {n:'Open tasks',f:()=>{ renderTasks(); $id('tasksDrawer').hidden=false; }},
+    {n:'Open history',f:()=>{ renderHistory(); $id('historyDrawer').hidden=false; }},
+    {n:'Open terminal',f:()=>{ if(typeof TermCLI!=='undefined'&&TermCLI.toggle) TermCLI.toggle(); }},
+    {n:'Toggle theme',f:()=>{ const b=$id('themeToggle'); if(b) b.click(); }},
+    {n:'Change model / provider',f:()=>go('settings')},
+    {n:'Export project (ZIP)',f:()=>exportZip()},
+    {n:'Import folder',f:()=>importFolder()},
+    {n:'Clear conversation',f:()=>{ state.chat=[]; $id('chatLog').innerHTML=''; saveChat(); syncPristine(); }},
+    {n:'Toggle workspace panel',f:()=>$id('btnPrevToggle').click()},
+  ];
+  function renderCmdk(q){
+    const list=$id('cmdkList'); if(!list) return;
+    list.innerHTML='';
+    CMDK.filter(c=>c.n.toLowerCase().includes(q.toLowerCase())).forEach(c=>{
+      const b=document.createElement('button'); b.className='cmdk-it'; b.textContent=c.n;
+      b.addEventListener('click',()=>{ $id('cmdk').hidden=true; c.f(); });
+      list.appendChild(b);
+    });
+  }
+  const ck=$id('cmdk');
+  if(ck){
+    ck.addEventListener('click',(e)=>{ if(e.target===ck) ck.hidden=true; });
+    $id('cmdkIn').addEventListener('input',(e)=>renderCmdk(e.target.value));
+    $id('cmdkIn').addEventListener('keydown',(e)=>{
+      const items=[...ck.querySelectorAll('.cmdk-it')];
+      if(e.key==='Escape'){ ck.hidden=true; }
+      else if(e.key==='Enter'&&items.length){ items[0].click(); }
+    });
+  }
   if(!window.antrorAPI) idbGetDir().then(h=>{ if(h) state.ui.saveDirHandle=h; });
   (async()=>{
     try{ await restoreCloudOnSignIn(); }catch(e){}

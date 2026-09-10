@@ -10,242 +10,260 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="styles.css?v=18" />
+<link rel="stylesheet" href="src/ui-v2.css?v=18" />
 <link rel="manifest" href="manifest.json" />
 <meta name="theme-color" content="#0a0a0a" />
 <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 </head>
-<body>
+<body class="theme-dark">
 
-<div id="app">
+<!-- ══════════ TOP BAR ══════════ -->
+<header id="topbar">
+  <button id="sbToggle" class="tb-ic" title="Minimize sidebar">☰</button>
+  <span class="brand"><img src="assets/logo.png" alt="" /><b>ANTROR</b>&nbsp;Code</span>
+  <div class="proj-pill" title="Project name — click to rename"><span class="pp-ic">▤</span><span id="projName" contenteditable="true" spellcheck="false">untitled</span><span class="pp-c">▾</span></div>
+  <button id="cmdkBtn" class="searchbox" title="Command palette (Ctrl+K)">⌕ <span>Search projects, files, or commands…</span><kbd>Ctrl K</kbd></button>
+  <span class="tb-spacer"></span>
+  <span id="agentStatus" class="agent-status ready"><i></i><span id="agentStatusText">Agent Ready</span></span>
+  <div id="ctxPill" class="tb-chip" title="Context window usage"><span id="ctxText">▤ 0</span><span class="ctxbar"><i id="ctxFill"></i></span></div>
+  
+  <button id="pbModelTop" class="tb-chip" title="Model &amp; provider">◈ <span id="tbModel">—</span> ▾</button>
+  <button id="themeToggle" class="tb-ic" title="Toggle light / dark">☀</button>
+  <div id="userRow" class="tb-user">
+    <button id="userChip" title="Account"><span class="avatar" id="userAvatar">?</span><span class="uchip-txt"><b id="userName">Sign in</b><small id="userSub">local only</small></span></button>
+    <div id="userMenu" hidden>
+      <button id="umAccount">Account &amp; sync</button>
+      <button id="umSettings">Model settings</button>
+      <button id="umSignout" hidden>Sign out</button>
+    </div>
+  </div>
+</header>
 
-  <!-- ══════════ LEFT SIDEBAR : project + files ══════════ -->
+<!-- ══════════ SHELL : sidebar | activity | context ══════════ -->
+<div id="v2shell">
+
+  <!-- ── LEFT SIDEBAR ── -->
   <aside id="sidebar">
-    <div class="logo-row">
-      <img class="logo3d" src="assets/logo.png" alt="ANTROR" />
-      <span class="logo-text">ANTROR<b> Code</b></span>
-      <button id="sbToggle" title="Minimize sidebar" aria-label="Minimize sidebar">«</button>
-    </div>
-    <div class="proj-row">
-      <span class="proj-label">project</span>
-      <span id="projName" contenteditable="true" spellcheck="false">untitled</span>
-    </div>
-
-    <div class="side-actions">
-      <div class="side-sec">Workspace</div>
-      <button id="btnProjects" class="sbtn" title="All projects — switch, import a folder, start new"><span>🗂</span><span class="slbl">Projects</span></button>
-      <button id="btnTasks" class="sbtn" title="Every AI run — status, duration, lines changed"><span>☑</span><span class="slbl">Tasks</span></button>
-      <button id="btnHistory" class="sbtn" title="Restore an earlier snapshot"><span>⏱</span><span class="slbl">History</span></button>
-      <button id="btnTerm" class="sbtn" title="ANTROR CLI — terminal over your project + AI in the loop (Ctrl+`)"><span>&gt;_</span><span class="slbl">Terminal</span></button>
-      <div class="side-sec">App</div>
-      <button id="btnGetApp" class="sbtn" title="Get ANTROR Code for your device"><span>⤓</span><span class="slbl">Get the app</span></button>
-      <button id="btnSettings" class="sbtn accent" title="Settings — model, keys, data, legal"><span>⚙</span><span class="slbl">Settings</span></button>
-      <input type="file" id="importInput" webkitdirectory multiple hidden />
-    </div>
-
-    <div class="tree-head">⌄ FILES</div>
-    <nav id="fileTree"></nav>
-
+    <button id="btnNewTask" class="newtask" title="Start a fresh task (current project is kept)"><span>＋</span> New Task<span class="nt-c">▾</span></button>
+    <nav class="side-nav">
+      <button id="btnHome" class="sbtn on" title="Home"><span class="sic">⌂</span><span class="slbl">Home</span></button>
+      <button id="btnProjects" class="sbtn" title="Projects"><span class="sic">▤</span><span class="slbl">Projects</span></button>
+      <button id="btnTasks" class="sbtn" title="Tasks"><span class="sic">☑</span><span class="slbl">Tasks</span></button>
+      <button id="btnHistory" class="sbtn" title="History"><span class="sic">⏱</span><span class="slbl">History</span></button>
+      <button id="btnSettings" class="sbtn" title="Settings"><span class="sic">⚙</span><span class="slbl">Settings</span></button>
+    </nav>
+    <div class="side-sec">RECENT PROJECTS</div>
+    <div id="recentProjects"></div>
+    <div class="side-flex"></div>
+    <nav class="side-nav">
+      <button id="btnTerm" class="sbtn" title="Terminal (Ctrl+`)"><span class="sic">▮</span><span class="slbl">Terminal</span></button>
+      <button id="btnGetApp" class="sbtn" title="Get ANTROR Code for your device"><span class="sic">⤓</span><span class="slbl">Get the app</span></button>
+    </nav>
     <div class="side-foot">
-      <div id="userRow">
-        <button id="userChip" title="Account">
-          <span class="avatar" id="userAvatar">?</span>
-          <span class="uchip-txt"><b id="userName">Sign in</b><small id="userSub">local only</small></span>
-        </button>
-        <div id="userMenu" hidden>
-          <button id="umAccount">Account &amp; sync</button>
-          <button id="umSettings">Model settings</button>
-          <button id="umSignout" hidden>Sign out</button>
-        </div>
-      </div>
-      <button id="provChip" title="Open settings">
+      <div class="wf-name" id="wfName">ANTRORCODE</div>
+      <div class="wf-path" id="wfPath">light · web</div>
+      <div class="wf-git" id="wfGit" hidden><span class="ic">⑂</span> main</div>
+      <button id="provChip" title="Provider status — click to change">
         <span id="provDot" class="dot off"></span>
         <span id="provChipText">no provider</span>
       </button>
       <div class="legal-link"><a href="legal.html" target="_blank" rel="noopener">Terms · Privacy</a> — © ANTROR</div>
     </div>
+    <input type="file" id="importInput" webkitdirectory multiple hidden />
   </aside>
 
-  <!-- ══════════ CENTER STAGE : preview / code ══════════ -->
-  <!-- ══════════ AI CHAT : beside the sidebar ══════════ -->
-  <aside id="chatPanel">
-    <div id="chatResizer" title="Drag to resize the chat panel"></div>
-    <div class="chat-head">
-      <span class="chat-title">ANTROR Assistant</span>
-      <span class="chat-right">
-        <div id="ctxPill" title="Context window — how much of the model's memory this conversation uses">
-          <div class="ctxbar"><i id="ctxFill"></i></div><span id="ctxText">0 / 128k</span>
-        </div>
-        <button id="btnClearChat" title="Clear conversation">🗑</button>
-        <button id="btnPrevToggle" title="Open the workspace — live preview & code editor">
-          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M3 9h18M9 4v14"/></svg>
-          Workspace
-        </button>
-      </span>
-      </span>
-    </div>
-    <div id="todoPanel" hidden>
-      <div class="tp-head"><span class="tp-ic">☑</span><b>Plan</b><span id="tpCount">0/0</span><button id="tpMin" title="Collapse">–</button></div>
-      <div id="tpList"></div>
+  <!-- ── CENTER : AGENT ACTIVITY ── -->
+  <main id="chatPanel" class="mainCol">
+    <div id="taskHead">
+      <span class="th-dot"></span>
+      <span id="taskTitle">New task</span>
+      <span id="taskTime"></span>
+      <button id="btnClearChat" class="th-x" title="Clear conversation">🗑</button>
+      <button id="btnPrevToggle" class="th-x" title="Toggle workspace panel">▤</button>
     </div>
     <div id="chatLogWrap">
+      <div class="tl-rail" aria-hidden="true"></div>
       <div id="chatLog"></div>
       <button id="jumpLatest" hidden title="Jump to latest">↓ latest</button>
     </div>
     <div id="composerDock">
+      <div id="queueRow" hidden></div>
       <div id="chatEmpty">
         <img src="assets/logo.png" alt="" />
-        <h3>What should we build, <span id="ceName">friend</span>?</h3>
-        <p>Describe it in your own words — or start from one of these:</p>
+        <h3>Build with an agent.</h3>
+        <p>Describe what to make — or pick one:</p>
         <div class="ce-grid">
-          <button data-ce="A premium personal portfolio site with a dark aesthetic, smooth animations and project showcase"><span><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M9 20h6M12 16v4"/></svg></span><b>Portfolio site</b><small>dark · animated · showcase</small></button>
-          <button data-ce="A full-stack todo app: polished frontend + Node/Express API + data layer" data-mode="full"><span><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/></svg></span><b>Full-stack todo</b><small>frontend + API + data</small></button>
-          <button data-ce="A neon snake game on canvas with particles, screen shake, procedural sound and touch controls" data-mode="game"><span><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 9h12a4 4 0 0 1 4 4v3a2.5 2.5 0 0 1-4.5 1.5L16 15H8l-1.5 2.5A2.5 2.5 0 0 1 2 16v-3a4 4 0 0 1 4-4z"/><path d="M7 12h3M8.5 10.5v3"/><circle cx="16.5" cy="12" r=".6" fill="currentColor"/><circle cx="18.5" cy="14" r=".6" fill="currentColor"/></svg></span><b>Neon snake</b><small>canvas · particles · sound</small></button>
-          <button data-ce="A premium landing page for a startup: hero, features, pricing, testimonials"><span><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19l3-3M14 4c3 0 6 3 6 6l-8 8-6-6 8-8z"/><circle cx="14.5" cy="9.5" r="1.4"/></svg></span><b>Startup landing</b><small>hero · pricing · vibe</small></button>
+          <button data-ce="Fix a bug in my project: "><span>🛠</span><b>Fix a bug</b></button>
+          <button data-ce="Build a feature: "><span>⚡</span><b>Build a feature</b></button>
+          <button data-ce="Explain how this project works in simple words."><span>🧠</span><b>Explain project</b></button>
+          <button data-ce="Review the current project: bugs, security, improvements."><span>🔍</span><b>Review code</b></button>
         </div>
       </div>
-      <div id="chipsRow">
-      <button class="chip" data-fill="Build me ">✦ Build…</button>
-      <button class="chip" data-fill="Add a feature: ">➕ Add feature…</button>
-      <button class="chip" data-fill="Something is broken: ">🐛 Fix…</button>
-      <button class="chip" data-fill="Make it prettier — better colors, spacing and animations.">🎨 Polish</button>
-      <button class="chip" data-fill="Explain how this project works in simple words.">🧠 Explain</button>
-    </div>
-    <form id="composerForm">
-      <div class="composer">
-        <textarea id="promptBox" rows="2"
-          placeholder="Describe what you want to build…  (Enter to send)"></textarea>
-        <div id="slashPop" hidden></div>
-        <div id="modePop" hidden></div>
-        <div id="attachTray" hidden></div>
-        <div class="composer-bar">
-          <button type="button" id="btnAttach" class="pb-chip sq" title="Attach images — added to assets/ for the preview & AI">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6V5z"/></svg>
-          </button>
-          <input type="file" id="attachInput" accept="image/*" multiple hidden />
-          <button type="button" id="pbMode" class="pb-chip" title="Build mode — what kind of thing you're building">
-            <span id="pbModeIcon">🌐</span><span id="pbModeText">Web app</span><span class="crt">▾</span>
-          </button>
-          <button type="button" id="pbModel" class="pb-chip" title="Change model & key">
-            <span id="pbDot" class="dot off"></span><span id="pbModelText">no model</span>
-          </button>
-          <button type="button" id="pbThink" class="pb-chip" title="Thinking depth">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"/></svg>
-            <span id="pbThinkText">Medium</span><span class="crt">▾</span>
-          </button>
+      <form id="composerForm">
+        <div class="composer">
+          <textarea id="promptBox" rows="1" placeholder="Ask ANTROR to build, fix, debug, explain, or modify..."></textarea>
+          <div id="slashPop" hidden></div>
+          <div id="attachTray" hidden></div>
+          <div class="composer-bar">
+            <button type="button" id="btnAttach" class="pb-chip sq" title="Attach images">＋</button>
+            <input type="file" id="attachInput" accept="image/*" multiple hidden />
+            <button type="button" id="permChip" class="pb-chip" title="Permission mode — how the agent runs commands">🛡 <span id="permText">Ask</span> ▾</button>
+            <span id="ctxCount" class="ctx-mini" title="Context used">▤ 1</span>
+            <button type="button" id="pbMode" class="pb-chip" title="Build mode — what kind of thing you're building">
+              <span id="pbModeIcon">🌐</span><span id="pbModeText">Web app</span><span class="crt">▾</span>
+            </button>
+            <button type="button" id="pbModel" class="pb-chip" title="Model &amp; provider"><span id="pbDot" class="dot off"></span><span id="pbModelText">—</span><span class="crt">▾</span></button>
+            <button type="button" id="pbThink" class="pb-chip" title="Thinking depth"><span id="pbThinkIcon">✦</span><span id="pbThinkText">Med</span><span class="crt">▾</span></button>
+            <button type="submit" id="sendBtn" title="Send — click while building to stop">↑</button>
+          </div>
+          <div id="modePop" hidden></div>
           <div id="thinkPop" hidden></div>
-          <button type="submit" id="sendBtn" title="Send — click again while building to stop">➤</button>
         </div>
-      </div>
-    </form>
-  </aside>
-
-  <main id="stage">
-    <div id="wsTabs">
-      <button id="tabWorkspace" class="wtab on" title="Live preview & code editor of this project">
-        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M3 9h18M9 4v14"/></svg>
-        Workspace
-      </button>
-      <button id="tabBrowser" class="wtab" title="Browse the web — localhost apps, search, anything">
-        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18z"/></svg>
-        Browser
-      </button>
-      <button id="wsClose" class="wtab-x" title="Close this column">✕</button>
+      </form>
     </div>
-    <div id="stagebar">
-      <div class="seg" role="tablist">
-        <button id="segPreview" class="segbtn active">▶ Preview</button>
-        <button id="segCode" class="segbtn">&lt;/&gt; Code</button>
-      </div>
-      <div class="bar-right">
-        <div class="seg" id="widthSeg" title="Preview device">
-          <button id="wFull" class="segbtn wbtn active" title="Desktop width">🖥 Desktop</button>
-          <button id="wTab" class="segbtn wbtn" title="Tablet width (768px)">▢ Tablet</button>
-          <button id="wPhone" class="segbtn wbtn" title="Phone width (390px)">▯ Phone</button>
-        </div>
-        <button id="consBadgeBtn" hidden title="Runtime errors from your app">⚠ <b id="consCount">0</b></button>
-        <button id="btnRefresh" title="Re-run the preview">↻ Run</button>
-        <button id="btnOpenTab" title="Open the preview in a new tab">↗ New tab</button>
-      </div>
+  </main>
+
+  <!-- ── RIGHT CONTEXT PANEL ── -->
+  <aside id="ctxPanel">
+    <div id="chatResizer" title="Drag to resize"></div>
+    <div class="ctx-tabs">
+      <button class="ctab-btn on" data-ctab="plan">Plan</button>
+      <button class="ctab-btn" data-ctab="files">Files</button>
+      <button class="ctab-btn" data-ctab="terminal">Terminal</button>
+      <button class="ctab-btn" data-ctab="browser">Browser</button>
+      <button class="ctab-btn" data-ctab="tasks">Recent</button>
+      <button id="ctxCollapse" title="Collapse panel">»</button>
     </div>
 
-    <section id="previewWrap">
-      <div id="frameHolder">
-        <iframe id="previewFrame" title="Live preview"
-          sandbox="allow-scripts allow-forms allow-modals allow-popups allow-pointer-lock"></iframe>
+    <div class="ctab on" id="ctab-workspace">
+      <div id="wsTabs">
+        <button id="tabWorkspace" class="wtab on" title="Live preview &amp; code editor">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M3 9h18M9 4v14"/></svg>
+          Workspace
+        </button>
+        <button id="tabBrowser" class="wtab" title="Browse the web">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18z"/></svg>
+          Browser
+        </button>
+        <button id="wsClose" class="wtab-x" title="Hide this panel">✕</button>
       </div>
-      <div id="previewEmpty" class="empty-stage">
-        <img class="glyph" src="assets/logo.png" alt="" />
-        <h2>Nothing to preview yet</h2>
-        <p>Describe your app in the chat → ANTROR Code writes real files → they render here live.<br/>
-           Or start from a sample:</p>
-        <div class="sample-row">
-          <button data-sample="landing" class="chip-btn">Landing page</button>
-          <button data-sample="todo" class="chip-btn">Todo app</button>
-          <button data-sample="game" class="chip-btn">Snake game</button>
+      <section id="stage">
+        <div id="stagebar">
+          <div class="seg" role="tablist">
+            <button id="segPreview" class="segbtn active">▶ Preview</button>
+            <button id="segCode" class="segbtn">&lt;/&gt; Code</button>
+          </div>
+          <div class="bar-right">
+            <div class="seg" id="widthSeg" title="Preview device">
+              <button id="wFull" class="segbtn wbtn active" title="Desktop">🖥</button>
+              <button id="wTab" class="segbtn wbtn" title="Tablet">▢</button>
+              <button id="wPhone" class="segbtn wbtn" title="Phone">▯</button>
+            </div>
+            <button id="consBadgeBtn" hidden title="Runtime errors">⚠ <b id="consCount">0</b></button>
+            <button id="btnRefresh" title="Re-run the preview">↻ Run</button>
+            <button id="btnOpenTab" title="Open the preview in a new tab">↗</button>
+            <button id="btnLocal" title="Preview a local server (http://localhost:3000)">⛓</button>
+          </div>
         </div>
-      </div>
-    </section>
+        <div id="localBar" hidden>
+          <span class="lb-hint">Local preview uses the Browser tab → type localhost:3000 there.</span>
+        </div>
+        <section id="previewWrap">
+          <div id="frameHolder">
+            <iframe id="previewFrame" title="Live preview" sandbox="allow-scripts allow-forms allow-modals allow-popups allow-pointer-lock"></iframe>
+          </div>
+          <div id="previewEmpty" class="empty-stage">
+            <img class="glyph" src="assets/logo.png" alt="" />
+            <h2>Nothing to preview yet</h2>
+            <p>Describe your app in the chat → ANTROR Code writes real files → they render here live.<br/>Or start from a sample:</p>
+            <div class="sample-row">
+              <button data-sample="landing" class="chip-btn">Landing page</button>
+              <button data-sample="todo" class="chip-btn">Todo app</button>
+              <button data-sample="game" class="chip-btn">Snake game</button>
+            </div>
+          </div>
+        </section>
+        <section id="editorWrap" hidden>
+          <div id="tabsRow"></div>
+          <div id="editorArea">
+            <div id="gutter">1</div>
+            <textarea id="codeEditor" spellcheck="false" autocomplete="off" wrap="off" placeholder="Pick a file, or let the agent create one…"></textarea>
+          </div>
+          <div id="edStatus"><span id="edPath">no file open</span><span id="edMeta"></span></div>
+        </section>
+      </section>
+    </div>
 
-    <section id="browserWrap" hidden>
+    <div class="ctab" id="ctab-plan">
+      <div id="todoPanel">
+        <div class="tp-head" id="tpHead"><span class="tp-ic">☑</span><b id="tpGoal">Plan</b><span class="tpbar"><i id="tpFill"></i></span><span id="tpCount">0 / 0</span><button id="tpMin" title="Collapse">–</button></div>
+        <div id="tpList"></div>
+      </div>
+      <div id="planEmpty" class="pan-empty">The agent's plan appears here when it works on a task.</div>
+    </div>
+
+    <div class="ctab" id="ctab-files">
+      <div class="tree-head">FILES</div>
+      <nav id="fileTree"></nav>
+    </div>
+
+    <div class="ctab" id="ctab-terminal">
+      <section id="termPanel">
+        <div id="termHead"><span class="tt">&gt;_ antror cli</span><span class="tsub">Ctrl+`</span><button id="termClose" title="Hide">✕</button></div>
+        <div id="termOut"></div>
+        <form id="termForm"><span id="termPrompt"><b>antror $</b></span>
+          <input id="termIn" autocomplete="off" spellcheck="false" placeholder="help · ls · /plan · or describe what to build…" /></form>
+      </section>
+    </div>
+
+    <div class="ctab" id="ctab-browser">
+      <section id="browserWrap">
       <div id="browserBar">
         <button id="navBack" class="bnav" title="Back">◀</button>
         <button id="navFwd" class="bnav" title="Forward">▶</button>
         <button id="navRel" class="bnav" title="Reload">⟳</button>
-        <button id="navHome" class="bnav" title="Home (Google)">⌂</button>
-        <input id="localUrl" placeholder="Search Google or type a URL — http://localhost:3000 for your apps" spellcheck="false" />
+        <input id="localUrl" placeholder="Search or type a URL — http://localhost:3000 for apps" spellcheck="false" />
         <button id="localGo" class="bgo">Go</button>
-        <button id="navWeb" class="bnav" title="Search the web / open external site">🌐</button>
+        <button id="navHome" class="bnav" title="Google search">⌂</button>
+        <button id="navWeb" class="bnav" title="Open externally">🌐</button>
+        <button id="localExit" class="bnav" title="Close browser">✕</button>
       </div>
-      <iframe id="browserFrame" title="ANTROR Browser — local apps"
-        sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-pointer-lock"></iframe>
-      <webview id="extView" title="ANTROR Browser" partition="persist:antrorweb" hidden></webview>
-    </section>
-    <section id="editorWrap" hidden>
-      <div id="tabsRow"></div>
-      <div id="editorArea">
-        <div id="gutter">1</div>
-        <textarea id="codeEditor" spellcheck="false" autocomplete="off" wrap="off"
-          placeholder="Pick a file on the left, or let the AI create one…"></textarea>
-      </div>
-      <div id="edStatus"><span id="edPath">no file open</span><span id="edMeta"></span></div>
-    </section>
+      <iframe id="browserFrame" title="ANTROR Browser" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-pointer-lock"></iframe>
+      <webview id="extView" partition="persist:antrorweb" hidden></webview>
+      </section>
+    </div>
 
-    <!-- ════ TERMINAL (antror cli) ════ -->
-    <section id="termPanel" hidden>
-      <div id="termHead">
-        <span class="tt">&gt;_ Terminal</span>
-        <span class="tsub">antror cli — shell + AI · Ctrl+` toggles</span>
-        <button id="termClose" title="Close terminal">✕</button>
-      </div>
-      <div id="termOut"></div>
-      <form id="termForm">
-        <span id="termPrompt"><b>antror $</b></span>
-        <input id="termIn" autocomplete="off" spellcheck="false" placeholder="help · ls · cat index.html · or just describe what to build…" />
-      </form>
-    </section>
-  </main>
+    <div class="ctab" id="ctab-tasks">
+      <div class="tree-head">RECENT TASKS</div>
+      <div id="recentTasks"></div>
+    </div>
+  </aside>
+</div>
 
-
+<!-- ══════════ COMMAND PALETTE ══════════ -->
+<div id="cmdk" hidden>
+  <div class="cmdk-card">
+    <input id="cmdkIn" placeholder="Search commands, files, or projects…" autocomplete="off" spellcheck="false" />
+    <div id="cmdkList"></div>
+    <div class="cmdk-foot">↑↓ navigate · Enter run · Esc close</div>
+  </div>
 </div>
 
 <!-- ══════════ TASKS DRAWER ══════════ -->
 <div id="tasksDrawer" class="sidepanel" hidden>
   <div class="panel">
     <div class="modal-head"><h3>☑ Tasks</h3><button class="x" id="tasksClose">✕</button></div>
-    <p class="modal-sub">Every AI run is a <b>task</b> — status, duration, and the exact lines it added or removed.
-       For bigger work use <b>Projects</b>: each project keeps its own files and conversation memory.</p>
-    <div class="proj-actions">
-      <button id="btnQuickChat" class="proj-act primary-act"><span>✦</span> New quick chat</button>
-    </div>
-    <div id="tasksList" style="max-height:52vh;overflow-y:auto"></div>
+    <p class="modal-sub">Every AI run is a <b>task</b>. For bigger work use <b>Projects</b> — each keeps its own memory.</p>
+    <div class="proj-actions"><button id="btnQuickChat" class="proj-act primary-act"><span>✦</span> New quick chat</button></div>
+    <div id="tasksList"></div>
   </div>
 </div>
 
 <!-- ══════════ DIFF VIEWER ══════════ -->
 <div id="diffModal" class="overlay" hidden>
   <div class="modal diffmodal">
-    <div class="modal-head"><h3 id="diffTitle">diff</h3><span id="diffStats" class="dstats"></span><button class="x" id="diffClose" onclick="document.getElementById('diffModal').hidden=true">✕</button></div>
-    <p class="modal-sub">What changed in this file during the last AI run — <span class="da">added</span> / <span class="dr">removed</span> lines.</p>
+    <div class="modal-head"><h3 id="diffTitle">diff</h3><span id="diffStats" class="dstats"></span><button class="x" id="diffClose">✕</button></div>
+    <p class="modal-sub">Changes from the last run — <span class="da">added</span> / <span class="dr">removed</span>.</p>
     <div id="diffBody"></div>
     <div class="modal-foot"><button class="ghost" id="diffOpenEditor">Open in editor</button></div>
   </div>
@@ -255,7 +273,7 @@
 <div id="historyDrawer" class="sidepanel" hidden>
   <div class="panel">
     <div class="modal-head"><h3>⏱ Checkpoints</h3><button class="x" id="histClose">✕</button></div>
-    <p class="modal-sub">A snapshot of every file is saved before each AI run. Restore any point in time.</p>
+    <p class="modal-sub">A snapshot of every file is saved before each AI run.</p>
     <div id="histList"></div>
   </div>
 </div>
@@ -263,15 +281,14 @@
 <!-- ══════════ PROJECTS DRAWER ══════════ -->
 <div id="projectsDrawer" class="sidepanel" hidden>
   <div class="panel">
-    <div class="modal-head"><h3>🗂 Projects</h3><button class="x" id="projClose">✕</button></div>
-    <p class="modal-sub">Every project keeps its own files and chat. Switch freely — <b>nothing is erased</b>.
-       The project you're working on is snapshotted the moment you switch away.</p>
+    <div class="modal-head"><h3>▤ Projects</h3><button class="x" id="projClose">✕</button></div>
+    <p class="modal-sub">Switch freely — <b>nothing is erased</b>.</p>
     <div class="proj-actions">
       <button id="btnNew2" class="proj-act primary-act"><span>✦</span> New project</button>
       <button id="btnImport2" class="proj-act"><span>📂</span> Import folder</button>
       <button id="btnZip" class="proj-act"><span>⬇</span> Export ZIP</button>
     </div>
-    <div id="projList" style="max-height:52vh;overflow-y:auto"></div>
+    <div id="projList"></div>
   </div>
 </div>
 
@@ -279,16 +296,15 @@
 <div id="welcome" class="overlay hero" hidden>
   <div class="hero-card">
     <div class="hero-dots"><span class="hd on" id="hd1"></span><span class="hd" id="hd2"></span></div>
-
     <div class="hero-step" id="hstep1">
       <img class="hero-logo logo3d" src="assets/logo.png" alt="ANTROR" />
       <h1>ANTROR <span>Code</span></h1>
       <div class="hero-co">a product by ANTROR</div>
       <p class="tagline">describe it. ship it.</p>
       <ul class="hero-feats">
-        <li><span>💬</span><span><b>Describe it</b> — plain words in, real files out. No setup, no boilerplate.</span></li>
-        <li><span>⚡</span><span><b>Watch it live</b> — the preview comes alive while the code is still streaming.</span></li>
-        <li><span>🔒</span><span><b>Your keys stay yours</b> — stored only in this browser, never sent to ANTROR.</span></li>
+        <li><span>💬</span><span><b>Describe it</b> — plain words in, real files out.</span></li>
+        <li><span>⚡</span><span><b>Watch it work</b> — plan, files, commands, verification — live.</span></li>
+        <li><span>🔒</span><span><b>Your keys stay yours</b> — stored only in this browser.</span></li>
       </ul>
       <div class="hero-btns">
         <button id="btnHeroNext" class="primary big">Get started&nbsp; →</button>
@@ -296,14 +312,12 @@
       </div>
       <p class="hero-alt">Already have an account? <a href="#" id="heroSignin">Sign in</a></p>
     </div>
-
     <div class="hero-step" id="hstep2" hidden>
       <h2 class="hero-h2">Connect a model</h2>
-      <p class="hero-p">Pick a provider and paste your API key — or choose <b>Ollama</b> to go key-free &amp; local.
-        You can change this anytime in Settings.</p>
+      <p class="hero-p">Pick a provider and paste your API key — or choose <b>Ollama</b> for local.</p>
       <div id="heroProv" class="pick-grid"></div>
       <div class="hero-keyrow">
-        <input id="heroKey" type="password" placeholder="paste API key (or pick Ollama to go keyless)…" autocomplete="off" />
+        <input id="heroKey" type="password" placeholder="paste API key (or pick Ollama)…" autocomplete="off" />
         <button id="heroStart" class="primary big">Start building</button>
       </div>
       <p id="heroErr" class="hint err" hidden></p>
@@ -312,12 +326,8 @@
   </div>
 </div>
 
-
-
-<button id="chatFab" title="Chat with the ANTROR Assistant">💬</button>
-
+<button id="chatFab" title="Chat">💬</button>
 <div id="toasts"></div>
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-config.js?v=18"></script>
 <script src="supabase.js?v=18"></script>

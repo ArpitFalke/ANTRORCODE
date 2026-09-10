@@ -952,3 +952,16 @@ body.reduce-motion *,body.reduce-motion *::before,body.reduce-motion *::after{
   animation:none!important;transition:none!important;
 }
 body.reduce-motion .eq,body.reduce-motion .actline.live::before{display:none}
+
+
+/* ══════════ V2: PERM POPUP + QUEUE + CMDK ══════════ */
+#composerDock .modePop{position:absolute;left:10px;right:10px;bottom:calc(100% + 6px);z-index:40;
+  background:var(--panel2);border:1px solid var(--line2);border-radius:12px;padding:6px;
+  box-shadow:0 -12px 40px rgba(0,0,0,.5)}
+#composerDock .modePop[hidden]{display:none}
+.modeopt{display:block;width:100%;text-align:left;padding:9px 11px;border-radius:9px;border:none;
+  background:none;cursor:pointer;font-size:12px;color:var(--txt)}
+.modeopt:hover{background:rgba(255,255,255,.06)}
+.modeopt b{font-size:12px}
+.modeopt small{display:block;color:var(--faint);font-size:10.5px;margin-top:1px}
+#queueRow[hidden]{display:none}
